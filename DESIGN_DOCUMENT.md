@@ -127,6 +127,8 @@ essential features that must be free for all users.
 - Token generation support for APIs
 - Sharing a range of data and/or current levels with other people via a public link
   - Expiring links
+- Tracking anti-androgen levels and testosterone levels
+  - Anti-androgens: Spironolactone, Bicalutamide
 
 #### Tier 4 -- Premium Features
 
