@@ -121,6 +121,8 @@ essential features that must be free for all users.
 #### Tier 3 -- Nice to Haves
 
 - Native mobile application that supports Android and iOS
+  - Ability to operate fully offline without relying on server-sent notifications
+  - Periodic sync with the server, reconciling its state when online
 - Token generation support for APIs
 - Sharing a range of data and/or current levels with other people via a public link
   - Expiring links
