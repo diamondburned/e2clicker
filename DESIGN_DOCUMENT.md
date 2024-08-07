@@ -108,6 +108,7 @@ essential features that must be free for all users.
 - Support for various notification servers with authentication
   - [ntfy](https://ntfy.sh)
   - [gotify](https://gotify.net)
+- Maximum 3 months of data retention for free users
 
 #### Tier 2 -- Eventually Implemented
 
@@ -133,6 +134,7 @@ essential features that must be free for all users.
 - Prevent notifications from firing during certain hours, forcing them to be
   sent before or after.
 - Assign persistent comments to each historic dose
+- Permanent data retention!
 
 ## Alternatives
 
