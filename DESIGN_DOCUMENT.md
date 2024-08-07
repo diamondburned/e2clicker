@@ -136,6 +136,14 @@ essential features that must be free for all users.
 - Assign persistent comments to each historic dose
 - Permanent data retention!
 
+### UI Design
+
+The UI can have the same style, but it should have a more sophisticated layout being a PWA.
+
+For reference, V1 design:
+
+![image](https://github.com/user-attachments/assets/9cc7ca73-35e9-4c6f-8604-aeba7803343e)
+
 ## Alternatives
 
 TODO
