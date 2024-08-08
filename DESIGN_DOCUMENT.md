@@ -87,6 +87,53 @@ flowchart TD
     backend_notification_servers -->|HTTPS| device
 ```
 
+### DB Schema
+
+```dbml
+
+Table Users {
+  id int pk
+  name string
+  dosage_type enum
+  dosage_config jsonb
+
+  notification_message str
+
+  pushover_endpoint string
+  pushover_user string
+  pushover_token string
+
+  gotify_endpoint string
+  gotify_token string
+  gotify_priority int
+
+  push_notification_whatever string
+}
+
+Table DoseHistory {
+  id serial pk
+  user_id int [ref:>Users.id]
+  timestamp timestamp
+  dosage_type enum
+
+  indexes {
+    (user_id, timestamp) [type: btree]
+  }
+}
+
+Table NotificationHistory {
+  id serial pk
+  user_id int [ref:>Users.id]
+  dosage_timestamp timestamp
+  sent_timestamp timestamp
+  error_reason string
+
+  indexes {
+    (user_id, sent_timestamp) [type: btree]
+  }
+}
+```
+
 ### Features
 
 Features will be divided into various tiers, with tier 1 being the most
