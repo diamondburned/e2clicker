@@ -1,0 +1,64 @@
+$font-family: "Nunito", sans-serif;
+$font-size: clamp(0.95rem, 0.8167rem + 0.5333vw, 1.15rem);
+
+$headings-font-family: "Nunito", sans-serif;
+$headings-font-weight: 600;
+
+$code-font-family: "Inconsolata", monospace;
+$code-font-weight: 600;
+
+$line-height: 1.5;
+$border-radius: 0.45rem;
+
+$card-opacity-light: 0.65;
+$card-opacity-dark: 0.85;
+$card-blur: 15px;
+
+@mixin root {
+  --font-family: #{$font-family};
+  --font-size: #{$font-size};
+  --border-radius: #{$border-radius};
+  --border-width: 2px;
+  --line-height: #{$line-height};
+  --code-color: var(--color);
+  --grid-spacing-vertical: var(--spacing);
+  --grid-spacing-horizontal: var(--spacing);
+  --card-blur: #{$card-blur};
+
+  --blue: #76d9ff;
+  --pink: #ffc0cd;
+  --blue-text: #55cdfc;
+  --pink-text: #f89fb1;
+  --blue-rgb: 118, 217, 255;
+  --pink-rgb: 255, 192, 205;
+  --bg: #201b1f;
+  --fg: #eee;
+  --b2: #40363a;
+  --f2: #ccc;
+  --hl: #fff;
+  --ov: rgba(255, 255, 255, 0.15);
+  --hr: rgba(255, 255, 255, 0.6);
+  --radius: 0.5rem;
+  --spacing: 1rem;
+  --transition: 75ms linear;
+  --page-transition: 200ms ease-in-out;
+}
+
+:root,
+:root:not([data-theme]) {
+  @include root;
+}
+
+body {
+  font-family: $font-family;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: $headings-font-family;
+  font-weight: 700;
+}

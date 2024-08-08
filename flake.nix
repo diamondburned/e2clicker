@@ -15,6 +15,19 @@
       let
         pkgs = nixpkgs.legacyPackages.${system};
         lib = pkgs.lib;
+
+        pnpx =
+          name:
+          pkgs.writeShellScriptBin name ''
+            exec pnpx -- ${name} "$@"
+          '';
+
+        stub =
+          name:
+          pkgs.writeShellScriptBin name ''
+            echo "This command should not be run."
+            exit 1
+          '';
       in
       {
         devShells.default = pkgs.mkShell {
@@ -23,7 +36,11 @@
             gopls
             go-tools
 
+            (stub "npm")
+            (stub "npx")
+
             nodejs
+            nodePackages.pnpm
 
             sqlc
             oapi-codegen
@@ -31,6 +48,10 @@
 
             self.formatter.${system}
           ];
+
+          shellHook = ''
+            export PATH="$PATH:$(git rev-parse --show-toplevel)/node_modules/.bin"
+          '';
         };
 
         formatter = pkgs.nixfmt-rfc-style;

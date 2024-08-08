@@ -1,0 +1,11 @@
+@use "variables" as *;
+@use "@picocss/pico/scss/pico" as * with (
+  $theme-color: "pink",
+  $modules: (
+    "themes/default": false,
+  )
+);
+@use "@picocss/pico/scss/colors" as *;
+@use "@picocss/pico/scss/colors/utilities";
+@use "theme/styles";
+@use "theme/schemes";
