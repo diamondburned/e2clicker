@@ -108,6 +108,7 @@ essential features that must be free for all users.
 - Support for various notification servers with authentication
   - [ntfy](https://ntfy.sh)
   - [gotify](https://gotify.net)
+  - [pushover](https://pushover.net)
 - Maximum 3 months of data retention for free users
 
 #### Tier 2 -- Eventually Implemented
