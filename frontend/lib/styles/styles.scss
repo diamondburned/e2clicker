@@ -1,11 +1,36 @@
-@use "variables" as *;
+// @use "variables" as *;
 @use "@picocss/pico/scss/pico" as * with (
   $theme-color: "pink",
+  $enable-responsive-spacings: true,
+  $enable-semantic-container: true,
   $modules: (
     "themes/default": false,
   )
 );
-@use "@picocss/pico/scss/colors" as *;
-@use "@picocss/pico/scss/colors/utilities";
 @use "theme/styles";
 @use "theme/schemes";
+@use "@picocss/pico/scss/colors" as *;
+@use "@picocss/pico/scss/colors/utilities";
+
+html {
+  height: 100%;
+}
+
+body {
+  min-height: 100%;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.primary {
+  &:not(.inverted) {
+    --pico-color: var(--pico-primary);
+  }
+
+  &.inverted {
+    --pico-color: var(--pico-primary-inverse);
+    background-color: var(--pico-primary-background);
+  }
+}

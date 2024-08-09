@@ -1,9 +1,11 @@
 <script lang="ts">
-  import Header from "$lib/components/Header.svelte";
+  import { goto } from "$app/navigation";
+  import { isLoggedIn } from "$lib/api.svelte.js";
+  import { onMount } from "svelte";
+
+  onMount(() => {
+    if (!isLoggedIn()) {
+      goto("/login");
+    }
+  });
 </script>
-
-<svelte:head>
-  <title>hrtclicker</title>
-</svelte:head>
-
-<Header />

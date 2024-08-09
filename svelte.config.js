@@ -14,9 +14,7 @@ const config = {
       errorTemplate: "frontend/error.html",
     },
   },
-  compilerOptions: {
-    runes: true,
-  },
+  compilerOptions: {},
 };
 
 export default config;

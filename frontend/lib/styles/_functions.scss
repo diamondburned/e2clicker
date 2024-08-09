@@ -1,0 +1,39 @@
+// Generate a shadow with 7 layers
+@function shadow($color, $elevation: 1rem, $blur-strengh: 6rem, $opacity: 0.06) {
+  $box-shadow-elevation: $elevation;
+  $box-shadow-blur-strengh: $blur-strength;
+  $box-shadow-opacity: $opacity;
+
+  @return shadow-layer(
+      $box-shadow-elevation * 0.029,
+      $box-shadow-blur-strengh * 0.029,
+      $box-shadow-opacity * 0.283,
+      $color
+    ),
+    shadow-layer(
+      $box-shadow-elevation * 0.067,
+      $box-shadow-blur-strengh * 0.067,
+      $box-shadow-opacity * 0.4,
+      $color
+    ),
+    shadow-layer(
+      $box-shadow-elevation * 0.125,
+      $box-shadow-blur-strengh * 0.125,
+      $box-shadow-opacity * 0.5,
+      $color
+    ),
+    shadow-layer(
+      $box-shadow-elevation * 0.225,
+      $box-shadow-blur-strengh * 0.225,
+      $box-shadow-opacity * 0.6,
+      $color
+    ),
+    shadow-layer(
+      $box-shadow-elevation * 0.417,
+      $box-shadow-blur-strengh * 0.417,
+      $box-shadow-opacity * 0.717,
+      $color
+    ),
+    shadow-layer($box-shadow-elevation, $box-shadow-blur-strengh, $box-shadow-opacity, $color),
+    0 0 0 0.0625rem #{rgba($color, ($box-shadow-opacity * 0.25))};
+}

@@ -3,15 +3,17 @@
 @use "@picocss/pico/scss/settings" as *;
 @use "@picocss/pico/scss/helpers/functions";
 @use "@picocss/pico/scss/themes/default/theme-colors";
+@import url("https://fonts.googleapis.com/css2?family=Inconsolata:wght@200..900&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Reddit+Sans:ital,wght@0,200..900;1,200..900&display=swap");
 
 :root {
   // Typography
   --pico-font-family-emoji: "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
     "Noto Color Emoji";
-  --pico-font-family-sans-serif: "Nunito", system-ui, sans-serif, var(--pico-font-family-emoji);
+  --pico-font-family-sans-serif: "Reddit Sans", system-ui, sans-serif, var(--pico-font-family-emoji);
   --pico-font-family-monospace: "Inconsolata", ui-monospace, monospace,
     var(--pico-font-family-emoji);
   --pico-font-family: var(--pico-font-family-sans-serif);
+  --pico-font-family-headings: "Inter", var(--pico-font-family-sans-serif);
   --pico-line-height: 1.5;
   --pico-font-weight: 400;
   --pico-font-size: clamp(0.95rem, 0.8167rem + 0.5333vw, 1.15rem);
@@ -23,10 +25,11 @@
   --pico-outline-width: 0.125rem;
 
   // Transitions
-  --pico-transition: 0.2s ease-in-out;
+  --pico-transition: 0.2s var(--pico-transition-easing);
+  --pico-transition-easing: ease-in-out;
   @media (prefers-reduced-motion: reduce) {
     :root {
-      --pico-transition: 0s;
+      --pico-transition-easing: none;
     }
   }
 
@@ -168,7 +171,8 @@ h3,
 h4,
 h5,
 h6 {
-  --pico-font-weight: 700;
+  --pico-font-weight: 600;
+  --pico-font-family: var(--pico-font-family-headings);
 }
 
 h1 {

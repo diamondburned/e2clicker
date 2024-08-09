@@ -5,9 +5,6 @@ settings:
   excludeLinksFromLockfile: false
 
 devDependencies:
-  '@material-design-icons/svg':
-    specifier: ^0.14.13
-    version: 0.14.13
   '@picocss/pico':
     specifier: ^2.0.0
     version: 2.0.6
@@ -44,6 +41,9 @@ devDependencies:
   svelte-check:
     specifier: ' ^3.8.5'
     version: 3.8.5(sass@1.71.1)(svelte@5.0.0-next.210)
+  svelte-google-materialdesign-icons:
+    specifier: ^1.0.3
+    version: 1.0.3(svelte@5.0.0-next.210)
   svelte-language-server:
     specifier: ^0.16.14
     version: 0.16.14(sass@1.71.1)
@@ -333,10 +333,6 @@ packages:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.0
-    dev: true
-
-  /@material-design-icons/svg@0.14.13:
-    resolution: {integrity: sha512-nCExGZOtoLoFeeqShEOM4XA9DkkLzLlQdk/ZxHxps0//dz6e1Lw3fvQbZ2X/+0Dz2O+udiEukfZ4Nd4KpHg8aA==}
     dev: true
 
   /@nodelib/fs.scandir@2.1.5:
@@ -1538,6 +1534,14 @@ packages:
       - sass
       - stylus
       - sugarss
+    dev: true
+
+  /svelte-google-materialdesign-icons@1.0.3(svelte@5.0.0-next.210):
+    resolution: {integrity: sha512-4ZnrvzRYRYGPJCh6zCR4uWeGZLJc6oe+c9tlTZ673N/XnuxheGzEeGCmd+86hmWazStYebY20v8mkvA+GOyqrA==}
+    peerDependencies:
+      svelte: ^4.0.0 || ^5.0.0
+    dependencies:
+      svelte: 5.0.0-next.210
     dev: true
 
   /svelte-language-server@0.16.14(sass@1.71.1):

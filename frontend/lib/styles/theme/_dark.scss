@@ -1,4 +1,5 @@
 @use "sass:map";
+@use "sass:color";
 @use "@picocss/pico/scss/colors" as *;
 @use "@picocss/pico/scss/settings" as *;
 @use "@picocss/pico/scss/helpers/functions";
@@ -6,29 +7,29 @@
 
 // Default: Dark theme
 @mixin theme {
-  --pico-background-color: #{mix($pink-950, $pink-900)};
+  --pico-background-color: #201b1f;
 
   // Text color
   --pico-color: #{$pink-200};
 
   // Text selection color
-  --pico-text-selection-color: theme-colors.get("text-selection-color", "dark");
+  --pico-text-selection-color: #{theme-colors.get("text-selection-color", "dark")};
 
   // Muted colors
-  --pico-muted-color: #{$pink-450};
-  --pico-muted-border-color: #{$pink-850};
+  --pico-muted-color: #{mix($pink-200, $grey-800, 40%)};
+  --pico-muted-border-color: #{$grey-850};
 
   // Primary colors
-  --pico-primary: theme-colors.get("primary", "dark");
-  --pico-primary-background: theme-colors.get("primary-background", "dark");
+  --pico-primary: #{theme-colors.get("primary", "dark")};
+  --pico-primary-background: #{theme-colors.get("primary-background", "dark")};
   --pico-primary-border: var(--pico-primary-background);
-  --pico-primary-underline: theme-colors.get("primary-underline", "dark");
-  --pico-primary-hover: theme-colors.get("primary-hover", "dark");
-  --pico-primary-hover-background: theme-colors.get("primary-hover-background", "dark");
+  --pico-primary-underline: #{theme-colors.get("primary-underline", "dark")};
+  --pico-primary-hover: #{theme-colors.get("primary-hover", "dark")};
+  --pico-primary-hover-background: #{theme-colors.get("primary-hover-background", "dark")};
   --pico-primary-hover-border: var(--pico-primary-hover-background);
   --pico-primary-hover-underline: var(--pico-primary-hover);
-  --pico-primary-focus: theme-colors.get("primary-focus", "dark");
-  --pico-primary-inverse: theme-colors.get("primary-inverse", "dark");
+  --pico-primary-focus: #{theme-colors.get("primary-focus", "dark")};
+  --pico-primary-inverse: #{theme-colors.get("primary-inverse", "dark")};
 
   // Secondary colors
   --pico-secondary: #{$azure-350};
@@ -55,7 +56,8 @@
   --pico-contrast-inverse: #{$black};
 
   // Box shadow
-  --pico-box-shadow: functions.shadow(mix($black, $slate-950));
+  --pico-shadow-color: #{mix($black, $grey-950)};
+  --pico-box-shadow: #{functions.shadow(mix($black, $grey-950))};
 
   // Typography
   // Headings colors
@@ -95,20 +97,20 @@
   --pico-code-kbd-color: var(--pico-background-color);
 
   // Form elements
-  --pico-form-element-background-color: #{mix($slate-900, $slate-850)};
-  --pico-form-element-selected-background-color: #{$slate-800};
-  --pico-form-element-border-color: #{$slate-800};
+  --pico-form-element-background-color: #{mix($grey-900, $pink-850, 85%)};
+  --pico-form-element-selected-background-color: #{mix($grey-900, $pink-850, 75%)};
+  --pico-form-element-border-color: #{$grey-800};
   --pico-form-element-color: #{$zinc-100};
   --pico-form-element-placeholder-color: #{$zinc-400};
-  --pico-form-element-active-background-color: #{mix($slate-900, $slate-850, 75%)};
+  --pico-form-element-active-background-color: #{mix($grey-900, $grey-850, 75%)};
   --pico-form-element-active-border-color: var(--pico-primary-border);
   --pico-form-element-focus-color: var(--pico-primary-border);
   --pico-form-element-disabled-opacity: 0.5;
-  --pico-form-element-invalid-border-color: #{mix($red-500, $slate-600)};
-  --pico-form-element-invalid-active-border-color: #{mix($red-500, $slate-600, 75%)};
+  --pico-form-element-invalid-border-color: #{mix($red-500, $grey-600)};
+  --pico-form-element-invalid-active-border-color: #{mix($red-500, $grey-600, 75%)};
   --pico-form-element-invalid-focus-color: var(--pico-form-element-invalid-active-border-color);
-  --pico-form-element-valid-border-color: #{mix($jade-450, $slate-600)};
-  --pico-form-element-valid-active-border-color: #{mix($jade-450, $slate-600, 75%)};
+  --pico-form-element-valid-border-color: #{mix($jade-450, $grey-600)};
+  --pico-form-element-valid-active-border-color: #{mix($jade-450, $grey-600, 75%)};
   --pico-form-element-valid-focus-color: var(--pico-form-element-valid-active-border-color);
 
   // Focus for buttons, radio and select
@@ -127,7 +129,7 @@
   --pico-switch-background-color: #{$slate-750};
   --pico-switch-checked-background-color: var(--pico-primary-background);
   --pico-switch-color: #{$white};
-  --pico-switch-thumb-box-shadow: theme-colors.get("switch-thumb-box-shadow", "dark");
+  --pico-switch-thumb-box-shadow: #{theme-colors.get("switch-thumb-box-shadow", "dark")};
 
   // Range (input[type="range"])
   --pico-range-border-color: #{$slate-850};
@@ -143,7 +145,7 @@
   --pico-accordion-open-summary-color: var(--pico-muted-color);
 
   // Card (<article>)
-  --pico-card-background-color: #{$slate-900};
+  --pico-card-background-color: #{mix($pink-300, $grey-950, 15%)};
   --pico-card-border-color: var(--pico-card-background-color);
   --pico-card-box-shadow: var(--pico-box-shadow);
   --pico-card-sectioning-background-color: #{mix($slate-900, $slate-850, 75%)};
