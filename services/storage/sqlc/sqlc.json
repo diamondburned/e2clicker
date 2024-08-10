@@ -1,0 +1,36 @@
+{
+  "version": 2,
+  "sql": [
+    {
+      "engine": "postgresql",
+      "queries": "postgresql/queries.sql",
+      "schema": "postgresql/schema.sql",
+      "gen": {
+        "go": {
+          "package": "postgresql",
+          "out": "postgresql/",
+          "sql_package": "pgx/v5",
+          "overrides": [
+            {
+              "db_type": "xid",
+              "go_type": {
+                "import": "github.com/rs/xid",
+                "package": "xid",
+                "type": "ID"
+              }
+            },
+            {
+              "db_type": "notificationconfig",
+              "go_type": {
+                "import": "libdb.so/hrtclicker/v2/services/notification",
+                "package": "notification",
+                "type": "NotificationConfigJSON"
+              },
+              "nullable": true
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

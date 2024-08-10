@@ -43,6 +43,8 @@
             nodePackages.pnpm
 
             sqlc
+            pgformatter
+
             oapi-codegen
             yaml-language-server
 
