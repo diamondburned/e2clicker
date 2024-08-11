@@ -5,10 +5,15 @@ go 1.22.1
 require (
 	github.com/alecthomas/assert/v2 v2.10.0
 	github.com/elithrar/simple-scrypt v1.3.0
+	github.com/go-chi/chi/v5 v5.1.0
 	github.com/jackc/pgx/v5 v5.6.0
+	github.com/lmittmann/tint v1.0.5
 	github.com/pkg/errors v0.9.1
+	github.com/plaid/go-envvar v1.1.0
 	github.com/rs/xid v1.5.0
+	github.com/spf13/pflag v1.0.5
 	golang.org/x/text v0.14.0
+	libdb.so/hserve v0.0.0-20230404043009-95e112a6e0a5
 	libdb.so/lazymigrate v0.0.0-20240811151247-0597fc52ac48
 )
 
