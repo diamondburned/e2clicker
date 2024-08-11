@@ -4,6 +4,7 @@ import adapter from "@sveltejs/adapter-node";
 const config = {
   kit: {
     adapter: adapter(),
+    outDir: "dist/frontend",
     files: {
       assets: "frontend/public",
       lib: "frontend/lib",

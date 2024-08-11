@@ -12,14 +12,19 @@ UPDATE
   meta
 SET v = 2;
 
--- xid type
 CREATE DOMAIN xid AS char(20);
 
--- assetid type
 CREATE DOMAIN assetid AS char(20);
 
--- notificationserviceconfig type
+CREATE DOMAIN notification AS jsonb;
+
 CREATE DOMAIN notificationconfig AS jsonb;
+
+CREATE DOMAIN locale AS text;
+
+CREATE TYPE compression AS ENUM (
+  'gzip', 'zstd', 'brotli'
+);
 
 CREATE TABLE delivery_methods (
   id text PRIMARY KEY, units text NOT NULL, name text NOT NULL
@@ -43,11 +48,16 @@ CREATE TABLE users (
   passhash bytea NOT NULL,
   -- The user's display name.
   name text NOT NULL,
+  -- The user's locale.
+  locale locale NOT NULL DEFAULT 'en-US',
+  -- The time the user was created.
+  registered_at timestamp NOT NULL DEFAULT now(),
   -- The notification service for this user. If null, notifications are
   -- disabled.
   notification_service notificationconfig,
-  -- The notification message to display. If null, the default message is used.
-  notification_message text
+  -- The custom notification message for this user. If null, the default
+  -- message is used.
+  custom_notification notification
 );
 
 CREATE TABLE user_sessions (
@@ -69,6 +79,10 @@ CREATE TABLE user_sessions (
 CREATE TABLE user_avatars (
   -- The user's ID in xid format.
   user_id xid PRIMARY KEY REFERENCES users (user_id) ON DELETE CASCADE,
+  -- The MIME type of the image.
+  mime_type text NOT NULL,
+  -- The compression of the image data, if any.
+  compression compression,
   -- The user's avatar image, limited to 1MB.
   avatar_image bytea NOT NULL CHECK (octet_length(avatar_image) <= 1048576)
 );

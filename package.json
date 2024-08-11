@@ -9,10 +9,6 @@
     "#/libdb.so/hrtclicker*": "./*"
   },
   "description": "",
-  "scripts": {
-    "dev": "vite",
-    "build": "make"
-  },
   "prettier": {
     "printWidth": 100,
     "plugins": [

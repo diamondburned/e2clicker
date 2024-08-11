@@ -20,11 +20,39 @@
               }
             },
             {
+              "db_type": "locale",
+              "go_type": {
+                "import": "libdb.so/hrtclicker/v2/services/user",
+                "package": "userservice",
+                "type": "Locale"
+              }
+            },
+            {
+              "db_type": "compression",
+              "go_type": {
+                "import": "libdb.so/hrtclicker/v2/services/asset",
+                "package": "assetservice",
+                "type": "Compression"
+              },
+              "nullable": true
+            },
+            {
+              "db_type": "notification",
+              "go_type": {
+                "import": "libdb.so/hrtclicker/v2/services/notification",
+                "package": "notificationservice",
+                "type": "Notification",
+                "pointer": true
+              },
+              "nullable": true
+            },
+            {
               "db_type": "notificationconfig",
               "go_type": {
                 "import": "libdb.so/hrtclicker/v2/services/notification",
-                "package": "notification",
-                "type": "NotificationConfigJSON"
+                "package": "notificationservice",
+                "type": "NotificationConfigJSON",
+                "pointer": true
               },
               "nullable": true
             }

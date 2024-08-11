@@ -26,6 +26,13 @@ type GotifyConfig struct {
 func (GotifyConfig) ServiceName() string   { return "gotify" }
 func (GotifyConfig) isNotificationConfig() {}
 
+func (c GotifyConfig) Validate() error {
+	if _, err := url.Parse(c.BaseURL); err != nil {
+		return fmt.Errorf("invalid base URL: %w", err)
+	}
+	return nil
+}
+
 type GotifyService struct {
 	Client *http.Client
 }
@@ -41,7 +48,11 @@ func (s GotifyService) ServiceName() string { return "gotify" }
 func (s GotifyService) SendNotification(ctx context.Context, n Notification, c NotificationConfig) error {
 	config, ok := c.(GotifyConfig)
 	if !ok {
-		return ErrInvalidConfig
+		return ConfigError{ServiceName: c.ServiceName()}
+	}
+
+	if err := config.Validate(); err != nil {
+		return ConfigError{ServiceName: c.ServiceName(), err: err}
 	}
 
 	u, err := url.Parse(config.BaseURL)

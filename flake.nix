@@ -32,13 +32,15 @@
       {
         devShells.default = pkgs.mkShell {
           packages = with pkgs; [
+            just
+
             go
             gopls
             go-tools
+            moq
 
             (stub "npm")
             (stub "npx")
-
             nodejs
             nodePackages.pnpm
 
@@ -53,6 +55,9 @@
 
           shellHook = ''
             export PATH="$PATH:$(git rev-parse --show-toplevel)/node_modules/.bin"
+
+            # Set up autocompletion for just in bash.
+            [[ $SHELL == bash ]] && complete -W '$(just --summary)' just
           '';
         };
 

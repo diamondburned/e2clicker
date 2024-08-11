@@ -10,8 +10,26 @@ import (
 
 	"github.com/jackc/pgx/v5/pgtype"
 	xid "github.com/rs/xid"
-	notification "libdb.so/hrtclicker/v2/services/notification"
+	notificationservice "libdb.so/hrtclicker/v2/services/notification"
+	userservice "libdb.so/hrtclicker/v2/services/user"
 )
+
+const addUserDosage = `-- name: AddUserDosage :exec
+INSERT INTO dosage_history (user_id, last_dose, taken_at, delivery_method, dose) (
+  SELECT $1, $2, now(), delivery_method, dose
+  FROM dosage_schedule
+  WHERE user_id = $1)
+`
+
+type AddUserDosageParams struct {
+	UserID   pgtype.Uint32
+	LastDose pgtype.Int8
+}
+
+func (q *Queries) AddUserDosage(ctx context.Context, arg AddUserDosageParams) error {
+	_, err := q.db.Exec(ctx, addUserDosage, arg.UserID, arg.LastDose)
+	return err
+}
 
 const createUser = `-- name: CreateUser :exec
 /*
@@ -80,6 +98,9 @@ func (q *Queries) DeliveryMethods(ctx context.Context) ([]DeliveryMethod, error)
 }
 
 const registerSession = `-- name: RegisterSession :exec
+/*
+ * User Session
+ */
 INSERT INTO user_sessions (user_id, token, created_at, last_used, user_agent)
   VALUES ($1, $2, now(), now(), $3)
 `
@@ -95,24 +116,172 @@ func (q *Queries) RegisterSession(ctx context.Context, arg RegisterSessionParams
 	return err
 }
 
-const userAddDosage = `-- name: UserAddDosage :exec
-INSERT INTO dosage_history (user_id, last_dose, taken_at, delivery_method, dose) (
-  SELECT $1, $2, now(), delivery_method, dose
-  FROM dosage_schedule
-  WHERE user_id = $1)
+const setUserAvatar = `-- name: SetUserAvatar :exec
+INSERT INTO user_avatars (user_id, avatar_image)
+  VALUES ($1, $2)
+ON CONFLICT (user_id)
+  DO UPDATE SET
+    avatar_image = $2
 `
 
-type UserAddDosageParams struct {
-	UserID   pgtype.Uint32
-	LastDose pgtype.Int8
+type SetUserAvatarParams struct {
+	UserID      xid.ID
+	AvatarImage []byte
 }
 
-func (q *Queries) UserAddDosage(ctx context.Context, arg UserAddDosageParams) error {
-	_, err := q.db.Exec(ctx, userAddDosage, arg.UserID, arg.LastDose)
+func (q *Queries) SetUserAvatar(ctx context.Context, arg SetUserAvatarParams) error {
+	_, err := q.db.Exec(ctx, setUserAvatar, arg.UserID, arg.AvatarImage)
 	return err
 }
 
+const setUserCustomNotification = `-- name: SetUserCustomNotification :exec
+UPDATE
+  users
+SET custom_notification = $2
+WHERE user_id = $1
+`
+
+type SetUserCustomNotificationParams struct {
+	UserID             xid.ID
+	CustomNotification *notificationservice.Notification
+}
+
+func (q *Queries) SetUserCustomNotification(ctx context.Context, arg SetUserCustomNotificationParams) error {
+	_, err := q.db.Exec(ctx, setUserCustomNotification, arg.UserID, arg.CustomNotification)
+	return err
+}
+
+const setUserNotificationService = `-- name: SetUserNotificationService :exec
+/*
+ * User Notifications
+ */
+UPDATE
+  users
+SET notification_service = $2
+WHERE user_id = $1
+`
+
+type SetUserNotificationServiceParams struct {
+	UserID              xid.ID
+	NotificationService *notificationservice.NotificationConfigJSON
+}
+
+func (q *Queries) SetUserNotificationService(ctx context.Context, arg SetUserNotificationServiceParams) error {
+	_, err := q.db.Exec(ctx, setUserNotificationService, arg.UserID, arg.NotificationService)
+	return err
+}
+
+const updateUserDosageSchedule = `-- name: UpdateUserDosageSchedule :exec
+INSERT INTO dosage_schedule (user_id, delivery_method, dose, interval, concurrence)
+  VALUES ($1, $2, $3, $4, $5)
+ON CONFLICT (user_id)
+  DO UPDATE SET
+    delivery_method = $2, dose = $3, interval = $4, concurrence = $5
+`
+
+type UpdateUserDosageScheduleParams struct {
+	UserID         xid.ID
+	DeliveryMethod pgtype.Text
+	Dose           pgtype.Numeric
+	Interval       pgtype.Interval
+	Concurrence    pgtype.Numeric
+}
+
+func (q *Queries) UpdateUserDosageSchedule(ctx context.Context, arg UpdateUserDosageScheduleParams) error {
+	_, err := q.db.Exec(ctx, updateUserDosageSchedule,
+		arg.UserID,
+		arg.DeliveryMethod,
+		arg.Dose,
+		arg.Interval,
+		arg.Concurrence,
+	)
+	return err
+}
+
+const updateUserEmailPassword = `-- name: UpdateUserEmailPassword :exec
+UPDATE
+  users
+SET email = $2, passhash = $3
+WHERE user_id = $1
+`
+
+type UpdateUserEmailPasswordParams struct {
+	UserID   xid.ID
+	Email    string
+	Passhash []byte
+}
+
+func (q *Queries) UpdateUserEmailPassword(ctx context.Context, arg UpdateUserEmailPasswordParams) error {
+	_, err := q.db.Exec(ctx, updateUserEmailPassword, arg.UserID, arg.Email, arg.Passhash)
+	return err
+}
+
+const updateUserLocale = `-- name: UpdateUserLocale :exec
+UPDATE
+  users
+SET locale = $2
+WHERE user_id = $1
+`
+
+type UpdateUserLocaleParams struct {
+	UserID xid.ID
+	Locale userservice.Locale
+}
+
+func (q *Queries) UpdateUserLocale(ctx context.Context, arg UpdateUserLocaleParams) error {
+	_, err := q.db.Exec(ctx, updateUserLocale, arg.UserID, arg.Locale)
+	return err
+}
+
+const updateUserName = `-- name: UpdateUserName :exec
+UPDATE
+  users
+SET name = $2
+WHERE user_id = $1
+`
+
+type UpdateUserNameParams struct {
+	UserID xid.ID
+	Name   string
+}
+
+func (q *Queries) UpdateUserName(ctx context.Context, arg UpdateUserNameParams) error {
+	_, err := q.db.Exec(ctx, updateUserName, arg.UserID, arg.Name)
+	return err
+}
+
+const user = `-- name: User :one
+SELECT user_id, email, name, EXISTS (
+    SELECT user_id
+    FROM user_avatars
+    WHERE user_id = users.user_id) AS has_avatar
+FROM users
+WHERE users.user_id = $1
+`
+
+type UserRow struct {
+	UserID    xid.ID
+	Email     string
+	Name      string
+	HasAvatar bool
+}
+
+func (q *Queries) User(ctx context.Context, userID xid.ID) (UserRow, error) {
+	row := q.db.QueryRow(ctx, user, userID)
+	var i UserRow
+	err := row.Scan(
+		&i.UserID,
+		&i.Email,
+		&i.Name,
+		&i.HasAvatar,
+	)
+	return i, err
+}
+
 const userAvatar = `-- name: UserAvatar :one
+/*
+ * User Avatar
+ */
 SELECT avatar_image
 FROM user_avatars
 WHERE user_id = $1
@@ -123,79 +292,6 @@ func (q *Queries) UserAvatar(ctx context.Context, userID xid.ID) ([]byte, error)
 	var avatar_image []byte
 	err := row.Scan(&avatar_image)
 	return avatar_image, err
-}
-
-const userByEmail = `-- name: UserByEmail :one
-SELECT user_id, email, name, EXISTS (
-    SELECT user_id
-    FROM user_avatars
-    WHERE user_id = users.user_id) AS has_avatar
-FROM users
-WHERE email = $1
-`
-
-type UserByEmailRow struct {
-	UserID    xid.ID
-	Email     string
-	Name      string
-	HasAvatar bool
-}
-
-func (q *Queries) UserByEmail(ctx context.Context, email string) (UserByEmailRow, error) {
-	row := q.db.QueryRow(ctx, userByEmail, email)
-	var i UserByEmailRow
-	err := row.Scan(
-		&i.UserID,
-		&i.Email,
-		&i.Name,
-		&i.HasAvatar,
-	)
-	return i, err
-}
-
-const userByID = `-- name: UserByID :one
-SELECT user_id, email, name, EXISTS (
-    SELECT user_id
-    FROM user_avatars
-    WHERE user_id = users.user_id) AS has_avatar
-FROM users
-WHERE users.user_id = $1
-`
-
-type UserByIDRow struct {
-	UserID    xid.ID
-	Email     string
-	Name      string
-	HasAvatar bool
-}
-
-func (q *Queries) UserByID(ctx context.Context, userID xid.ID) (UserByIDRow, error) {
-	row := q.db.QueryRow(ctx, userByID, userID)
-	var i UserByIDRow
-	err := row.Scan(
-		&i.UserID,
-		&i.Email,
-		&i.Name,
-		&i.HasAvatar,
-	)
-	return i, err
-}
-
-const userConfigureNotifications = `-- name: UserConfigureNotifications :exec
-UPDATE
-  users
-SET notification_service = $2
-WHERE user_id = $1
-`
-
-type UserConfigureNotificationsParams struct {
-	UserID              xid.ID
-	NotificationService notification.NotificationConfigJSON
-}
-
-func (q *Queries) UserConfigureNotifications(ctx context.Context, arg UserConfigureNotificationsParams) error {
-	_, err := q.db.Exec(ctx, userConfigureNotifications, arg.UserID, arg.NotificationService)
-	return err
 }
 
 const userDosageHistory = `-- name: UserDosageHistory :many
@@ -255,104 +351,25 @@ func (q *Queries) UserDosageSchedule(ctx context.Context, userID xid.ID) error {
 	return err
 }
 
-const userSetAvatar = `-- name: UserSetAvatar :exec
-INSERT INTO user_avatars (user_id, avatar_image)
-  VALUES ($1, $2)
-ON CONFLICT (user_id)
-  DO UPDATE SET
-    avatar_image = $2
+const userPasswordHashFromEmail = `-- name: UserPasswordHashFromEmail :one
+SELECT user_id, passhash
+FROM users
+WHERE email = $1
 `
 
-type UserSetAvatarParams struct {
-	UserID      xid.ID
-	AvatarImage []byte
-}
-
-func (q *Queries) UserSetAvatar(ctx context.Context, arg UserSetAvatarParams) error {
-	_, err := q.db.Exec(ctx, userSetAvatar, arg.UserID, arg.AvatarImage)
-	return err
-}
-
-const userSetNotificationMessage = `-- name: UserSetNotificationMessage :exec
-UPDATE
-  users
-SET notification_message = $2
-WHERE user_id = $1
-`
-
-type UserSetNotificationMessageParams struct {
-	UserID              xid.ID
-	NotificationMessage pgtype.Text
-}
-
-func (q *Queries) UserSetNotificationMessage(ctx context.Context, arg UserSetNotificationMessageParams) error {
-	_, err := q.db.Exec(ctx, userSetNotificationMessage, arg.UserID, arg.NotificationMessage)
-	return err
-}
-
-const userUpdateDosageSchedule = `-- name: UserUpdateDosageSchedule :exec
-INSERT INTO dosage_schedule (user_id, delivery_method, dose, interval, concurrence)
-  VALUES ($1, $2, $3, $4, $5)
-ON CONFLICT (user_id)
-  DO UPDATE SET
-    delivery_method = $2, dose = $3, interval = $4, concurrence = $5
-`
-
-type UserUpdateDosageScheduleParams struct {
-	UserID         xid.ID
-	DeliveryMethod pgtype.Text
-	Dose           pgtype.Numeric
-	Interval       pgtype.Interval
-	Concurrence    pgtype.Numeric
-}
-
-func (q *Queries) UserUpdateDosageSchedule(ctx context.Context, arg UserUpdateDosageScheduleParams) error {
-	_, err := q.db.Exec(ctx, userUpdateDosageSchedule,
-		arg.UserID,
-		arg.DeliveryMethod,
-		arg.Dose,
-		arg.Interval,
-		arg.Concurrence,
-	)
-	return err
-}
-
-const userUpdateEmailPassword = `-- name: UserUpdateEmailPassword :exec
-UPDATE
-  users
-SET email = $2, passhash = $3
-WHERE user_id = $1
-`
-
-type UserUpdateEmailPasswordParams struct {
+type UserPasswordHashFromEmailRow struct {
 	UserID   xid.ID
-	Email    string
 	Passhash []byte
 }
 
-func (q *Queries) UserUpdateEmailPassword(ctx context.Context, arg UserUpdateEmailPasswordParams) error {
-	_, err := q.db.Exec(ctx, userUpdateEmailPassword, arg.UserID, arg.Email, arg.Passhash)
-	return err
+func (q *Queries) UserPasswordHashFromEmail(ctx context.Context, email string) (UserPasswordHashFromEmailRow, error) {
+	row := q.db.QueryRow(ctx, userPasswordHashFromEmail, email)
+	var i UserPasswordHashFromEmailRow
+	err := row.Scan(&i.UserID, &i.Passhash)
+	return i, err
 }
 
-const userUpdateName = `-- name: UserUpdateName :exec
-UPDATE
-  users
-SET name = $2
-WHERE user_id = $1
-`
-
-type UserUpdateNameParams struct {
-	UserID xid.ID
-	Name   string
-}
-
-func (q *Queries) UserUpdateName(ctx context.Context, arg UserUpdateNameParams) error {
-	_, err := q.db.Exec(ctx, userUpdateName, arg.UserID, arg.Name)
-	return err
-}
-
-const userValidateSession = `-- name: UserValidateSession :one
+const validateSession = `-- name: ValidateSession :one
 UPDATE
   user_sessions
 SET last_used = now()
@@ -366,16 +383,16 @@ RETURNING users.user_id, users.email, users.name, EXISTS (
     WHERE user_id = users.user_id) AS has_avatar
 `
 
-type UserValidateSessionRow struct {
+type ValidateSessionRow struct {
 	UserID    xid.ID
 	Email     string
 	Name      string
 	HasAvatar bool
 }
 
-func (q *Queries) UserValidateSession(ctx context.Context, token []byte) (UserValidateSessionRow, error) {
-	row := q.db.QueryRow(ctx, userValidateSession, token)
-	var i UserValidateSessionRow
+func (q *Queries) ValidateSession(ctx context.Context, token []byte) (ValidateSessionRow, error) {
+	row := q.db.QueryRow(ctx, validateSession, token)
+	var i ValidateSessionRow
 	err := row.Scan(
 		&i.UserID,
 		&i.Email,

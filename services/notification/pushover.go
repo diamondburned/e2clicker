@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 )
 
 func init() { RegisterConfigType(PushoverConfig{}) }
@@ -27,6 +28,14 @@ type PushoverConfig struct {
 func (PushoverConfig) ServiceName() string   { return "pushover" }
 func (PushoverConfig) isNotificationConfig() {}
 
+// Validate checks that the configuration is valid.
+func (c PushoverConfig) Validate() error {
+	if _, err := url.Parse(c.Endpoint); err != nil {
+		return fmt.Errorf("invalid endpoint: %w", err)
+	}
+	return nil
+}
+
 type PushoverService struct {
 	Client *http.Client
 }
@@ -45,7 +54,11 @@ func (s PushoverService) ServiceName() string { return "pushover" }
 func (s PushoverService) SendNotification(ctx context.Context, n Notification, c NotificationConfig) error {
 	config, ok := c.(PushoverConfig)
 	if !ok {
-		return ErrInvalidConfig
+		return ConfigError{ServiceName: c.ServiceName()}
+	}
+
+	if err := config.Validate(); err != nil {
+		return ConfigError{ServiceName: c.ServiceName(), err: err}
 	}
 
 	b, err := json.Marshal(pushoverNotification{

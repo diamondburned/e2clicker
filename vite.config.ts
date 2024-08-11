@@ -12,7 +12,6 @@ export default defineConfig({
     port: 5001,
   },
   build: {
-    outDir: "dist",
     assetsDir: "static",
     emptyOutDir: true,
     rollupOptions: {
