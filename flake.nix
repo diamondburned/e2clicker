@@ -36,7 +36,8 @@
 
             go
             gopls
-            go-tools
+            gotools # contains goimports
+            go-tools # contains staticcheck
             moq
 
             (stub "npm")
