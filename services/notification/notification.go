@@ -1,3 +1,4 @@
+// Package notification provides a way to send notifications to users.
 package notification
 
 import (
