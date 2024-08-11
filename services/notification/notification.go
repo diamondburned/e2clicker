@@ -5,26 +5,16 @@ import (
 	"reflect"
 )
 
-// UnknownServiceError is returned when a service is unknown.
-type UnknownServiceError struct {
-	ServiceName string
-}
-
-func (e UnknownServiceError) Error() string {
-	return "unknown service: " + e.ServiceName
-}
-
 // NotificationService sends notifications to users.
 type NotificationService interface {
 	// SendNotification sends a notification using this service.
 	SendNotification(context.Context, Notification, NotificationConfig) error
 }
 
-// type NewNotificationService()
-
 // Notification is a message to be sent to a user.
 type Notification struct {
-	Message string
+	Title   string `json:"title"`
+	Message string `json:"message"`
 }
 
 // NotificationServiceMux is a collection of NotificationServices.

@@ -2,22 +2,21 @@ package notification
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"reflect"
 )
 
-// ErrInvalidConfig is returned when a notification service is given an
-// invalid configuration.
-var ErrInvalidConfig = errors.New("invalid config")
-
 var knownConfigTypes = map[string]reflect.Type{}
 
-// RegisterConfigType binds the given config type to the given service type,
-// then registers both of them globally. config may be a pointer or a value, but
-// service must be the exact type.
-func RegisterConfigType(config NotificationConfig, service NotificationService) {
-	knownConfigTypes[config.ServiceName()] = reflect.TypeOf(config)
+// RegisterConfigType adds the given config type to the list of known
+// configuration types for unmarshaling. The service name is taken from the
+// config type for actual use.
+func RegisterConfigType(config NotificationConfig) {
+	serviceName := config.ServiceName()
+	if serviceName == "" {
+		panic("service name must not be empty")
+	}
+	knownConfigTypes[serviceName] = reflect.TypeOf(config)
 }
 
 // NotificationConfigJSON is a JSON representation of a NotificationConfig.
