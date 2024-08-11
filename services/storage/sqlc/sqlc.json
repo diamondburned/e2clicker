@@ -3,12 +3,12 @@
   "sql": [
     {
       "engine": "postgresql",
-      "queries": "postgresql/queries.sql",
-      "schema": "postgresql/schema.sql",
+      "queries": "postgresqlc/queries.sql",
+      "schema": "postgresqlc/schema.sql",
       "gen": {
         "go": {
-          "package": "postgresql",
-          "out": "postgresql/",
+          "package": "postgresqlc",
+          "out": "postgresqlc/",
           "sql_package": "pgx/v5",
           "overrides": [
             {

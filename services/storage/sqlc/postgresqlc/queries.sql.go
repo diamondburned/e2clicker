@@ -3,7 +3,7 @@
 //   sqlc v1.25.0
 // source: queries.sql
 
-package postgresql
+package postgresqlc
 
 import (
 	"context"
@@ -400,4 +400,19 @@ func (q *Queries) ValidateSession(ctx context.Context, token []byte) (ValidateSe
 		&i.HasAvatar,
 	)
 	return i, err
+}
+
+const version = `-- name: Version :one
+/*
+ * Meta
+ */
+SELECT v
+FROM meta
+`
+
+func (q *Queries) Version(ctx context.Context) (int16, error) {
+	row := q.db.QueryRow(ctx, version)
+	var v int16
+	err := row.Scan(&v)
+	return v, err
 }

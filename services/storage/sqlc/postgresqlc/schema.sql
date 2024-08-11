@@ -1,6 +1,7 @@
 -- Language: postgresql
 --
 CREATE TABLE meta (
+  x bool PRIMARY KEY DEFAULT TRUE CHECK (x), -- force only 1 row
   v smallint NOT NULL
 );
 

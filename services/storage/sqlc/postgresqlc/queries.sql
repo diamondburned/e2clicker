@@ -1,4 +1,12 @@
 /*
+ * Meta
+ */
+-- name: Version :one
+SELECT v
+FROM meta;
+
+
+/*
  * Delivery Method
  */
 -- name: DeliveryMethods :many

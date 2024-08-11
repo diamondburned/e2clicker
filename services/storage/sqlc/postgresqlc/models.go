@@ -2,7 +2,7 @@
 // versions:
 //   sqlc v1.25.0
 
-package postgresql
+package postgresqlc
 
 import (
 	"database/sql/driver"
@@ -83,6 +83,7 @@ type DosageSchedule struct {
 }
 
 type Meta struct {
+	X bool
 	V int16
 }
 
