@@ -15,7 +15,10 @@ import (
 	"libdb.so/hrtclicker/v2/services/storage/sqlc/postgresqlc"
 )
 
-const codeTableNotFound = "42P01"
+const (
+	codeTableNotFound   = "42P01"
+	codeUniqueViolation = "23505"
+)
 
 // Connect connects to a pgSQL database.
 func Connect(ctx context.Context, url string) (*Storage, error) {
@@ -37,26 +40,6 @@ func Connect(ctx context.Context, url string) (*Storage, error) {
 }
 
 func migrate(ctx context.Context, conn *pgxpool.Pool) error {
-	var firstRun bool
-
-	v, err := postgresqlc.New(conn).Version(ctx)
-	if err != nil {
-		if !isErrorCode(err, codeTableNotFound) {
-			return errors.Wrap(err, "cannot get schema version")
-		}
-		firstRun = true
-	}
-
-	versions := postgresqlc.Schema.Versions()
-	if int(v) > len(versions) {
-		return fmt.Errorf(
-			"database schema version %d is higher than the latest supported version %d (app outdated?)",
-			v, len(versions))
-	}
-	if int(v) == len(versions) {
-		return nil
-	}
-
 	tx, err := conn.BeginTx(ctx, pgx.TxOptions{
 		IsoLevel: pgx.Serializable, // force strictest isolation level
 	})
@@ -65,11 +48,22 @@ func migrate(ctx context.Context, conn *pgxpool.Pool) error {
 	}
 	defer tx.Rollback(ctx)
 
-	if !firstRun {
-		v, err = postgresqlc.New(tx).Version(ctx)
-		if err != nil {
+	v, err := postgresqlc.New(tx).Version(ctx)
+	if err != nil {
+		if !isErrorCode(err, codeTableNotFound) {
 			return errors.Wrap(err, "cannot get schema version")
 		}
+	}
+
+	versions := postgresqlc.Schema.Versions()
+	if int(v) > len(versions) {
+		return fmt.Errorf(
+			"database schema version %d is higher than the latest supported version %d (app outdated?)",
+			v, len(versions))
+	}
+
+	if int(v) == len(versions) {
+		return nil
 	}
 
 	for i := int(v); i < len(versions); i++ {
@@ -89,7 +83,7 @@ func migrate(ctx context.Context, conn *pgxpool.Pool) error {
 // isConstraintFailed returns true if err is returned because of a unique
 // constraint violation.
 func isConstraintFailed(err error) bool {
-	return isErrorCode(err, "23505") // unique_violation
+	return isErrorCode(err, codeUniqueViolation)
 }
 
 func isErrorCode(err error, code string) bool {
