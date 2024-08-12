@@ -12,7 +12,7 @@ import (
 	"github.com/lmittmann/tint"
 	"github.com/plaid/go-envvar/envvar"
 	"github.com/spf13/pflag"
-	"libdb.so/hrtclicker/v2/cmd/hrtclicker/cfgtypes"
+	"libdb.so/e2clicker/cmd/e2clicker/cfgtypes"
 	"libdb.so/hserve"
 )
 

@@ -8,7 +8,7 @@ import (
 
 	scrypt "github.com/elithrar/simple-scrypt"
 	"github.com/rs/xid"
-	"libdb.so/hrtclicker/v2/services/asset"
+	"libdb.so/e2clicker/services/asset"
 )
 
 // UserService is a service for managing users.

@@ -3,7 +3,7 @@
 </script>
 
 <svelte:head>
-  <title>hrtclicker</title>
+  <title>e2clicker</title>
 </svelte:head>
 
 <Header />

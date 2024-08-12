@@ -1,6 +1,6 @@
 <div align="center">
-    <h1>hrtclicker</h1>
-    <img src="https://github.com/diamondburned/hrtclicker/assets/8463786/39f7fda5-cea8-4eb3-8bd3-cbff9f8e0cfa" alt="screenshot" width="300" />
+    <h1>e2clicker</h1>
+    <img src="https://github.com/diamondburned/e2clicker/assets/8463786/39f7fda5-cea8-4eb3-8bd3-cbff9f8e0cfa" alt="screenshot" width="300" />
     <br />
     <br />
 </div>

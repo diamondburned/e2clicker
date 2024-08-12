@@ -10,8 +10,8 @@ import (
 
 	"github.com/jackc/pgx/v5/pgtype"
 	xid "github.com/rs/xid"
-	notificationservice "libdb.so/hrtclicker/v2/services/notification"
-	userservice "libdb.so/hrtclicker/v2/services/user"
+	notificationservice "libdb.so/e2clicker/services/notification"
+	userservice "libdb.so/e2clicker/services/user"
 )
 
 const addUserDosage = `-- name: AddUserDosage :exec

@@ -4,7 +4,7 @@ import (
 	"context"
 	"io"
 
-	"libdb.so/hrtclicker/v2/services/asset"
+	"libdb.so/e2clicker/services/asset"
 )
 
 type UserPassword struct {

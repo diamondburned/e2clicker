@@ -12,7 +12,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/pkg/errors"
-	"libdb.so/hrtclicker/v2/services/storage/sqlc/postgresqlc"
+	"libdb.so/e2clicker/services/storage/sqlc/postgresqlc"
 )
 
 const (

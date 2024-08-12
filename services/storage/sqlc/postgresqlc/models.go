@@ -10,9 +10,9 @@ import (
 
 	"github.com/jackc/pgx/v5/pgtype"
 	xid "github.com/rs/xid"
-	assetservice "libdb.so/hrtclicker/v2/services/asset"
-	notificationservice "libdb.so/hrtclicker/v2/services/notification"
-	userservice "libdb.so/hrtclicker/v2/services/user"
+	assetservice "libdb.so/e2clicker/services/asset"
+	notificationservice "libdb.so/e2clicker/services/notification"
+	userservice "libdb.so/e2clicker/services/user"
 )
 
 type Compression string

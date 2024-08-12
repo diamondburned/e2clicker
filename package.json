@@ -1,12 +1,12 @@
 {
-  "name": "hrtclicker",
+  "name": "e2clicker",
   "type": "module",
   "author": "diamondburned",
   "license": "GPL-3.0-or-later",
   "private": true,
   "version": "0.0.1",
   "imports": {
-    "#/libdb.so/hrtclicker*": "./*"
+    "#/libdb.so/e2clicker*": "./*"
   },
   "description": "",
   "prettier": {

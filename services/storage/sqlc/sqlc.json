@@ -22,7 +22,7 @@
             {
               "db_type": "locale",
               "go_type": {
-                "import": "libdb.so/hrtclicker/v2/services/user",
+                "import": "libdb.so/e2clicker/services/user",
                 "package": "userservice",
                 "type": "Locale"
               }
@@ -30,7 +30,7 @@
             {
               "db_type": "compression",
               "go_type": {
-                "import": "libdb.so/hrtclicker/v2/services/asset",
+                "import": "libdb.so/e2clicker/services/asset",
                 "package": "assetservice",
                 "type": "Compression"
               },
@@ -39,7 +39,7 @@
             {
               "db_type": "notification",
               "go_type": {
-                "import": "libdb.so/hrtclicker/v2/services/notification",
+                "import": "libdb.so/e2clicker/services/notification",
                 "package": "notificationservice",
                 "type": "Notification",
                 "pointer": true
@@ -49,7 +49,7 @@
             {
               "db_type": "notificationconfig",
               "go_type": {
-                "import": "libdb.so/hrtclicker/v2/services/notification",
+                "import": "libdb.so/e2clicker/services/notification",
                 "package": "notificationservice",
                 "type": "NotificationConfigJSON",
                 "pointer": true

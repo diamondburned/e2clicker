@@ -3,7 +3,7 @@ package notification
 import (
 	"context"
 
-	"libdb.so/hrtclicker/v2/services/user"
+	"libdb.so/e2clicker/services/user"
 )
 
 type UserNotificationStorage interface {

@@ -29,7 +29,7 @@ export default defineConfig({
   // https://github.com/vitejs/vite/issues/7385#issuecomment-1286606298
   // resolve: {
   //   alias: {
-  //     "#/libdb.so/hrtclicker": root,
+  //     "#/libdb.so/e2clicker": root,
   //   },
   // },
 });

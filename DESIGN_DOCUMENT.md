@@ -1,29 +1,29 @@
 <div align="center">
 
-# hrtclicker v2 Design Document
+# e2clicker v2 Design Document
 
 </div>
 
 ## Summary
 
-This design document plans out the process of rewriting hrtclicker from its
+This design document plans out the process of rewriting e2clicker from its
 current architecture to one that is more suitable as a publicly available
 service.
 
 ## Motivation
 
-Originally, hrtclicker was written as a personal self-hosted tool intended to
+Originally, e2clicker was written as a personal self-hosted tool intended to
 help Diamond keep track of when it needs to apply its estrogen patches.
 However, as time went on, more people expressed interest in using the tool for
 tracking their own hormone schedules.
 
-The current architecture of hrtclicker is not suitable for public use. Its
+The current architecture of e2clicker is not suitable for public use. Its
 database is stored in a SQLite file and does not contain any user information,
 so it can only store information for one user. The hormone configuration is
 also hard-coded in a JSON config, so the tool only supports Diamond's specific
 estrogen patch schedule.
 
-This design document outlines the steps needed to rewrite hrtclicker to support
+This design document outlines the steps needed to rewrite e2clicker to support
 multiple users, each with their own hormone configuration and schedules. It
 will also outline all the planned features and categorize them accordingly to
 accommodate future plans of turning some of these features into premium

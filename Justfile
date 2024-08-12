@@ -6,7 +6,7 @@ build: build-backend build-frontend
 build-backend: generate
 	@mkdir -p dist/backend
 	@echo "Building Go backend..."
-	go build -o ./dist/backend/hrtclicker ./cmd/hrtclicker
+	go build -o ./dist/backend/e2clicker ./cmd/e2clicker
 
 build-frontend:
 	@mkdir -p dist

@@ -5,7 +5,7 @@ import (
 	"io"
 	"net/http"
 
-	"libdb.so/hrtclicker/v2/internal/publicerrors"
+	"libdb.so/e2clicker/internal/publicerrors"
 )
 
 func init() {

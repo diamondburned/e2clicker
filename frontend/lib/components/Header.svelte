@@ -16,7 +16,7 @@
     <ul>
       <li>
         <img class="logo" src="/favicon.png" alt="logo" />
-        <strong><a href="/">hrtclicker</a></strong>
+        <strong><a href="/">e2clicker</a></strong>
       </li>
     </ul>
     <ul></ul>

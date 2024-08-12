@@ -1,4 +1,4 @@
-module libdb.so/hrtclicker/v2
+module libdb.so/e2clicker
 
 go 1.22.1
 
