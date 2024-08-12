@@ -21,6 +21,21 @@ var NullUserID = UserID{}
 // String formats the user ID into a string.
 func (id UserID) String() string { return xid.ID(id).String() }
 
+// MarshalText implements the [encoding.TextMarshaler] interface.
+func (id UserID) MarshalText() ([]byte, error) {
+	return []byte(id.String()), nil
+}
+
+// UnmarshalText implements the [encoding.TextUnmarshaler] interface.
+func (id *UserID) UnmarshalText(text []byte) error {
+	v, err := xid.FromString(string(text))
+	if err != nil {
+		return err
+	}
+	*id = UserID(v)
+	return nil
+}
+
 // SessionToken is a token that represents a user session.
 // The type represents an already validated token. The random part is not
 // exposed to the user except via [String].
@@ -70,6 +85,19 @@ func (t SessionToken) randomBytes() []byte {
 		panic("invalid base64 in session token (bug; only use this method on new tokens)")
 	}
 	return b
+}
+
+// MarshalText implements the [encoding.TextMarshaler] interface.
+func (t SessionToken) MarshalText() ([]byte, error) { return []byte(t.String()), nil }
+
+// UnmarshalText implements the [encoding.TextUnmarshaler] interface.
+func (t *SessionToken) UnmarshalText(text []byte) error {
+	token, err := ParseSessionToken(string(text))
+	if err != nil {
+		return err
+	}
+	*t = token
+	return nil
 }
 
 // User is a user in the system.

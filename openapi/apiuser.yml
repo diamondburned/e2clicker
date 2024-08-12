@@ -1,0 +1,130 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/OAI/OpenAPI-Specification/ba055ca00cbd735dceef4ed7c9db024cd9bfcd1a/schemas/v3.0/schema.json
+openapi: 3.0.0
+
+info:
+  title: REST API definition for user service
+  version: 0.0.1
+
+servers:
+  - url: /api/user/v1
+
+paths:
+  /login:
+    summary: Log into an existing account
+    post:
+      operationId: login
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  description: The username to log in with
+                password:
+                  type: string
+                  description: The password to log in with
+      responses:
+        "200":
+          description: |
+            Successfully logged in.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionToken"
+        "401":
+          description: |
+            The username or password is incorrect.
+
+  /register:
+    summary: Register a new account
+    post:
+      operationId: register
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password]
+              properties:
+                name:
+                  type: string
+                  description: The name to register with
+                email:
+                  type: string
+                  description: The username to register with
+                password:
+                  type: string
+                  description: The password to register with
+      responses:
+        "201":
+          description: |
+            Successfully registered.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionToken"
+        "409":
+          description: |
+            The username is already taken.
+
+components:
+  schemas:
+    UserID:
+      description: |
+        A unique user identifier.
+      type: string
+      x-go-type: user.UserID
+      x-go-type-import:
+        path: libdb.so/e2clicker/services/user
+        name: userservice
+
+    Locale:
+      description: |
+        A locale identifier.
+      type: string
+      x-go-type: user.Locale
+      x-go-type-import:
+        path: libdb.so/e2clicker/services/user
+        name: userservice
+
+    User:
+      description: |
+        A user of the system.
+      type: object
+      required: [id, email, name, locale]
+      properties:
+        id:
+          $ref: "#/components/schemas/UserID"
+        email:
+          type: string
+          description: The user's email address
+        name:
+          type: string
+          description: The user's name
+        locale:
+          type: string
+          description: The user's preferred locale
+
+    SessionToken:
+      description: |
+        A session token string.
+        This is used in the Authorization header to authenticate requests.
+      type: string
+      x-go-type: user.SessionToken
+      x-go-type-import:
+        path: libdb.so/e2clicker/services/user
+        name: userservice
+
+    SessionTokenObject:
+      description: |
+        A session token object that is returned when creating a new session.
+      type: object
+      required: [userID, token]
+      properties:
+        userID:
+          $ref: "#/components/schemas/UserID"
+        token:
+          $ref: "#/components/schemas/SessionToken"

@@ -20,24 +20,60 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1711523803,
-        "narHash": "sha256-UKcYiHWHQynzj6CN/vTcix4yd1eCu1uFdsuarupdCQQ=",
+        "lastModified": 1722630782,
+        "narHash": "sha256-hMyG9/WlUi0Ho9VkRrrez7SeNlDzLxalm9FwY7n/Noo=",
         "owner": "nixos",
         "repo": "nixpkgs",
-        "rev": "2726f127c15a4cc9810843b96cad73c7eb39e443",
+        "rev": "d04953086551086b44b6f3c6b7eeb26294f207da",
         "type": "github"
       },
       "original": {
         "owner": "nixos",
-        "ref": "nixos-unstable",
         "repo": "nixpkgs",
+        "rev": "d04953086551086b44b6f3c6b7eeb26294f207da",
+        "type": "github"
+      }
+    },
+    "npmlock2nix": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1673447413,
+        "narHash": "sha256-sJM82Sj8yfQYs9axEmGZ9Evzdv/kDcI9sddqJ45frrU=",
+        "owner": "nix-community",
+        "repo": "npmlock2nix",
+        "rev": "9197bbf397d76059a76310523d45df10d2e4ca81",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-community",
+        "repo": "npmlock2nix",
+        "type": "github"
+      }
+    },
+    "oapi-codegen": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1723455893,
+        "narHash": "sha256-QpCumNSkR9bG0nhVN57nTXqocpgTSUll7gJu9BuH9II=",
+        "owner": "diamondburned",
+        "repo": "oapi-codegen",
+        "rev": "c3b1648c7a8c59a1fb8ffd729098e05d7f3fc49c",
+        "type": "github"
+      },
+      "original": {
+        "owner": "diamondburned",
+        "ref": "migrate-to-libopenapi-ordered-fix",
+        "repo": "oapi-codegen",
         "type": "github"
       }
     },
     "root": {
       "inputs": {
         "flake-utils": "flake-utils",
-        "nixpkgs": "nixpkgs"
+        "nixpkgs": "nixpkgs",
+        "npmlock2nix": "npmlock2nix",
+        "oapi-codegen": "oapi-codegen",
+        "yaml-language-server": "yaml-language-server"
       }
     },
     "systems": {
@@ -52,6 +88,22 @@
       "original": {
         "owner": "nix-systems",
         "repo": "default",
+        "type": "github"
+      }
+    },
+    "yaml-language-server": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1710758207,
+        "narHash": "sha256-IcaNN5NBwOSHoSwqVYZYj9GYqerDF3rO+u4YzDtwt9I=",
+        "owner": "okybr",
+        "repo": "yaml-language-server",
+        "rev": "04bb7d7c835ef61df59a23960c2f07d2b6d66e85",
+        "type": "github"
+      },
+      "original": {
+        "owner": "okybr",
+        "repo": "yaml-language-server",
         "type": "github"
       }
     }
