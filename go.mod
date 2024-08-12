@@ -20,6 +20,8 @@ require (
 
 require (
 	github.com/alecthomas/repr v0.4.0 // indirect
+	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
+	github.com/google/uuid v1.5.0 // indirect
 	github.com/hexops/gotextdiff v1.0.3 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect

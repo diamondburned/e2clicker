@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+set -e
+
+main() {
+	f=openapi::"${1:-all}"
+	if command -v "$f" > /dev/null; then
+		"$f"
+	else
+		echo "Usage: $0 {schema|backend|frontend|docs}" >&2
+		exit 1
+	fi
+}
+
+openapi::schema() {
+	mergeSchema openapi/openapi-base.yml > openapi/openapi.gen.json.tmp
+	mergeSchema openapi/openapi.gen.json.tmp openapi/_*.yml > openapi/openapi.gen.json
+	rm openapi/openapi.gen.json.tmp
+}
+
+mergeSchema() {
+	yq -pauto -ojson eval-all '. as $item ireduce ({}; . *n+ $item )' "$@"
+}
+
+openapi::backend() {
+	oapi-codegen \
+		--package "openapi" \
+		--generate types,chi-server,strict-server \
+		--alias-types \
+		--response-type-suffix Response \
+		-o "./services/api/openapi/openapi.gen.go" \
+		"./openapi/openapi.gen.json"
+	sed -i \
+		-e 's/Id/ID/g' \
+		"./services/api/openapi/openapi.gen.go"
+}
+
+openapi::frontend() {
+	pnpx oazapfts --optimistic \
+		./openapi/openapi.gen.json \
+		./frontend/lib/openapi.gen.ts
+}
+
+openapi::docs() {
+	pnpx widdershins \
+		--code \
+		--summary \
+		--omitHeader \
+		--shallowSchemas \
+		./openapi/openapi.gen.json \
+		./docs/openapi/README.md
+}
+
+main "$@"

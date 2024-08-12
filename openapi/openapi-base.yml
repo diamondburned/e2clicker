@@ -1,0 +1,16 @@
+info:
+  title: REST API definition for the e2clicker service.
+  version: "0"
+
+servers:
+  - url: /api/user/v1
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: "[userID].[random]"
+
+security:
+  - bearerAuth: []

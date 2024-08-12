@@ -81,6 +81,7 @@
 
               oapi-codegen
               yaml-language-server
+              yq-go
 
               self.formatter.${system}
             ];

@@ -2,17 +2,15 @@
 openapi: 3.0.0
 
 info:
-  title: REST API definition for user service
-  version: 0.0.1
-
-servers:
-  - url: /api/user/v1
+  title: user
+  version: ""
 
 paths:
   /login:
     summary: Log into an existing account
     post:
       operationId: login
+      security: []
       requestBody:
         content:
           application/json:
@@ -42,6 +40,7 @@ paths:
     summary: Register a new account
     post:
       operationId: register
+      security: []
       requestBody:
         content:
           application/json:
@@ -69,6 +68,57 @@ paths:
         "409":
           description: |
             The username is already taken.
+
+  /user/{userID}:
+    summary: Get a user by ID
+    parameters:
+      - in: path
+        name: userID
+        schema:
+          type: string
+        required: true
+        description: |
+          The ID of the user to get, or "me" to get the current user.
+    get:
+      operationId: user
+      responses:
+        "200":
+          description: |
+            Successfully retrieved the current user.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /user/{userID}/avatar:
+    summary: Get a user's avatar by ID
+    parameters:
+      - in: path
+        name: userID
+        schema:
+          type: string
+        required: true
+        description: |
+          The ID of the user to get the avatar for.
+    get:
+      operationId: userAvatar
+      responses:
+        "200":
+          description: |
+            Successfully retrieved the user's avatar.
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/webp:
+              schema:
+                type: string
+                format: binary
 
 components:
   schemas:
