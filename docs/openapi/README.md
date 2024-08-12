@@ -1,6 +1,6 @@
 <!-- Generator: Widdershins v4.0.1 -->
 
-<h1 id="rest-api-definition-for-the-e2clicker-service-">REST API definition for the e2clicker service. v0</h1>
+<h1 id="e2clicker-service">e2clicker service v0</h1>
 
 > Scroll down for code samples, example requests and responses. Select a language for code samples from the tabs above or the mobile navigation menu.
 
@@ -12,7 +12,7 @@ Base URLs:
 
 - HTTP Authentication, scheme: bearer 
 
-<h1 id="rest-api-definition-for-the-e2clicker-service--default">Default</h1>
+<h1 id="e2clicker-service-default">Default</h1>
 
 ## login
 

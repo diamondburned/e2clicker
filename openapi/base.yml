@@ -1,5 +1,5 @@
 info:
-  title: REST API definition for the e2clicker service.
+  title: e2clicker service
   version: "0"
 
 servers:
