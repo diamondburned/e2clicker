@@ -64,6 +64,7 @@
             with self.packages.${system};
             [
               just
+              extra-container
 
               go
               gopls
