@@ -20,8 +20,11 @@ build-frontend: openapi-frontend
 dev:
 	exit 1 # Not implemented yet
 
-dev-frontend:
-	pnpx vite
+dev-backend *FLAGS: openapi-backend modules generate
+	go run ./cmd/e2clicker {{FLAGS}}
+
+dev-frontend *FLAGS: openapi-frontend
+	pnpx vite {{FLAGS}}
 
 ###
 

@@ -65,6 +65,7 @@
             [
               just
               extra-container
+              process-compose
 
               go
               gopls

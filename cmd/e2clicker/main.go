@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"log/slog"
+	"net/http"
 	"os"
 	"os/signal"
 
@@ -68,6 +69,7 @@ func main() {
 
 func run(ctx context.Context) error {
 	mux := chi.NewMux()
+	mux.Get("/debug/health", respond200)
 
 	slog.Info(
 		"listening to HTTP server",
@@ -78,4 +80,8 @@ func run(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func respond200(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(200)
 }

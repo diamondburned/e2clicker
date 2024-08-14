@@ -7,11 +7,8 @@
     "skipLibCheck": true,
     "sourceMap": true,
     "strict": true,
-    "module": "esnext",
-    "target": "esnext",
     "moduleResolution": "bundler",
     "esModuleInterop": true,
-    "resolveJsonModule": true,
-    "types": ["vite/client"]
+    "resolveJsonModule": true
   }
 }

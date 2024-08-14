@@ -4,12 +4,23 @@ import { sveltekit } from "@sveltejs/kit/vite";
 // import * as path from "path";
 // const root = new URL(".", import.meta.url).pathname;
 
+const backendHTTPAddress = process.env.BACKEND_HTTP_ADDRESS;
+
 export default defineConfig({
   // Why the FUCK is clearScreen true by default? That is fucking stupid.
   clearScreen: false,
   plugins: [sveltekit()],
   server: {
-    port: 5001,
+    port: 8000,
+    proxy: (() => {
+      if (backendHTTPAddress) {
+        console.log("Enabling backend reverse proxy in Vite.");
+        console.log("  /api ->", backendHTTPAddress);
+        return {
+          "/api": backendHTTPAddress,
+        };
+      }
+    })(),
   },
   build: {
     assetsDir: "static",
@@ -26,12 +37,6 @@ export default defineConfig({
   esbuild: {
     sourcemap: true,
   },
-  // https://github.com/vitejs/vite/issues/7385#issuecomment-1286606298
-  // resolve: {
-  //   alias: {
-  //     "#/libdb.so/e2clicker": root,
-  //   },
-  // },
 });
 
 // if (import.meta.hot) {
