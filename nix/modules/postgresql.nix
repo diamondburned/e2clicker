@@ -7,6 +7,7 @@
 
 {
   services.postgresql = {
+    enable = true;
     ensureDatabases = [ "e2clicker" ];
     ensureUsers = {
       name = "e2clicker";

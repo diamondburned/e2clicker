@@ -1,5 +1,5 @@
-import * as api from "./api/api.js";
-export * from "./api/api.js";
+import * as api from "./openapi.gen.js";
+export * from "./openapi.gen.js";
 
 // token is the current session token.
 // It is persisted to the local storage automatically.

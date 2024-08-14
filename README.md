@@ -15,5 +15,5 @@ to send out push notifications to its phone, no Java code was needed.
 
 - Web frontend that allows recording HRT history and displaying statistics
 - Configuration:
-    - Recommended time intervals for HRT
+  - Recommended time intervals for HRT
 - Gotify integration: push notifications when it's time to do HRT

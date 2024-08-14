@@ -7,11 +7,10 @@ settings:
 importers:
 
   .:
-    dependencies:
+    devDependencies:
       '@oazapfts/runtime':
         specifier: ^1.0.3
         version: 1.0.3
-    devDependencies:
       '@picocss/pico':
         specifier: ^2.0.0
         version: 2.0.6

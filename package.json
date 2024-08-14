@@ -24,6 +24,7 @@
     ]
   },
   "devDependencies": {
+    "@oazapfts/runtime": "^1.0.3",
     "@picocss/pico": "^2.0.0",
     "@sveltejs/adapter-node": "^5.2.0",
     "@sveltejs/kit": "^2.5.20",
@@ -45,8 +46,5 @@
     "typescript-language-server": "^4.3.3",
     "vite": "^5.2.0",
     "widdershins": "^4.0.1"
-  },
-  "dependencies": {
-    "@oazapfts/runtime": "^1.0.3"
   }
 }

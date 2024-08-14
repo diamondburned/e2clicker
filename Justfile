@@ -1,68 +1,96 @@
+export PATH := x'${PATH}:${PWD}/scripts:${PWD}/node_modules/.bin'
+
+###
+
 default:
-	just --list
+	@just -l
 
 ###
 
-build: build-backend build-frontend
+build: build-backend build-frontend generate
 
-build-backend: openapi-backend modules generate
-	@mkdir -p dist/backend
-	@echo "Building Go backend..."
-	go build -o ./dist/backend/e2clicker ./cmd/e2clicker
+build-backend: build-clean generate-backend
+    @mkdir -p dist/backend
+    go build -o ./dist/backend/e2clicker-backend ./cmd/e2clicker-backend
 
-build-frontend: openapi-frontend
-	@mkdir -p dist
-	@echo "Building Svelte frontend..."
-	pnpx vite build --logLevel error
+build-frontend: build-clean build-frontend-fix generate-frontend
+    @mkdir -p dist/frontend
+    vite build --logLevel error
 
-###
+# Fix a race condition with Vite running before Sveltekit can create its
+# tsconfig.json.
+[private]
+build-frontend-fix:
+    @mkdir .svelte-kit 2> /dev/null && echo "{}" > .svelte-kit/tsconfig.json || true
 
-dev:
-	exit 1 # Not implemented yet
-
-dev-backend *FLAGS: openapi-backend modules generate
-	go run ./cmd/e2clicker {{FLAGS}}
-
-dev-frontend *FLAGS: openapi-frontend
-	pnpx vite {{FLAGS}}
+[private]
+build-clean:
+    @rm -rf dist
 
 ###
 
-openapi: \
-	openapi-schema \
-	openapi-backend \
-	openapi-frontend \
-	openapi-docs \
-	modules
+# dev:
+#     exit 1 # Not implemented yet
 
+dev-backend *FLAGS: generate-backend
+    go run ./cmd/e2clicker {{ FLAGS }}
+
+dev-frontend *FLAGS: generate-frontend
+    vite {{ FLAGS }}
+
+###
+
+generate: openapi generate-backend generate-frontend generate-docs
+
+[private]
+generate-backend: openapi-backend
+    go generate -x ./...
+    go mod tidy
+    go mod download
+
+[private]
+generate-frontend: openapi-frontend
+    pnpm i
+
+[private]
+generate-docs: openapi-docs
+
+###
+
+openapi: openapi-schema openapi-backend openapi-frontend openapi-docs
+
+[private]
 openapi-schema:
-	./internal/gen-openapi schema
+    generate-openapi schema
 
+[private]
 openapi-backend:
-	./internal/gen-openapi backend
+    generate-openapi backend
 
+[private]
 openapi-frontend:
-	./internal/gen-openapi frontend
+    generate-openapi frontend
 
+[private]
 openapi-docs:
-	./internal/gen-openapi docs &> /dev/null
+    generate-openapi docs &> /dev/null
 
 ###
 
 test: test-backend
 
-test-backend: modules generate
-	go test -v ./...
+[private]
+test-backend: generate-backend
+    go test -v ./...
+
+[private]
+test-frontend: generate-frontend
+    # jest
 
 ###
 
-generate: openapi format
-	go generate -x ./...
-
 format:
-	@nixfmt $(find . -name '*.nix')
-	@goimports -w $(go list -f '{{{{.Dir}}' ./...)
-
-modules:
-	go mod tidy
-	go mod download
+    @nixfmt $(find . -name '*.nix')
+    @prettier --log-level warn -w .
+    @goimports -w $(go list -f '{{{{.Dir}}' ./...)
+    @just --unstable --fmt 2> /dev/null
