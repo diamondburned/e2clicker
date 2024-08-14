@@ -3,11 +3,10 @@
     nixpkgs.url = "github:nixos/nixpkgs?rev=d04953086551086b44b6f3c6b7eeb26294f207da";
     flake-utils.url = "github:numtide/flake-utils";
 
-    extra-container = {
-      url = "github:erikarvstedt/extra-container";
+    nixos-shell = {
+      url = "github:Mic92/nixos-shell";
       inputs = {
         nixpkgs.follows = "nixpkgs";
-        flake-utils.follows = "flake-utils";
       };
     };
 
@@ -38,14 +37,13 @@
       ...
     }@inputs:
 
-    flake-utils.lib.eachDefaultSystem (
+    (flake-utils.lib.eachDefaultSystem (
       system:
       let
         pkgs = import nixpkgs {
           inherit system;
           overlays = [
             inputs.gomod2nix.overlays.default
-            inputs.extra-container.overlays.default
 
             (self: super: {
               go = super.go_1_22;
@@ -95,7 +93,6 @@
         devShells.default = pkgs.mkShell {
           packages = with pkgs; [
             just
-            extra-container
             process-compose
 
             go
@@ -134,5 +131,22 @@
 
         formatter = pkgs.nixfmt-rfc-style;
       }
-    );
+    ))
+    // {
+      nixosModules = {
+        e2clicker = import ./nix/modules/e2clicker.nix inputs;
+        e2clicker-postgresql = import ./nix/modules/e2clicker-postgresql.nix inputs;
+      };
+
+      nixosConfigurations = {
+        dev-vm = nixpkgs.lib.nixosSystem {
+          system = "x86_64-linux";
+          specialArgs = inputs;
+          modules = [
+            inputs.nixos-shell.nixosModules.nixos-shell
+            ./nix/vm/dev.nix
+          ];
+        };
+      };
+    };
 }

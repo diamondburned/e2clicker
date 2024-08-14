@@ -2,9 +2,11 @@
   pkgs,
   self,
   inputs,
-}:
+  ...
+}@args:
 
 let
+  lib = pkgs.lib;
   hashes = with builtins; fromJSON (readFile ./hashes.json);
 
   src = self;
@@ -20,11 +22,8 @@ let
     oapi-codegen
     yq-go
   ];
-in
 
-rec {
-  # The source derivation containing the full Go vendor and node_modules folders.
-  e2clicker-dist = pkgs.stdenv.mkDerivation rec {
+  dist = pkgs.stdenv.mkDerivation rec {
     inherit src version;
     pname = "e2clicker-dist";
 
@@ -64,23 +63,31 @@ rec {
       runHook postInstall
     '';
   };
+in
 
+rec {
   e2clicker-backend =
     pkgs.runCommandLocal "e2clicker-backend"
       {
         inherit version;
         meta = {
           description = "The e2clicker backend package";
-          mainProgram = "e2clicker";
+          mainProgram = "e2clicker-backend";
         };
       }
       ''
         mkdir $out
-        ln -s ${e2clicker-dist}/backend $out/bin
+        ln -s ${dist}/backend $out/bin
       '';
 
   e2clicker-frontend = pkgs.writeShellScriptBin "e2clicker-frontend" ''
-    cd ${e2clicker-dist}/frontend
-    exec node .
+    cd ${dist}/frontend
+    exec ${lib.getExe pkgs.nodejs} .
   '';
+
+  e2clicker-container = inputs.extra-container.lib.buildContainers {
+    inherit (pkgs) system;
+    config = import ./containers/e2clicker.nix args;
+    legacyInstallDirs = true;
+  };
 }

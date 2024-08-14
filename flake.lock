@@ -1,24 +1,5 @@
 {
   "nodes": {
-    "extra-container": {
-      "inputs": {
-        "flake-utils": ["flake-utils"],
-        "nixpkgs": ["nixpkgs"]
-      },
-      "locked": {
-        "lastModified": 1722175938,
-        "narHash": "sha256-HKyB4HD+NdX3T233bY31hm76v3/tdQBNeLLvopKbZeY=",
-        "owner": "erikarvstedt",
-        "repo": "extra-container",
-        "rev": "37e7207ac9f857eedb58b208b9dc91cd6b24e651",
-        "type": "github"
-      },
-      "original": {
-        "owner": "erikarvstedt",
-        "repo": "extra-container",
-        "type": "github"
-      }
-    },
     "flake-utils": {
       "inputs": {
         "systems": "systems"
@@ -39,8 +20,12 @@
     },
     "gomod2nix": {
       "inputs": {
-        "flake-utils": ["flake-utils"],
-        "nixpkgs": ["nixpkgs"]
+        "flake-utils": [
+          "flake-utils"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ]
       },
       "locked": {
         "lastModified": 1722589758,
@@ -53,6 +38,26 @@
       "original": {
         "owner": "nix-community",
         "repo": "gomod2nix",
+        "type": "github"
+      }
+    },
+    "nixos-shell": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1723616342,
+        "narHash": "sha256-plRKXQqww7easx0wgGKAkOJH1TW/PeeB20dq9XUN8J4=",
+        "owner": "Mic92",
+        "repo": "nixos-shell",
+        "rev": "93e314cdd16d4c3e3baf25b54734461c45a5d1ad",
+        "type": "github"
+      },
+      "original": {
+        "owner": "Mic92",
+        "repo": "nixos-shell",
         "type": "github"
       }
     },
@@ -91,9 +96,9 @@
     },
     "root": {
       "inputs": {
-        "extra-container": "extra-container",
         "flake-utils": "flake-utils",
         "gomod2nix": "gomod2nix",
+        "nixos-shell": "nixos-shell",
         "nixpkgs": "nixpkgs",
         "oapi-codegen": "oapi-codegen",
         "yaml-language-server": "yaml-language-server"

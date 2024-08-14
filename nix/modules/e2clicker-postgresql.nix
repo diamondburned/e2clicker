@@ -1,3 +1,5 @@
+{ ... }:
+
 {
   config,
   lib,
@@ -9,10 +11,12 @@
   services.postgresql = {
     enable = true;
     ensureDatabases = [ "e2clicker" ];
-    ensureUsers = {
-      name = "e2clicker";
-      ensureDBOwnership = true;
-    };
+    ensureUsers = [
+      {
+        name = "e2clicker";
+        ensureDBOwnership = true;
+      }
+    ];
     identMap = ''
       e2clicker e2clicker e2clicker
     '';
