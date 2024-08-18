@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	scrypt "github.com/elithrar/simple-scrypt"
-	"github.com/rs/xid"
 	"libdb.so/e2clicker/services/asset"
 )
 
@@ -31,14 +30,14 @@ func (s UserService) CreateUser(ctx context.Context, email, password, name strin
 		return User{}, ErrInvalidEmail
 	}
 
-	id := xid.New()
+	id := GenerateUserID()
 
 	passhash, err := hashPassword(password)
 	if err != nil {
 		return User{}, fmt.Errorf("failed to hash password: %w", err)
 	}
 
-	return s.users.CreateUser(ctx, UserID(id), email, passhash, name)
+	return s.users.CreateUser(ctx, id, email, passhash, name)
 }
 
 func hashPassword(password string) ([]byte, error) {

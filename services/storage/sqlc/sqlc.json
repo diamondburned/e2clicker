@@ -12,11 +12,11 @@
           "sql_package": "pgx/v5",
           "overrides": [
             {
-              "db_type": "xid",
+              "db_type": "userid",
               "go_type": {
-                "import": "github.com/rs/xid",
-                "package": "xid",
-                "type": "ID"
+                "import": "libdb.so/e2clicker/services/storage/sqlc",
+                "package": "sqlc",
+                "type": "UserID"
               }
             },
             {

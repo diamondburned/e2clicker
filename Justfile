@@ -3,7 +3,7 @@ export PATH := x'${PATH}:${PWD}/scripts:${PWD}/node_modules/.bin'
 ###
 
 default:
-	@just -l
+    @just -l
 
 ###
 
@@ -18,6 +18,7 @@ build-frontend: build-clean build-frontend-fix generate-frontend
     vite build --logLevel error
 
 # Fix a race condition with Vite running before Sveltekit can create its
+
 # tsconfig.json.
 [private]
 build-frontend-fix:
@@ -28,15 +29,21 @@ build-clean:
     @rm -rf dist
 
 ###
+# TODO: figure out how to pass this into the dev VM
 
-# dev:
-#     exit 1 # Not implemented yet
+export BACKEND_HTTP_ADDRESS := "http://localhost:8000"
 
-dev-backend *FLAGS: generate-backend
-    go run ./cmd/e2clicker {{ FLAGS }}
+dev:
+    nix run .#e2clicker-dev
 
-dev-frontend *FLAGS: generate-frontend
-    vite {{ FLAGS }}
+dev-vm: generate
+    nix run .#nixosConfigurations.dev-vm.config.system.build.nixos-shell
+
+dev-backend: generate-backend
+    go run ./cmd/e2clicker --port 8000
+
+dev-frontend: generate-frontend
+    vite --port 8080
 
 ###
 
@@ -47,10 +54,10 @@ generate-backend: openapi-backend
     go generate -x ./...
     go mod tidy
     go mod download
+    gomod2nix --outdir nix
 
 [private]
 generate-frontend: openapi-frontend
-    pnpm i
 
 [private]
 generate-docs: openapi-docs
@@ -69,10 +76,12 @@ openapi-backend:
 
 [private]
 openapi-frontend:
+    pnpm i --prefer-offline --prefer-frozen-lockfile --use-stderr
     generate-openapi frontend
 
 [private]
 openapi-docs:
+    pnpm i --prefer-offline --prefer-frozen-lockfile --use-stderr
     generate-openapi docs &> /dev/null
 
 ###

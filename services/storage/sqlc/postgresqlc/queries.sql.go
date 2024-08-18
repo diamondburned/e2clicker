@@ -9,8 +9,8 @@ import (
 	"context"
 
 	"github.com/jackc/pgx/v5/pgtype"
-	xid "github.com/rs/xid"
 	notificationservice "libdb.so/e2clicker/services/notification"
+	sqlc "libdb.so/e2clicker/services/storage/sqlc"
 	userservice "libdb.so/e2clicker/services/user"
 )
 
@@ -22,7 +22,7 @@ INSERT INTO dosage_history (user_id, last_dose, taken_at, delivery_method, dose)
 `
 
 type AddUserDosageParams struct {
-	UserID   pgtype.Uint32
+	UserID   interface{}
 	LastDose pgtype.Int8
 }
 
@@ -40,7 +40,7 @@ INSERT INTO users (user_id, email, passhash, name)
 `
 
 type CreateUserParams struct {
-	UserID   xid.ID
+	UserID   sqlc.UserID
 	Email    string
 	Passhash []byte
 	Name     string
@@ -106,7 +106,7 @@ INSERT INTO user_sessions (user_id, token, created_at, last_used, user_agent)
 `
 
 type RegisterSessionParams struct {
-	UserID    xid.ID
+	UserID    sqlc.UserID
 	Token     []byte
 	UserAgent pgtype.Text
 }
@@ -125,7 +125,7 @@ ON CONFLICT (user_id)
 `
 
 type SetUserAvatarParams struct {
-	UserID      xid.ID
+	UserID      sqlc.UserID
 	AvatarImage []byte
 }
 
@@ -142,7 +142,7 @@ WHERE user_id = $1
 `
 
 type SetUserCustomNotificationParams struct {
-	UserID             xid.ID
+	UserID             sqlc.UserID
 	CustomNotification *notificationservice.Notification
 }
 
@@ -162,7 +162,7 @@ WHERE user_id = $1
 `
 
 type SetUserNotificationServiceParams struct {
-	UserID              xid.ID
+	UserID              sqlc.UserID
 	NotificationService *notificationservice.NotificationConfigJSON
 }
 
@@ -180,7 +180,7 @@ ON CONFLICT (user_id)
 `
 
 type UpdateUserDosageScheduleParams struct {
-	UserID         xid.ID
+	UserID         sqlc.UserID
 	DeliveryMethod pgtype.Text
 	Dose           pgtype.Numeric
 	Interval       pgtype.Interval
@@ -206,7 +206,7 @@ WHERE user_id = $1
 `
 
 type UpdateUserEmailPasswordParams struct {
-	UserID   xid.ID
+	UserID   sqlc.UserID
 	Email    string
 	Passhash []byte
 }
@@ -224,7 +224,7 @@ WHERE user_id = $1
 `
 
 type UpdateUserLocaleParams struct {
-	UserID xid.ID
+	UserID sqlc.UserID
 	Locale userservice.Locale
 }
 
@@ -241,7 +241,7 @@ WHERE user_id = $1
 `
 
 type UpdateUserNameParams struct {
-	UserID xid.ID
+	UserID sqlc.UserID
 	Name   string
 }
 
@@ -260,13 +260,13 @@ WHERE users.user_id = $1
 `
 
 type UserRow struct {
-	UserID    xid.ID
+	UserID    sqlc.UserID
 	Email     string
 	Name      string
 	HasAvatar bool
 }
 
-func (q *Queries) User(ctx context.Context, userID xid.ID) (UserRow, error) {
+func (q *Queries) User(ctx context.Context, userID sqlc.UserID) (UserRow, error) {
 	row := q.db.QueryRow(ctx, user, userID)
 	var i UserRow
 	err := row.Scan(
@@ -287,7 +287,7 @@ FROM user_avatars
 WHERE user_id = $1
 `
 
-func (q *Queries) UserAvatar(ctx context.Context, userID xid.ID) ([]byte, error) {
+func (q *Queries) UserAvatar(ctx context.Context, userID sqlc.UserID) ([]byte, error) {
 	row := q.db.QueryRow(ctx, userAvatar, userID)
 	var avatar_image []byte
 	err := row.Scan(&avatar_image)
@@ -304,7 +304,7 @@ LIMIT $3
 `
 
 type UserDosageHistoryParams struct {
-	UserID  pgtype.Uint32
+	UserID  interface{}
 	TakenAt pgtype.Timestamptz
 	Limit   int32
 }
@@ -346,7 +346,7 @@ FROM dosage_schedule
 WHERE user_id = $1
 `
 
-func (q *Queries) UserDosageSchedule(ctx context.Context, userID xid.ID) error {
+func (q *Queries) UserDosageSchedule(ctx context.Context, userID sqlc.UserID) error {
 	_, err := q.db.Exec(ctx, userDosageSchedule, userID)
 	return err
 }
@@ -358,7 +358,7 @@ WHERE email = $1
 `
 
 type UserPasswordHashFromEmailRow struct {
-	UserID   xid.ID
+	UserID   sqlc.UserID
 	Passhash []byte
 }
 
@@ -384,7 +384,7 @@ RETURNING users.user_id, users.email, users.name, EXISTS (
 `
 
 type ValidateSessionRow struct {
-	UserID    xid.ID
+	UserID    sqlc.UserID
 	Email     string
 	Name      string
 	HasAvatar bool

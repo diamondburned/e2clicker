@@ -4,14 +4,15 @@ package postgresql
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"log/slog"
 
 	_ "embed"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/pkg/errors"
 	"libdb.so/e2clicker/services/storage/sqlc/postgresqlc"
 )
 
@@ -24,57 +25,68 @@ const (
 func Connect(ctx context.Context, url string) (*Storage, error) {
 	cfg, err := pgxpool.ParseConfig(url)
 	if err != nil {
-		return nil, errors.Wrap(err, "cannot parse url")
+		return nil, fmt.Errorf("cannot parse url: %w", err)
 	}
 
 	conn, err := pgxpool.NewWithConfig(ctx, cfg)
 	if err != nil {
-		return nil, errors.Wrap(err, "cannot create pool")
+		return nil, fmt.Errorf("cannot create pool: %w", err)
 	}
 
 	if err := migrate(ctx, conn); err != nil {
-		return nil, errors.Wrap(err, "cannot migrate")
+		return nil, fmt.Errorf("cannot migrate: %w", err)
 	}
 
 	return newStorage(conn), nil
 }
 
 func migrate(ctx context.Context, conn *pgxpool.Pool) error {
+	var firstRun bool
+
+	currentVersion, err := postgresqlc.New(conn).Version(ctx)
+	if err != nil {
+		if !isErrorCode(err, codeTableNotFound) {
+			return fmt.Errorf("cannot get schema version: %w", err)
+		}
+		firstRun = true
+	}
+
+	schemaVersions := postgresqlc.Schema.Versions()
+	if int(currentVersion) >= len(schemaVersions) {
+		return nil
+	}
+
 	tx, err := conn.BeginTx(ctx, pgx.TxOptions{
 		IsoLevel: pgx.Serializable, // force strictest isolation level
 	})
 	if err != nil {
-		return errors.Wrap(err, "cannot begin transaction")
+		return fmt.Errorf("cannot begin transaction: %w", err)
 	}
 	defer tx.Rollback(ctx)
 
-	v, err := postgresqlc.New(tx).Version(ctx)
-	if err != nil {
-		if !isErrorCode(err, codeTableNotFound) {
-			return errors.Wrap(err, "cannot get schema version")
+	if !firstRun {
+		currentVersion, err = postgresqlc.New(tx).Version(ctx)
+		if err != nil {
+			return fmt.Errorf("cannot get schema version: %w", err)
 		}
 	}
 
-	versions := postgresqlc.Schema.Versions()
-	if int(v) > len(versions) {
-		return fmt.Errorf(
-			"database schema version %d is higher than the latest supported version %d (app outdated?)",
-			v, len(versions))
-	}
-
-	if int(v) == len(versions) {
-		return nil
-	}
-
-	for i := int(v); i < len(versions); i++ {
-		_, err := tx.Exec(ctx, versions[i])
+	for i := int(currentVersion); i < len(schemaVersions); i++ {
+		_, err := tx.Exec(ctx, schemaVersions[i])
 		if err != nil {
-			return errors.Wrapf(err, "cannot apply migration %d (from 0th)", i)
+			slog.Error(
+				"cannot apply migration",
+				"module", "storage.postgresql",
+				"version", i,
+				"version_initial", currentVersion,
+				"version_wanted", len(schemaVersions),
+				"err", err)
+			return fmt.Errorf("cannot apply migration %d", i)
 		}
 	}
 
 	if err := tx.Commit(ctx); err != nil {
-		return errors.Wrap(err, "cannot commit new migrations")
+		return fmt.Errorf("cannot commit new migrations: %w", err)
 	}
 
 	return nil

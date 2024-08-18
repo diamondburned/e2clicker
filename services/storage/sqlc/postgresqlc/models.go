@@ -9,9 +9,9 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5/pgtype"
-	xid "github.com/rs/xid"
 	assetservice "libdb.so/e2clicker/services/asset"
 	notificationservice "libdb.so/e2clicker/services/notification"
+	sqlc "libdb.so/e2clicker/services/storage/sqlc"
 	userservice "libdb.so/e2clicker/services/user"
 )
 
@@ -67,7 +67,7 @@ type DeliveryMethod struct {
 type DosageHistory struct {
 	DoseID         int64
 	LastDose       pgtype.Int8
-	UserID         pgtype.Uint32
+	UserID         interface{}
 	DeliveryMethod pgtype.Text
 	Dose           pgtype.Numeric
 	TakenAt        pgtype.Timestamptz
@@ -75,7 +75,7 @@ type DosageHistory struct {
 }
 
 type DosageSchedule struct {
-	UserID         xid.ID
+	UserID         sqlc.UserID
 	DeliveryMethod pgtype.Text
 	Dose           pgtype.Numeric
 	Interval       pgtype.Interval
@@ -89,14 +89,14 @@ type Meta struct {
 
 type NotificationHistory struct {
 	NotificationID int64
-	UserID         pgtype.Uint32
+	UserID         interface{}
 	DosageID       pgtype.Int8
 	SentAt         pgtype.Timestamptz
 	ErrorReason    pgtype.Text
 }
 
 type User struct {
-	UserID              xid.ID
+	UserID              sqlc.UserID
 	Email               string
 	Passhash            []byte
 	Name                string
@@ -107,7 +107,7 @@ type User struct {
 }
 
 type UserAvatar struct {
-	UserID      xid.ID
+	UserID      sqlc.UserID
 	MimeType    string
 	Compression assetservice.Compression
 	AvatarImage []byte
@@ -115,7 +115,7 @@ type UserAvatar struct {
 
 type UserSession struct {
 	SessionID int64
-	UserID    xid.ID
+	UserID    sqlc.UserID
 	Token     []byte
 	CreatedAt pgtype.Timestamp
 	LastUsed  pgtype.Timestamp

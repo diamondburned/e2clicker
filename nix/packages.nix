@@ -35,11 +35,16 @@ let
     };
 
     goModules =
-      (pkgs.buildGoModule {
+      (pkgs.buildGoApplication {
         inherit src version;
         pname = "e2clicker";
-        vendorHash = hashes.goModules;
-      }).goModules;
+        modules = ./gomod2nix.toml;
+      }).vendorEnv;
+
+    # Needed for gomod2nix.
+    GO_NO_VENDOR_CHECKS = "1";
+    GO111MODULE = "on";
+    GOFLAGS = "-mod=vendor";
 
     buildPhase = ''
       runHook preBuild
@@ -85,9 +90,5 @@ rec {
     exec ${lib.getExe pkgs.nodejs} .
   '';
 
-  e2clicker-container = inputs.extra-container.lib.buildContainers {
-    inherit (pkgs) system;
-    config = import ./containers/e2clicker.nix args;
-    legacyInstallDirs = true;
-  };
+  e2clicker-dev = import ./dev args;
 }

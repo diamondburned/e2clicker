@@ -6,6 +6,7 @@ import (
 	"log"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/plaid/go-envvar/envvar"
 	"github.com/spf13/pflag"
 	"libdb.so/e2clicker/cmd/e2clicker-backend/cfgtypes"
+	"libdb.so/e2clicker/services/storage/postgresql"
 	"libdb.so/hserve"
 )
 
@@ -27,6 +29,8 @@ var env struct {
 	HTTPAddress string `envvar:"HTTP_ADDRESS"`
 }
 
+var logLevel = slog.LevelWarn
+
 func init() {
 	log.SetFlags(0)
 
@@ -39,8 +43,6 @@ func main() {
 	if err := envvar.Parse(&env); err != nil {
 		log.Fatalln(err)
 	}
-
-	logLevel := slog.LevelWarn
 	logLevel -= slog.Level(verbosity) * 4 // every 4 level is a constant
 
 	var slogHandler slog.Handler
@@ -68,8 +70,27 @@ func main() {
 }
 
 func run(ctx context.Context) error {
+	dbURI, err := url.Parse(env.DatabaseURI)
+	if err != nil {
+		return fmt.Errorf("invalid database URI: %w", err)
+	}
+
+	switch dbURI.Scheme {
+	case "postgres", "postgresql":
+		_, err := postgresql.Connect(ctx, env.DatabaseURI)
+		if err != nil {
+			return fmt.Errorf("failed to connect to PostgreSQL: %w", err)
+		}
+	default:
+		return fmt.Errorf("unsupported database scheme %q in URI", dbURI.Scheme)
+	}
+
 	mux := chi.NewMux()
-	mux.Get("/debug/health", respond200)
+	if logLevel <= slog.LevelDebug {
+		mux.Use(logRequest)
+	}
+
+	mux.Get("/", respond200)
 
 	slog.Info(
 		"listening to HTTP server",
@@ -84,4 +105,17 @@ func run(ctx context.Context) error {
 
 func respond200(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(200)
+}
+
+func logRequest(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		slog.DebugContext(r.Context(),
+			"received API request",
+			"method", r.Method,
+			"path", r.URL.Path,
+			"query", r.URL.Query().Encode(),
+			"headers", r.Header)
+
+		next.ServeHTTP(w, r)
+	})
 }

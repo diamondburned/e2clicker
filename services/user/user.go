@@ -7,19 +7,57 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"time"
 
 	"github.com/rs/xid"
 	"golang.org/x/text/language"
 )
 
 // UserID is a unique identifier for a user.
-type UserID xid.ID
+type UserID struct {
+	x xid.ID
+}
 
 // NullUserID is a zero value for [UserID].
 var NullUserID = UserID{}
 
+// ParseUserID parses a user ID from a string. See [UserID.String].
+func ParseUserID(s string) (UserID, error) {
+	v, err := xid.FromString(s)
+	if err != nil {
+		return UserID{}, err
+	}
+	return UserID{v}, nil
+}
+
+// ParseRawUserID parses a user ID from raw bytes. See [UserID.Bytes].
+func ParseRawUserID(b []byte) (UserID, error) {
+	v, err := xid.FromBytes(b)
+	if err != nil {
+		return UserID{}, err
+	}
+	return UserID{v}, nil
+}
+
+// GenerateUserID generates a new user ID.
+func GenerateUserID() UserID {
+	return UserID{xid.New()}
+}
+
 // String formats the user ID into a string.
-func (id UserID) String() string { return xid.ID(id).String() }
+func (id UserID) String() string {
+	return id.x.String()
+}
+
+// Bytes returns the user ID as raw bytes. This is useful for storing.
+func (id UserID) Bytes() []byte {
+	return id.x.Bytes()
+}
+
+// CreatedAt returns the creation time of the user ID.
+func (id UserID) CreatedAt() time.Time {
+	return id.x.Time()
+}
 
 // MarshalText implements the [encoding.TextMarshaler] interface.
 func (id UserID) MarshalText() ([]byte, error) {
@@ -32,7 +70,7 @@ func (id *UserID) UnmarshalText(text []byte) error {
 	if err != nil {
 		return err
 	}
-	*id = UserID(v)
+	*id = UserID{v}
 	return nil
 }
 
@@ -57,7 +95,7 @@ func ParseSessionToken(token string) (SessionToken, error) {
 	}
 
 	return SessionToken{
-		UserID:       UserID(userID),
+		UserID:       UserID{userID},
 		randomBase64: randomBase64,
 	}, nil
 }

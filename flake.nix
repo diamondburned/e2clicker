@@ -93,12 +93,13 @@
         devShells.default = pkgs.mkShell {
           packages = with pkgs; [
             just
-            process-compose
+            zellij
 
             go
             gopls
             gotools # contains goimports
             go-tools # contains staticcheck
+            gomod2nix
             moq
 
             (stub "npm")
@@ -144,7 +145,7 @@
           specialArgs = inputs;
           modules = [
             inputs.nixos-shell.nixosModules.nixos-shell
-            ./nix/vm/dev.nix
+            ./nix/dev/vm.nix
           ];
         };
       };

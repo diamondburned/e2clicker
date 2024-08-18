@@ -1,0 +1,10 @@
+layout {
+	pane split_direction="horizontal" {
+		just { args "dev-vm"; }
+		just { args "dev-frontend"; }
+	}
+
+	pane_template name="just" {
+		command "just"
+	}
+}

@@ -9,6 +9,8 @@
 
 let
   e2clicker = config.services.e2clicker;
+  backendFlags = "" + (lib.optionalString e2clicker.backend.debug "-vvv");
+  frontendFlags = "";
 in
 
 with lib;
@@ -28,6 +30,11 @@ with builtins;
       port = mkOption {
         type = types.int;
         description = "The port the backend should serve on.";
+      };
+
+      debug = mkOption {
+        type = types.bool;
+        default = false;
       };
 
       databaseURI = mkOption {
@@ -75,7 +82,7 @@ with builtins;
         DATABASE_URI = "${e2clicker.backend.databaseURI}";
       };
       serviceConfig = {
-        ExecStart = getExe e2clicker.backend.package;
+        ExecStart = "${getExe e2clicker.backend.package} ${backendFlags}";
         Restart = "always";
         RestartSec = "5s";
         DynamicUser = true;
@@ -91,7 +98,7 @@ with builtins;
         PORT = "${toString e2clicker.frontend.port}";
       };
       serviceConfig = {
-        ExecStart = getExe e2clicker.frontend.package;
+        ExecStart = "${getExe e2clicker.frontend.package} ${frontendFlags}";
         Restart = "always";
         RestartSec = "5s";
         DynamicUser = true;

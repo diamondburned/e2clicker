@@ -24,6 +24,10 @@
     ];
   };
 
+  systemd.extraConfig = ''
+    DefaultStandardOutput=journal+console
+  '';
+
   services.postgresql = {
     enable = true;
     enableJIT = true;
@@ -40,8 +44,9 @@
     };
     backend = {
       enable = true;
+      debug = true;
       port = 36001;
-      databaseURI = "postgresql://e2clicker@localhost";
+      databaseURI = "postgresql://e2clicker-backend@/e2clicker-backend";
     };
   };
 
