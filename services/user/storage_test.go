@@ -17,6 +17,6 @@ func newMockUserService(*testing.T) *mockUserService {
 		avatars:  &UserAvatarStorageMock{},
 		sessions: &UserSessionStorageMock{},
 	}
-	s.UserService = NewUserService(s.users, s.avatars, s.sessions)
+	s.UserService = UserService{s.users, s.avatars, s.sessions}
 	return s
 }

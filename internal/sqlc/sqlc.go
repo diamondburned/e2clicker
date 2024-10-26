@@ -9,7 +9,7 @@ type UserID struct {
 	user.UserID
 }
 
-func (id UserID) ScanBytes(v []byte) error {
+func (id *UserID) ScanBytes(v []byte) error {
 	u, err := user.ParseRawUserID(v)
 	if err != nil {
 		return err

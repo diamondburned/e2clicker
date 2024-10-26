@@ -17,8 +17,31 @@
       }
     },
     "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "A message describing the error"
+          },
+          "details": {
+            "description": "Additional details about the error"
+          },
+          "internal": {
+            "type": "boolean",
+            "description": "Whether the error is internal"
+          },
+          "internalCode": {
+            "type": "string",
+            "description": "An internal code for the error (useless for clients)"
+          }
+        },
+        "required": [
+          "message"
+        ]
+      },
       "UserID": {
-        "description": "A unique user identifier.\n",
+        "description": "A unique user identifier.",
         "type": "string",
         "x-go-type": "user.UserID",
         "x-go-type-import": {
@@ -27,7 +50,7 @@
         }
       },
       "Locale": {
-        "description": "A locale identifier.\n",
+        "description": "A locale identifier.",
         "type": "string",
         "x-go-type": "user.Locale",
         "x-go-type-import": {
@@ -36,7 +59,7 @@
         }
       },
       "User": {
-        "description": "A user of the system.\n",
+        "description": "A user of the system.",
         "type": "object",
         "required": [
           "id",
@@ -57,35 +80,47 @@
             "description": "The user's name"
           },
           "locale": {
-            "type": "string",
-            "description": "The user's preferred locale"
+            "$ref": "#/components/schemas/Locale"
           }
         }
       },
       "SessionToken": {
-        "description": "A session token string.\nThis is used in the Authorization header to authenticate requests.\n",
+        "description": "A session token string. This is used in the Authorization header to authenticate requests.",
         "type": "string",
         "x-go-type": "user.SessionToken",
         "x-go-type-import": {
           "path": "libdb.so/e2clicker/services/user",
           "name": "userservice"
         }
-      },
-      "SessionTokenObject": {
-        "description": "A session token object that is returned when creating a new session.\n",
-        "type": "object",
-        "required": [
-          "userID",
-          "token"
-        ],
-        "properties": {
-          "userID": {
-            "$ref": "#/components/schemas/UserID"
-          },
-          "token": {
-            "$ref": "#/components/schemas/SessionToken"
+      }
+    },
+    "responses": {
+      "ErrorResponse": {
+        "description": "The request is invalid.\n",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
           }
         }
+      }
+    },
+    "parameters": {
+      "userID": {
+        "in": "path",
+        "name": "userID",
+        "schema": {
+          "type": "string",
+          "x-go-type": "user.UserID",
+          "x-go-type-import": {
+            "path": "libdb.so/e2clicker/services/user",
+            "name": "userservice"
+          }
+        },
+        "required": true,
+        "description": "The ID of the user to get the avatar for.",
+        "x-go-name": "UserIDParam"
       }
     }
   },
@@ -97,10 +132,21 @@
   "openapi": "3.0.0",
   "paths": {
     "/login": {
-      "summary": "Log into an existing account",
       "post": {
+        "summary": "Log into an existing account",
         "operationId": "login",
         "security": [],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "User-Agent",
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "description": "The user agent string of the client making the request."
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -126,26 +172,49 @@
         },
         "responses": {
           "200": {
-            "description": "Successfully logged in.\n",
+            "description": "Successfully logged in.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SessionToken"
+                  "type": "object",
+                  "required": [
+                    "userID",
+                    "token"
+                  ],
+                  "properties": {
+                    "userID": {
+                      "$ref": "#/components/schemas/UserID"
+                    },
+                    "token": {
+                      "$ref": "#/components/schemas/SessionToken"
+                    }
+                  }
                 }
               }
             }
           },
-          "401": {
-            "description": "The username or password is incorrect.\n"
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
           }
         }
       }
     },
     "/register": {
-      "summary": "Register a new account",
       "post": {
+        "summary": "Register a new account",
         "operationId": "register",
         "security": [],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "User-Agent",
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "description": "The user agent string of the client making the request."
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -175,40 +244,46 @@
           }
         },
         "responses": {
-          "201": {
-            "description": "Successfully registered.\n",
+          "200": {
+            "description": "Successfully logged in.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SessionToken"
+                  "type": "object",
+                  "required": [
+                    "user",
+                    "token"
+                  ],
+                  "properties": {
+                    "user": {
+                      "$ref": "#/components/schemas/User"
+                    },
+                    "token": {
+                      "$ref": "#/components/schemas/SessionToken"
+                    }
+                  }
                 }
               }
             }
           },
-          "409": {
-            "description": "The username is already taken.\n"
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
           }
         }
       }
     },
     "/user/{userID}": {
-      "summary": "Get a user by ID",
-      "parameters": [
-        {
-          "in": "path",
-          "name": "userID",
-          "schema": {
-            "type": "string"
-          },
-          "required": true,
-          "description": "The ID of the user to get, or \"me\" to get the current user.\n"
-        }
-      ],
       "get": {
+        "summary": "Get a user by ID",
         "operationId": "user",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/userID"
+          }
+        ],
         "responses": {
           "200": {
-            "description": "Successfully retrieved the current user.\n",
+            "description": "Successfully retrieved the current user.",
             "content": {
               "application/json": {
                 "schema": {
@@ -216,48 +291,36 @@
                 }
               }
             }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
           }
         }
       }
     },
     "/user/{userID}/avatar": {
-      "summary": "Get a user's avatar by ID",
-      "parameters": [
-        {
-          "in": "path",
-          "name": "userID",
-          "schema": {
-            "type": "string"
-          },
-          "required": true,
-          "description": "The ID of the user to get the avatar for.\n"
-        }
-      ],
       "get": {
+        "summary": "Get a user's avatar by ID",
         "operationId": "userAvatar",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/userID"
+          }
+        ],
         "responses": {
           "200": {
-            "description": "Successfully retrieved the user's avatar.\n",
+            "description": "Successfully retrieved the user's avatar.",
             "content": {
-              "image/png": {
-                "schema": {
-                  "type": "string",
-                  "format": "binary"
-                }
-              },
-              "image/jpeg": {
-                "schema": {
-                  "type": "string",
-                  "format": "binary"
-                }
-              },
-              "image/webp": {
+              "image/*": {
                 "schema": {
                   "type": "string",
                   "format": "binary"
                 }
               }
             }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
           }
         }
       }

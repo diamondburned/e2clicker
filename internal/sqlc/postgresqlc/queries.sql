@@ -22,12 +22,13 @@ WHERE name = $1;
 /*
  * User
  */
--- name: CreateUser :exec
+-- name: CreateUser :one
 INSERT INTO users (user_id, email, passhash, name)
-  VALUES ($1, $2, $3, $4);
+  VALUES ($1, $2, $3, $4)
+RETURNING user_id, email, name, locale, registered_at;
 
 -- name: User :one
-SELECT user_id, email, name, EXISTS (
+SELECT user_id, email, name, locale, registered_at, EXISTS (
     SELECT user_id
     FROM user_avatars
     WHERE user_id = users.user_id) AS has_avatar
@@ -78,16 +79,16 @@ WHERE user_id = $1;
  * User Avatar
  */
 -- name: UserAvatar :one
-SELECT avatar_image
+SELECT avatar_image, mime_type
 FROM user_avatars
 WHERE user_id = $1;
 
 -- name: SetUserAvatar :exec
-INSERT INTO user_avatars (user_id, avatar_image)
-  VALUES ($1, $2)
+INSERT INTO user_avatars (user_id, avatar_image, mime_type)
+  VALUES ($1, $2, $3)
 ON CONFLICT (user_id)
   DO UPDATE SET
-    avatar_image = $2;
+    avatar_image = $2, mime_type = $3;
 
 
 /*
@@ -105,10 +106,7 @@ FROM users
 WHERE user_sessions.user_id = users.user_id
   AND token = $1
   AND last_used > now() - '7 days'::interval
-RETURNING users.user_id, users.email, users.name, EXISTS (
-    SELECT user_id
-    FROM user_avatars
-    WHERE user_id = users.user_id) AS has_avatar;
+RETURNING users.user_id;
 
 
 /*

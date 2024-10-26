@@ -1,6 +1,7 @@
 package notification
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -9,20 +10,22 @@ import (
 )
 
 func init() {
-	publicerrors.MarkTypePublic[UnknownServiceError]()
+	publicerrors.MarkValuesPublic(ErrUnknownService)
 	publicerrors.MarkTypePublic[HTTPUnknownStatusError]()
 	publicerrors.MarkTypePublic[ConfigError]()
 }
 
+// ErrUnknownService is returned when an unknown service is requested.
+var ErrUnknownService = errors.New("unknown service")
+
 // ConfigError is returned when a notification service is given an invalid
 // configuration or the configuration fails validation.
 type ConfigError struct {
-	ServiceName string `json:"serviceName"`
-	err         error
+	err error
 }
 
 func (e ConfigError) Error() string {
-	s := fmt.Sprintf("invalid config for service %q", e.ServiceName)
+	s := "invalid config"
 	if e.err != nil {
 		s += ": " + e.err.Error()
 	}
@@ -31,15 +34,6 @@ func (e ConfigError) Error() string {
 
 func (e ConfigError) Unwrap() error {
 	return e.err
-}
-
-// UnknownServiceError is returned when a service is unknown.
-type UnknownServiceError struct {
-	ServiceName string `json:"serviceName"`
-}
-
-func (e UnknownServiceError) Error() string {
-	return fmt.Sprintf("unknown service: %q", e.ServiceName)
 }
 
 // HTTPUnknownStatusError is returned when an unknown HTTP status code is

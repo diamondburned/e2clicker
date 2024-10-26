@@ -2,15 +2,9 @@ package user
 
 import (
 	"context"
-	"io"
 
-	"libdb.so/e2clicker/services/asset"
+	"libdb.so/e2clicker/internal/asset"
 )
-
-type UserPassword struct {
-	UserID   UserID
-	Passhash []byte
-}
 
 type UserStorage interface {
 	CreateUser(ctx context.Context, id UserID, email string, passhash []byte, name string) (User, error)
@@ -24,10 +18,10 @@ type UserStorage interface {
 type UserAvatarStorage interface {
 	// UserAvatar returns the user's avatar.
 	// The returned asset is an open reader that must be closed by the caller.
-	UserAvatar(ctx context.Context, id UserID) (asset.CompressedAsset[io.ReadCloser], error)
+	UserAvatar(ctx context.Context, id UserID) (asset.ReadCloser, error)
 	// SetUserAvatar sets the user's avatar.
 	// The caller must still close the given reader.
-	SetUserAvatar(ctx context.Context, id UserID, a asset.CompressedAsset[io.Reader]) error
+	SetUserAvatar(ctx context.Context, id UserID, a asset.Reader) error
 }
 
 type UserSessionStorage interface {

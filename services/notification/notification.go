@@ -1,16 +1,11 @@
-// Package notification provides a way to send notifications to users.
 package notification
 
 import (
-	"context"
+	"encoding/json"
+	"fmt"
 	"reflect"
+	"unique"
 )
-
-// NotificationService sends notifications to users.
-type NotificationService interface {
-	// SendNotification sends a notification using this service.
-	SendNotification(context.Context, Notification, NotificationConfig) error
-}
 
 // Notification is a message to be sent to a user.
 type Notification struct {
@@ -18,40 +13,69 @@ type Notification struct {
 	Message string `json:"message"`
 }
 
-// NotificationServiceMux is a collection of NotificationServices.
-// It implements the [NotificationService] interface.
-type NotificationServiceMux struct {
-	m map[reflect.Type]NotificationService
+// NotificationConfig is a configuration for a notification.
+type NotificationConfig interface {
+	json.Marshaler
+	isNotificationConfig()
 }
 
-// MuxableNotificationService extends NotificationService to include the
-// ServiceName method.
-type MuxableNotificationService interface {
-	NotificationService
-	// ServiceName returns the name of the service.
-	ServiceName() string
-}
+var configFactories = map[unique.Handle[string]]func() NotificationConfig{}
 
-// NewNotificationServiceMux creates a new NotificationServiceMux with the given services.
-// If the mux is given an unknown service, it will panic.
-func NewNotificationServiceMux(services ...MuxableNotificationService) NotificationServiceMux {
-	m := map[reflect.Type]NotificationService{}
-	for _, service := range services {
-		configType, ok := knownConfigTypes[service.ServiceName()]
-		if !ok {
-			panic("unknown service: " + service.ServiceName())
+func registerNotificationConfig[T NotificationConfig](name string, newFn func() NotificationConfig) unique.Handle[string] {
+	if newFn == nil {
+		rt := reflect.TypeFor[T]()
+		if rt.Kind() != reflect.Ptr {
+			panic("notification config must be a pointer")
 		}
-		m[configType] = service
+		rt = rt.Elem()
+		newFn = func() NotificationConfig {
+			rv := reflect.New(rt)
+			return rv.Interface().(NotificationConfig)
+		}
 	}
-	return NotificationServiceMux{m: m}
+
+	nameHandle := unique.Make(name)
+	configFactories[nameHandle] = newFn
+
+	return nameHandle
 }
 
-// SendNotification implements [NotificationService].
-func (m NotificationServiceMux) SendNotification(ctx context.Context, n Notification, c NotificationConfig) error {
-	ct := reflect.TypeOf(c)
-	cs, ok := m.m[ct]
-	if !ok {
-		return UnknownServiceError{ServiceName: c.ServiceName()}
+// NotificationConfigJSON is a JSON representation of a [NotificationConfig].
+// When handling JSON, this type must be used for marshaling to succeed.
+type NotificationConfigJSON struct {
+	ServiceName unique.Handle[string]
+	NotificationConfig
+}
+
+func (n NotificationConfigJSON) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		Service string             `json:"service"`
+		Config  NotificationConfig `json:"config"`
+	}{
+		Service: n.ServiceName.Value(),
+		Config:  n.NotificationConfig,
+	})
+}
+
+func (n *NotificationConfigJSON) UnmarshalJSON(data []byte) error {
+	var raw struct {
+		Service string          `json:"service"`
+		Config  json.RawMessage `json:"config"`
 	}
-	return cs.SendNotification(ctx, n, c)
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+
+	newCfg, ok := configFactories[unique.Make(raw.Service)]
+	if !ok {
+		return fmt.Errorf("unknown notification service %q", raw.Service)
+	}
+
+	config := newCfg()
+	if err := json.Unmarshal(raw.Config, config); err != nil {
+		return err
+	}
+
+	n.NotificationConfig = config
+	return nil
 }

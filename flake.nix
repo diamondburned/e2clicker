@@ -1,6 +1,6 @@
 {
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs?rev=d04953086551086b44b6f3c6b7eeb26294f207da";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
 
     nixos-shell = {
@@ -46,7 +46,7 @@
             inputs.gomod2nix.overlays.default
 
             (self: super: {
-              go = super.go_1_22;
+              go = super.go_1_23;
               pnpm = super.pnpm_9;
             })
 

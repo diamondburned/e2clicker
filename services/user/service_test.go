@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/alecthomas/assert/v2"
-	"github.com/rs/xid"
 )
 
 func TestUserService_CreateUser(t *testing.T) {
@@ -29,13 +28,13 @@ func TestUserService_ValidateUserEmailPassword(t *testing.T) {
 	const rightPassword = "password"
 
 	ctx := context.Background()
-	rightID := UserID(xid.New())
+	rightID := GenerateUserID()
 
 	s := newMockUserService(t)
 	s.users.UserPasswordFromEmailFunc = func(ctx context.Context, email string) (UserPassword, error) {
 		if email == rightEmail {
 			b, _ := hashPassword(rightPassword)
-			return UserPassword{UserID: rightID, Passhash: b}, nil
+			return UserPassword{ID: rightID, Passhash: b}, nil
 		}
 		return UserPassword{}, fmt.Errorf("user not found")
 	}
@@ -58,7 +57,7 @@ func TestUserService_ValidateUserEmailPassword(t *testing.T) {
 
 func TestUserService_UpdateUserEmailPassword(t *testing.T) {
 	ctx := context.Background()
-	id := UserID(xid.New())
+	id := GenerateUserID()
 
 	s := newMockUserService(t)
 
@@ -90,7 +89,7 @@ func TestUserService_UpdateUserLocale(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	id := UserID(xid.New())
+	id := GenerateUserID()
 
 	for i, test := range tests {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
@@ -114,7 +113,7 @@ func TestUserService_UpdateUserLocale(t *testing.T) {
 
 func TestUserService_RegisterSession(t *testing.T) {
 	ctx := context.Background()
-	id := UserID(xid.New())
+	id := GenerateUserID()
 
 	s := newMockUserService(t)
 
@@ -142,7 +141,7 @@ func TestUserService_RegisterSession(t *testing.T) {
 
 	t.Run("tampered", func(t *testing.T) {
 		token2 := token
-		token2.UserID = UserID(xid.New())
+		token2.UserID = GenerateUserID()
 
 		_, err := s.ValidateSession(ctx, token2.String())
 		assert.Equal(t, err, ErrInvalidSession)

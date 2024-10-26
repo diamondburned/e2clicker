@@ -7,10 +7,18 @@ info:
 
 paths:
   /login:
-    summary: Log into an existing account
     post:
+      summary: Log into an existing account
       operationId: login
       security: []
+      parameters:
+        - in: header
+          name: User-Agent
+          schema:
+            type: string
+          required: false
+          description: >-
+            The user agent string of the client making the request.
       requestBody:
         content:
           application/json:
@@ -26,21 +34,34 @@ paths:
                   description: The password to log in with
       responses:
         "200":
-          description: |
+          description: >-
             Successfully logged in.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SessionToken"
-        "401":
-          description: |
-            The username or password is incorrect.
+                type: object
+                required: [userID, token]
+                properties:
+                  userID:
+                    $ref: "#/components/schemas/UserID"
+                  token:
+                    $ref: "#/components/schemas/SessionToken"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
 
   /register:
-    summary: Register a new account
     post:
+      summary: Register a new account
       operationId: register
       security: []
+      parameters:
+        - in: header
+          name: User-Agent
+          schema:
+            type: string
+          required: false
+          description: >-
+            The user agent string of the client making the request.
       requestBody:
         content:
           application/json:
@@ -58,72 +79,78 @@ paths:
                   type: string
                   description: The password to register with
       responses:
-        "201":
-          description: |
-            Successfully registered.
+        "200":
+          description: >-
+            Successfully logged in.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SessionToken"
-        "409":
-          description: |
-            The username is already taken.
+                type: object
+                required: [user, token]
+                properties:
+                  user:
+                    $ref: "#/components/schemas/User"
+                  token:
+                    $ref: "#/components/schemas/SessionToken"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
 
   /user/{userID}:
-    summary: Get a user by ID
-    parameters:
-      - in: path
-        name: userID
-        schema:
-          type: string
-        required: true
-        description: |
-          The ID of the user to get, or "me" to get the current user.
     get:
+      summary: Get a user by ID
       operationId: user
+      parameters:
+        - $ref: "#/components/parameters/userID"
       responses:
         "200":
-          description: |
+          description: >-
             Successfully retrieved the current user.
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/User"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
 
   /user/{userID}/avatar:
-    summary: Get a user's avatar by ID
-    parameters:
-      - in: path
-        name: userID
-        schema:
-          type: string
-        required: true
-        description: |
-          The ID of the user to get the avatar for.
     get:
+      summary: Get a user's avatar by ID
       operationId: userAvatar
+      parameters:
+        - $ref: "#/components/parameters/userID"
       responses:
         "200":
-          description: |
+          description: >-
             Successfully retrieved the user's avatar.
           content:
-            image/png:
+            image/*:
               schema:
                 type: string
                 format: binary
-            image/jpeg:
-              schema:
-                type: string
-                format: binary
-            image/webp:
-              schema:
-                type: string
-                format: binary
+        default:
+          $ref: "#/components/responses/ErrorResponse"
 
 components:
+  parameters:
+    userID:
+      in: path
+      name: userID
+      schema:
+        type: string
+        x-go-type: user.UserID
+        x-go-type-import:
+          path: libdb.so/e2clicker/services/user
+          name: userservice
+      required: true
+      description: >-
+        The ID of the user to get the avatar for.
+      # Without this extension, the parameter will collide with the actual
+      # UserID type. Underneath, they're the same type.
+      x-go-name: UserIDParam
+
   schemas:
     UserID:
-      description: |
+      description: >-
         A unique user identifier.
       type: string
       x-go-type: user.UserID
@@ -132,7 +159,7 @@ components:
         name: userservice
 
     Locale:
-      description: |
+      description: >-
         A locale identifier.
       type: string
       x-go-type: user.Locale
@@ -141,7 +168,7 @@ components:
         name: userservice
 
     User:
-      description: |
+      description: >-
         A user of the system.
       type: object
       required: [id, email, name, locale]
@@ -155,11 +182,10 @@ components:
           type: string
           description: The user's name
         locale:
-          type: string
-          description: The user's preferred locale
+          $ref: "#/components/schemas/Locale"
 
     SessionToken:
-      description: |
+      description: >-
         A session token string.
         This is used in the Authorization header to authenticate requests.
       type: string
@@ -167,14 +193,3 @@ components:
       x-go-type-import:
         path: libdb.so/e2clicker/services/user
         name: userservice
-
-    SessionTokenObject:
-      description: |
-        A session token object that is returned when creating a new session.
-      type: object
-      required: [userID, token]
-      properties:
-        userID:
-          $ref: "#/components/schemas/UserID"
-        token:
-          $ref: "#/components/schemas/SessionToken"

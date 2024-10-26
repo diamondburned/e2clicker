@@ -21,10 +21,6 @@ CREATE DOMAIN notificationconfig AS jsonb;
 
 CREATE DOMAIN locale AS text;
 
-CREATE TYPE compression AS ENUM (
-  'gzip', 'zstd', 'brotli'
-);
-
 CREATE TABLE delivery_methods (
   id text PRIMARY KEY, units text NOT NULL, name text NOT NULL
 );
@@ -80,8 +76,6 @@ CREATE TABLE user_avatars (
   user_id userid PRIMARY KEY REFERENCES users (user_id) ON DELETE CASCADE,
   -- The MIME type of the image.
   mime_type text NOT NULL,
-  -- The compression of the image data, if any.
-  compression compression,
   -- The user's avatar image, limited to 1MB.
   avatar_image bytea NOT NULL CHECK (octet_length(avatar_image) <= 1048576)
 );

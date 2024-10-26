@@ -5,44 +5,41 @@ import (
 	"fmt"
 	"log"
 	"log/slog"
-	"net/http"
-	"net/url"
 	"os"
-	"os/signal"
+	"strings"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/lmittmann/tint"
-	"github.com/plaid/go-envvar/envvar"
+	"github.com/samber/do/v2"
 	"github.com/spf13/pflag"
 	"libdb.so/e2clicker/cmd/e2clicker-backend/cfgtypes"
-	"libdb.so/e2clicker/services/storage/postgresql"
-	"libdb.so/hserve"
+	"libdb.so/e2clicker/services/api"
+	"libdb.so/e2clicker/services/notification"
+	"libdb.so/e2clicker/services/storage"
+	"libdb.so/e2clicker/services/user"
 )
 
 var (
-	logFormat = cfgtypes.NewStringEnum("color", "json", "text")
-	verbosity = 0
+	configFile       = "config.json"
+	logFormat        = cfgtypes.NewStringEnum("color", "json", "text")
+	verbosity        = 0
+	explainRootScope = false
+	explainService   = false
 )
-
-var env struct {
-	DatabaseURI string `envvar:"DATABASE_URI"`
-	HTTPAddress string `envvar:"HTTP_ADDRESS"`
-}
 
 var logLevel = slog.LevelWarn
 
 func init() {
 	log.SetFlags(0)
 
+	pflag.StringVarP(&configFile, "config", "c", configFile, "Configuration file")
 	pflag.VarP(logFormat, "log-format", "l", "Log format (color, json, text)")
 	pflag.CountVarP(&verbosity, "verbose", "v", "Increase verbosity (default: warn)")
+	pflag.BoolVar(&explainRootScope, "explain-root-scope", explainRootScope, "Explain the root scope")
+	pflag.BoolVar(&explainService, "explain-service", explainService, "Explain the service")
 }
 
 func main() {
 	pflag.Parse()
-	if err := envvar.Parse(&env); err != nil {
-		log.Fatalln(err)
-	}
 	logLevel -= slog.Level(verbosity) * 4 // every 4 level is a constant
 
 	var slogHandler slog.Handler
@@ -60,62 +57,65 @@ func main() {
 	logger := slog.New(slogHandler)
 	slog.SetDefault(logger)
 
-	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
-	defer cancel()
-
-	if err := run(ctx); err != nil {
-		cancel()
-		log.Fatalln(err)
+	if err := run(context.Background()); err != nil {
+		slog.Error(
+			"program failed",
+			tint.Err(err))
+		os.Exit(1)
 	}
 }
 
+var Package = do.Package(
+	api.Package,
+	user.Package,
+	storage.Package,
+	notification.Package,
+)
+
 func run(ctx context.Context) error {
-	dbURI, err := url.Parse(env.DatabaseURI)
+	root := do.NewWithOpts(&do.InjectorOpts{
+		Logf: func(s string, args ...interface{}) {
+			s = strings.TrimPrefix(s, "DI: ")
+			m := fmt.Sprintf(s, args...)
+			slog.DebugContext(ctx, m, "module", "do")
+		},
+	}, Package)
+
+	do.ProvideValue(root, ctx)
+	do.ProvideValue(root, slog.Default())
+
+	if err := parseFile(root, configFile); err != nil {
+		return err
+	}
+
+	if explainRootScope {
+		explanation := do.ExplainInjector(root)
+		fmt.Println(explanation.String())
+		return nil
+	}
+
+	_, err := do.Invoke[*api.Server](root)
 	if err != nil {
-		return fmt.Errorf("invalid database URI: %w", err)
+		return err
 	}
 
-	switch dbURI.Scheme {
-	case "postgres", "postgresql":
-		_, err := postgresql.Connect(ctx, env.DatabaseURI)
-		if err != nil {
-			return fmt.Errorf("failed to connect to PostgreSQL: %w", err)
-		}
-	default:
-		return fmt.Errorf("unsupported database scheme %q in URI", dbURI.Scheme)
+	if explainService {
+		explanation, _ := do.ExplainService[*api.Server](root)
+		fmt.Println(explanation.String())
 	}
 
-	mux := chi.NewMux()
-	if logLevel <= slog.LevelDebug {
-		mux.Use(logRequest)
-	}
-
-	mux.Get("/", respond200)
-
-	slog.Info(
-		"listening to HTTP server",
-		"addr", env.HTTPAddress)
-
-	if err := hserve.ListenAndServe(ctx, env.HTTPAddress, mux); err != nil {
-		return fmt.Errorf("failed to start HTTP server: %w", err)
+	_, errs := root.ShutdownOnSignalsWithContext(ctx, os.Interrupt)
+	if errs != nil && errs.Len() > 0 {
+		return errs
 	}
 
 	return nil
 }
 
-func respond200(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(200)
-}
-
-func logRequest(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		slog.DebugContext(r.Context(),
-			"received API request",
-			"method", r.Method,
-			"path", r.URL.Path,
-			"query", r.URL.Query().Encode(),
-			"headers", r.Header)
-
-		next.ServeHTTP(w, r)
-	})
+func indent(s string) string {
+	l := strings.Split(s, "\n")
+	for i, line := range l {
+		l[i] = "\t" + line
+	}
+	return strings.Join(l, "\n")
 }

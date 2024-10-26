@@ -1,0 +1,8 @@
+{
+  "api": {
+    "listenAddress": ":8080"
+  },
+  "postgresql": {
+    "databaseURI": "postgresql://user:password@localhost:5432/dbname?sslmode=disable"
+  }
+}

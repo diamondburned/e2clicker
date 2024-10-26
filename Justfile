@@ -50,8 +50,11 @@ dev-frontend: generate-frontend
 generate: openapi generate-backend generate-frontend generate-docs
 
 [private]
-generate-backend: openapi-backend
-    go generate -x ./...
+generate-go:
+	go generate -x ./...
+
+[private]
+generate-backend: openapi-backend generate-go
     go mod tidy
     go mod download
     gomod2nix --outdir nix
@@ -71,16 +74,16 @@ openapi-schema:
     generate-openapi schema
 
 [private]
-openapi-backend:
+openapi-backend: openapi-schema
     generate-openapi backend
 
 [private]
-openapi-frontend:
+openapi-frontend: openapi-schema
     pnpm i --prefer-offline --prefer-frozen-lockfile --use-stderr
     generate-openapi frontend
 
 [private]
-openapi-docs:
+openapi-docs: openapi-schema
     pnpm i --prefer-offline --prefer-frozen-lockfile --use-stderr
     generate-openapi docs &> /dev/null
 

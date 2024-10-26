@@ -8,10 +8,15 @@ package publicerrors
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"hash/fnv"
+	"log/slog"
 	"reflect"
+
+	"github.com/lmittmann/tint"
 )
 
 var publicErrorValues = map[error]publicError{}
@@ -109,6 +114,8 @@ type MarshaledError struct {
 	Details any `json:"details,omitempty"`
 	// Internal is true if the error is internal (not public).
 	Internal bool `json:"internal,omitempty"`
+	// InternalCode is the internal error code, if any.
+	InternalCode string `json:"internalCode,omitempty"`
 }
 
 // MarshalJSON marshals the given error to JSON.
@@ -160,6 +167,15 @@ func MarshalError(ctx context.Context, err error, hiddenMessage string) Marshale
 		}
 	}
 
+	if marshaled.Internal {
+		marshaled.InternalCode = generateInternalCode(err)
+		slog.ErrorContext(ctx,
+			"internal error occured",
+			"internal", true,
+			"code", marshaled.InternalCode,
+			tint.Err(err))
+	}
+
 	return marshaled
 }
 
@@ -181,4 +197,11 @@ func isValidErrorDetails(err error) bool {
 	}
 
 	return false
+}
+
+func generateInternalCode(err error) string {
+	h := fnv.New64a()
+	h.Write([]byte(err.Error()))
+	s := base64.StdEncoding.EncodeToString(h.Sum(nil))
+	return s
 }

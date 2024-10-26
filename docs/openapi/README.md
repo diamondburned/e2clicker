@@ -14,7 +14,7 @@ Base URLs:
 
 <h1 id="e2clicker-service-default">Default</h1>
 
-## login
+## Log into an existing account
 
 <a id="opIdlogin"></a>
 
@@ -29,10 +29,11 @@ Base URLs:
 }
 ```
 
-<h3 id="login-parameters">Parameters</h3>
+<h3 id="log-into-an-existing-account-parameters">Parameters</h3>
 
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
+|User-Agent|header|string|false|The user agent string of the client making the request.|
 |body|body|object|false|none|
 |» email|body|string|true|The username to log in with|
 |» password|body|string|true|The password to log in with|
@@ -42,21 +43,26 @@ Base URLs:
 > 200 Response
 
 ```json
-"string"
+{
+  "userID": "string",
+  "token": "string"
+}
 ```
 
-<h3 id="login-responses">Responses</h3>
+<h3 id="log-into-an-existing-account-responses">Responses</h3>
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Successfully logged in.|[SessionToken](#schemasessiontoken)|
-|401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|The username or password is incorrect.|None|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Successfully logged in.|Inline|
+|default|Default|The request is invalid.|[Error](#schemaerror)|
+
+<h3 id="log-into-an-existing-account-responseschema">Response Schema</h3>
 
 <aside class="success">
 This operation does not require authentication
 </aside>
 
-## register
+## Register a new account
 
 <a id="opIdregister"></a>
 
@@ -72,10 +78,11 @@ This operation does not require authentication
 }
 ```
 
-<h3 id="register-parameters">Parameters</h3>
+<h3 id="register-a-new-account-parameters">Parameters</h3>
 
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
+|User-Agent|header|string|false|The user agent string of the client making the request.|
 |body|body|object|false|none|
 |» name|body|string|true|The name to register with|
 |» email|body|string|true|The username to register with|
@@ -83,38 +90,44 @@ This operation does not require authentication
 
 > Example responses
 
-> 201 Response
+> 200 Response
 
 ```json
-"string"
+{
+  "user": {
+    "id": "string",
+    "email": "string",
+    "name": "string",
+    "locale": "string"
+  },
+  "token": "string"
+}
 ```
 
-<h3 id="register-responses">Responses</h3>
+<h3 id="register-a-new-account-responses">Responses</h3>
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
-|201|[Created](https://tools.ietf.org/html/rfc7231#section-6.3.2)|Successfully registered.|[SessionToken](#schemasessiontoken)|
-|409|[Conflict](https://tools.ietf.org/html/rfc7231#section-6.5.8)|The username is already taken.|None|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Successfully logged in.|Inline|
+|default|Default|The request is invalid.|[Error](#schemaerror)|
+
+<h3 id="register-a-new-account-responseschema">Response Schema</h3>
 
 <aside class="success">
 This operation does not require authentication
 </aside>
 
-## user
+## Get a user by ID
 
 <a id="opIduser"></a>
 
 `GET /user/{userID}`
 
-<h3 id="user-parameters">Parameters</h3>
+<h3 id="get-a-user-by-id-parameters">Parameters</h3>
 
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
-|userID|path|string|true|The ID of the user to get, or "me" to get the current user.|
-
-#### Detailed descriptions
-
-**userID**: The ID of the user to get, or "me" to get the current user.
+|userID|path|string|true|The ID of the user to get the avatar for.|
 
 > Example responses
 
@@ -129,7 +142,7 @@ This operation does not require authentication
 }
 ```
 
-<h3 id="user-responses">Responses</h3>
+<h3 id="get-a-user-by-id-responses">Responses</h3>
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
@@ -140,27 +153,23 @@ To perform this operation, you must be authenticated by means of one of the foll
 bearerAuth
 </aside>
 
-## userAvatar
+## Get a user's avatar by ID
 
 <a id="opIduserAvatar"></a>
 
 `GET /user/{userID}/avatar`
 
-<h3 id="useravatar-parameters">Parameters</h3>
+<h3 id="get-a-user's-avatar-by-id-parameters">Parameters</h3>
 
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
 |userID|path|string|true|The ID of the user to get the avatar for.|
 
-#### Detailed descriptions
-
-**userID**: The ID of the user to get the avatar for.
-
 > Example responses
 
 > 200 Response
 
-<h3 id="useravatar-responses">Responses</h3>
+<h3 id="get-a-user's-avatar-by-id-responses">Responses</h3>
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
@@ -172,6 +181,32 @@ bearerAuth
 </aside>
 
 # Schemas
+
+<h2 id="tocS_Error">Error</h2>
+<!-- backwards compatibility -->
+<a id="schemaerror"></a>
+<a id="schema_Error"></a>
+<a id="tocSerror"></a>
+<a id="tocserror"></a>
+
+```json
+{
+  "message": "string",
+  "details": null,
+  "internal": true,
+  "internalCode": "string"
+}
+
+```
+
+### Properties
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|message|string|true|none|A message describing the error|
+|details|any|false|none|Additional details about the error|
+|internal|boolean|false|none|Whether the error is internal|
+|internalCode|string|false|none|An internal code for the error (useless for clients)|
 
 <h2 id="tocS_UserID">UserID</h2>
 <!-- backwards compatibility -->
@@ -248,33 +283,11 @@ A user of the system.
 
 ```
 
-A session token string.
-This is used in the Authorization header to authenticate requests.
+A session token string. This is used in the Authorization header to authenticate requests.
 
 ### Properties
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|*anonymous*|string|false|none|A session token string.<br>This is used in the Authorization header to authenticate requests.|
-
-<h2 id="tocS_SessionTokenObject">SessionTokenObject</h2>
-<!-- backwards compatibility -->
-<a id="schemasessiontokenobject"></a>
-<a id="schema_SessionTokenObject"></a>
-<a id="tocSsessiontokenobject"></a>
-<a id="tocssessiontokenobject"></a>
-
-```json
-{
-  "userID": "string",
-  "token": "string"
-}
-
-```
-
-A session token object that is returned when creating a new session.
-
-### Properties
-
-*None*
+|*anonymous*|string|false|none|A session token string. This is used in the Authorization header to authenticate requests.|
 

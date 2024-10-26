@@ -147,6 +147,12 @@ type User struct {
 	HasAvatar bool   `json:"hasAvatar,omitempty"`
 }
 
+// UserPassword is a subset of [User] that only contains the password hash.
+type UserPassword struct {
+	ID       UserID
+	Passhash []byte
+}
+
 // Locale is a user's preferred languages. It is used for localization.
 // The format of the string is specified by RFC 2616 but is validated by
 // [language.ParseAcceptLanguage], which is more lax.

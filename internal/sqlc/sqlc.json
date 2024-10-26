@@ -10,11 +10,12 @@
           "package": "postgresqlc",
           "out": "postgresqlc/",
           "sql_package": "pgx/v5",
+          "initialisms": ["id", "mime"],
           "overrides": [
             {
               "db_type": "userid",
               "go_type": {
-                "import": "libdb.so/e2clicker/services/storage/sqlc",
+                "import": "libdb.so/e2clicker/internal/sqlc",
                 "package": "sqlc",
                 "type": "UserID"
               }

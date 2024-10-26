@@ -6,7 +6,7 @@ package user
 import (
 	"context"
 	"io"
-	"libdb.so/e2clicker/services/asset"
+	"libdb.so/e2clicker/internal/asset"
 	"sync"
 )
 
@@ -405,10 +405,10 @@ var _ UserAvatarStorage = &UserAvatarStorageMock{}
 //
 //		// make and configure a mocked UserAvatarStorage
 //		mockedUserAvatarStorage := &UserAvatarStorageMock{
-//			SetUserAvatarFunc: func(ctx context.Context, id UserID, a asset.CompressedAsset[io.Reader]) error {
+//			SetUserAvatarFunc: func(ctx context.Context, id UserID, a asset.Asset[io.Reader]) error {
 //				panic("mock out the SetUserAvatar method")
 //			},
-//			UserAvatarFunc: func(ctx context.Context, id UserID) (asset.CompressedAsset[io.ReadCloser], error) {
+//			UserAvatarFunc: func(ctx context.Context, id UserID) (asset.Asset[io.ReadCloser], error) {
 //				panic("mock out the UserAvatar method")
 //			},
 //		}
@@ -419,10 +419,10 @@ var _ UserAvatarStorage = &UserAvatarStorageMock{}
 //	}
 type UserAvatarStorageMock struct {
 	// SetUserAvatarFunc mocks the SetUserAvatar method.
-	SetUserAvatarFunc func(ctx context.Context, id UserID, a asset.CompressedAsset[io.Reader]) error
+	SetUserAvatarFunc func(ctx context.Context, id UserID, a asset.Asset[io.Reader]) error
 
 	// UserAvatarFunc mocks the UserAvatar method.
-	UserAvatarFunc func(ctx context.Context, id UserID) (asset.CompressedAsset[io.ReadCloser], error)
+	UserAvatarFunc func(ctx context.Context, id UserID) (asset.Asset[io.ReadCloser], error)
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -433,7 +433,7 @@ type UserAvatarStorageMock struct {
 			// ID is the id argument value.
 			ID UserID
 			// A is the a argument value.
-			A asset.CompressedAsset[io.Reader]
+			A asset.Asset[io.Reader]
 		}
 		// UserAvatar holds details about calls to the UserAvatar method.
 		UserAvatar []struct {
@@ -448,11 +448,11 @@ type UserAvatarStorageMock struct {
 }
 
 // SetUserAvatar calls SetUserAvatarFunc.
-func (mock *UserAvatarStorageMock) SetUserAvatar(ctx context.Context, id UserID, a asset.CompressedAsset[io.Reader]) error {
+func (mock *UserAvatarStorageMock) SetUserAvatar(ctx context.Context, id UserID, a asset.Asset[io.Reader]) error {
 	callInfo := struct {
 		Ctx context.Context
 		ID  UserID
-		A   asset.CompressedAsset[io.Reader]
+		A   asset.Asset[io.Reader]
 	}{
 		Ctx: ctx,
 		ID:  id,
@@ -477,12 +477,12 @@ func (mock *UserAvatarStorageMock) SetUserAvatar(ctx context.Context, id UserID,
 func (mock *UserAvatarStorageMock) SetUserAvatarCalls() []struct {
 	Ctx context.Context
 	ID  UserID
-	A   asset.CompressedAsset[io.Reader]
+	A   asset.Asset[io.Reader]
 } {
 	var calls []struct {
 		Ctx context.Context
 		ID  UserID
-		A   asset.CompressedAsset[io.Reader]
+		A   asset.Asset[io.Reader]
 	}
 	mock.lockSetUserAvatar.RLock()
 	calls = mock.calls.SetUserAvatar
@@ -491,7 +491,7 @@ func (mock *UserAvatarStorageMock) SetUserAvatarCalls() []struct {
 }
 
 // UserAvatar calls UserAvatarFunc.
-func (mock *UserAvatarStorageMock) UserAvatar(ctx context.Context, id UserID) (asset.CompressedAsset[io.ReadCloser], error) {
+func (mock *UserAvatarStorageMock) UserAvatar(ctx context.Context, id UserID) (asset.Asset[io.ReadCloser], error) {
 	callInfo := struct {
 		Ctx context.Context
 		ID  UserID
@@ -504,10 +504,10 @@ func (mock *UserAvatarStorageMock) UserAvatar(ctx context.Context, id UserID) (a
 	mock.lockUserAvatar.Unlock()
 	if mock.UserAvatarFunc == nil {
 		var (
-			compressedAssetOut asset.CompressedAsset[io.ReadCloser]
-			errOut             error
+			assetOut asset.Asset[io.ReadCloser]
+			errOut   error
 		)
-		return compressedAssetOut, errOut
+		return assetOut, errOut
 	}
 	return mock.UserAvatarFunc(ctx, id)
 }

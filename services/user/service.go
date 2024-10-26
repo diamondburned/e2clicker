@@ -3,26 +3,26 @@ package user
 import (
 	"context"
 	"fmt"
-	"io"
 	"strings"
 
 	scrypt "github.com/elithrar/simple-scrypt"
-	"libdb.so/e2clicker/services/asset"
+	"github.com/samber/do/v2"
+	"libdb.so/e2clicker/internal/asset"
 )
 
 // UserService is a service for managing users.
 type UserService struct {
-	users        UserStorage
-	userAvatars  UserAvatarStorage
-	userSessions UserSessionStorage
+	users        UserStorage        `do:""`
+	userAvatars  UserAvatarStorage  `do:""`
+	userSessions UserSessionStorage `do:""`
 }
 
-func NewUserService(storage UserStorage, avatar UserAvatarStorage, session UserSessionStorage) UserService {
-	return UserService{
-		users:        storage,
-		userAvatars:  avatar,
-		userSessions: session,
-	}
+func newUserService(i do.Injector) (*UserService, error) {
+	return &UserService{
+		users:        do.MustInvokeAs[UserStorage](i),
+		userAvatars:  do.MustInvokeAs[UserAvatarStorage](i),
+		userSessions: do.MustInvokeAs[UserSessionStorage](i),
+	}, nil
 }
 
 func (s UserService) CreateUser(ctx context.Context, email, password, name string) (User, error) {
@@ -58,7 +58,7 @@ func (s UserService) ValidateUserEmailPassword(ctx context.Context, email, passw
 		return NullUserID, ErrUnknownUser
 	}
 
-	return p.UserID, nil
+	return p.ID, nil
 }
 
 func (s UserService) UpdateUserEmailPassword(ctx context.Context, id UserID, email, password string) error {
@@ -94,11 +94,11 @@ func (s UserService) UpdateUserLocale(ctx context.Context, id UserID, locale Loc
 	return s.users.UpdateUserLocale(ctx, id, locale)
 }
 
-func (s UserService) UserAvatar(ctx context.Context, id UserID) (asset.CompressedAsset[io.ReadCloser], error) {
+func (s UserService) UserAvatar(ctx context.Context, id UserID) (asset.ReadCloser, error) {
 	return s.userAvatars.UserAvatar(ctx, id)
 }
 
-func (s UserService) SetUserAvatar(ctx context.Context, id UserID, a asset.CompressedAsset[io.Reader]) error {
+func (s UserService) SetUserAvatar(ctx context.Context, id UserID, a asset.Reader) error {
 	return s.userAvatars.SetUserAvatar(ctx, id, a)
 }
 

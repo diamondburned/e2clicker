@@ -7,16 +7,13 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+
+	"libdb.so/e2clicker/internal/validating"
 )
 
-func init() { RegisterConfigType(PushoverConfig{}) }
+var pushoverServiceName = registerNotificationConfig[*PushoverNotificationConfig]("pushover", nil)
 
-var (
-	_ NotificationConfig  = PushoverConfig{}
-	_ NotificationService = PushoverService{}
-)
-
-type PushoverConfig struct {
+type PushoverNotificationConfig struct {
 	Endpoint string `json:"endpoint"`
 	User     string `json:"user"`
 	Token    string `json:"token"`
@@ -25,11 +22,16 @@ type PushoverConfig struct {
 	Device   string `json:"device,omitempty"`
 }
 
-func (PushoverConfig) ServiceName() string   { return "pushover" }
-func (PushoverConfig) isNotificationConfig() {}
+var _ validating.Validator = (*PushoverNotificationConfig)(nil)
+
+func (*PushoverNotificationConfig) isNotificationConfig() {}
+
+func (c *PushoverNotificationConfig) MarshalJSON() ([]byte, error) {
+	return NotificationConfigJSON{pushoverServiceName, c}.MarshalJSON()
+}
 
 // Validate checks that the configuration is valid.
-func (c PushoverConfig) Validate() error {
+func (c *PushoverNotificationConfig) Validate() error {
 	if _, err := url.Parse(c.Endpoint); err != nil {
 		return fmt.Errorf("invalid endpoint: %w", err)
 	}
@@ -37,28 +39,22 @@ func (c PushoverConfig) Validate() error {
 }
 
 type PushoverService struct {
-	Client *http.Client
+	http *http.Client `do:""`
 }
 
-type pushoverNotification struct {
-	User     string `json:"user"`
-	Token    string `json:"token"`
-	Message  string `json:"message"`
-	Title    string `json:"title,omitempty"`
-	Priority int    `json:"priority,omitempty"`
-	Sound    string `json:"sound,omitempty"`
-	Device   string `json:"device,omitempty"`
-}
-
-func (s PushoverService) ServiceName() string { return "pushover" }
-func (s PushoverService) SendNotification(ctx context.Context, n Notification, c NotificationConfig) error {
-	config, ok := c.(PushoverConfig)
-	if !ok {
-		return ConfigError{ServiceName: c.ServiceName()}
+func (s PushoverService) Notify(ctx context.Context, n *Notification, config *PushoverNotificationConfig) error {
+	if err := config.Validate(); err != nil {
+		return ConfigError{err: err}
 	}
 
-	if err := config.Validate(); err != nil {
-		return ConfigError{ServiceName: c.ServiceName(), err: err}
+	type pushoverNotification struct {
+		User     string `json:"user"`
+		Token    string `json:"token"`
+		Message  string `json:"message"`
+		Title    string `json:"title,omitempty"`
+		Priority int    `json:"priority,omitempty"`
+		Sound    string `json:"sound,omitempty"`
+		Device   string `json:"device,omitempty"`
 	}
 
 	b, err := json.Marshal(pushoverNotification{
@@ -80,7 +76,7 @@ func (s PushoverService) SendNotification(ctx context.Context, n Notification, c
 	}
 	req.Header.Set("Content-Type", "application/json")
 
-	r, err := s.Client.Do(req)
+	r, err := s.http.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to send notification: %w", err)
 	}

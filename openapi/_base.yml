@@ -1,0 +1,42 @@
+info:
+  title: e2clicker service
+  version: "0"
+
+servers:
+  - url: /api/user/v1
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: "[userID].[random]"
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+          description: A message describing the error
+        details:
+          description: Additional details about the error
+        internal:
+          type: boolean
+          description: Whether the error is internal
+        internalCode:
+          type: string
+          description: An internal code for the error (useless for clients)
+      required: [message]
+
+  responses:
+    ErrorResponse:
+      description: |
+        The request is invalid.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+security:
+  - bearerAuth: []

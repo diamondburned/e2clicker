@@ -7,26 +7,33 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"unique"
+
+	"libdb.so/e2clicker/internal/validating"
 )
 
-func init() { RegisterConfigType(GotifyConfig{}) }
+var gotifyServiceName = registerNotificationConfig[*GotifyNotificationConfig]("gotify", nil)
 
-var (
-	_ NotificationConfig  = GotifyConfig{}
-	_ NotificationService = GotifyService{}
-)
-
-type GotifyConfig struct {
+type GotifyNotificationConfig struct {
 	BaseURL  string         `json:"base_url"`
 	Token    string         `json:"token"`
 	Priority int            `json:"priority,omitempty"`
 	Extras   map[string]any `json:"extras,omitempty"`
 }
 
-func (GotifyConfig) ServiceName() string   { return "gotify" }
-func (GotifyConfig) isNotificationConfig() {}
+var _ validating.Validator = (*GotifyNotificationConfig)(nil)
 
-func (c GotifyConfig) Validate() error {
+func (*GotifyNotificationConfig) isNotificationConfig() {}
+
+func (c *GotifyNotificationConfig) ServiceName() unique.Handle[string] {
+	return gotifyServiceName
+}
+
+func (c *GotifyNotificationConfig) MarshalJSON() ([]byte, error) {
+	return NotificationConfigJSON{gotifyServiceName, c}.MarshalJSON()
+}
+
+func (c *GotifyNotificationConfig) Validate() error {
 	if _, err := url.Parse(c.BaseURL); err != nil {
 		return fmt.Errorf("invalid base URL: %w", err)
 	}
@@ -34,25 +41,12 @@ func (c GotifyConfig) Validate() error {
 }
 
 type GotifyService struct {
-	Client *http.Client
+	http *http.Client `do:""`
 }
 
-type gotifyNotification struct {
-	Title    string         `json:"title,omitempty"`
-	Message  string         `json:"message"`
-	Priority int            `json:"priority,omitempty"`
-	Extras   map[string]any `json:"extras,omitempty"`
-}
-
-func (s GotifyService) ServiceName() string { return "gotify" }
-func (s GotifyService) SendNotification(ctx context.Context, n Notification, c NotificationConfig) error {
-	config, ok := c.(GotifyConfig)
-	if !ok {
-		return ConfigError{ServiceName: c.ServiceName()}
-	}
-
+func (s *GotifyService) Notify(ctx context.Context, n *Notification, config *GotifyNotificationConfig) error {
 	if err := config.Validate(); err != nil {
-		return ConfigError{ServiceName: c.ServiceName(), err: err}
+		return ConfigError{err: err}
 	}
 
 	u, err := url.Parse(config.BaseURL)
@@ -65,6 +59,13 @@ func (s GotifyService) SendNotification(ctx context.Context, n Notification, c N
 	q := u.Query()
 	q.Set("token", config.Token)
 	u.RawQuery = q.Encode()
+
+	type gotifyNotification struct {
+		Title    string         `json:"title,omitempty"`
+		Message  string         `json:"message"`
+		Priority int            `json:"priority,omitempty"`
+		Extras   map[string]any `json:"extras,omitempty"`
+	}
 
 	b, err := json.Marshal(gotifyNotification{
 		Title:    n.Title,
@@ -82,7 +83,7 @@ func (s GotifyService) SendNotification(ctx context.Context, n Notification, c N
 	}
 	req.Header.Set("Content-Type", "application/json")
 
-	r, err := s.Client.Do(req)
+	r, err := s.http.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to send notification: %w", err)
 	}
