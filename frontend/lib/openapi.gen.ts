@@ -102,6 +102,9 @@ export function user(userId: string, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
         data: User;
+    } | {
+        status: number;
+        data: Error;
     }>(`/user/${encodeURIComponent(userId)}`, {
         ...opts
     }));
@@ -110,9 +113,12 @@ export function user(userId: string, opts?: Oazapfts.RequestOpts) {
  * Get a user's avatar by ID
  */
 export function userAvatar(userId: string, opts?: Oazapfts.RequestOpts) {
-    return oazapfts.ok(oazapfts.fetchBlob<{
+    return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
         data: Blob;
+    } | {
+        status: number;
+        data: Error;
     }>(`/user/${encodeURIComponent(userId)}/avatar`, {
         ...opts
     }));

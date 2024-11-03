@@ -33,16 +33,19 @@ build-clean:
 
 export BACKEND_HTTP_ADDRESS := "http://localhost:8000"
 
-dev:
+dev: generate
     nix run .#e2clicker-dev
 
-dev-vm: generate
+[private]
+dev-vm:
     nix run .#nixosConfigurations.dev-vm.config.system.build.nixos-shell
 
-dev-backend: generate-backend
+[private]
+dev-backend:
     go run ./cmd/e2clicker --port 8000
 
-dev-frontend: generate-frontend
+[private]
+dev-frontend:
     vite --port 8080
 
 ###

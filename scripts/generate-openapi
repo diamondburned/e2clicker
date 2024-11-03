@@ -12,9 +12,10 @@ main() {
 }
 
 openapi::schema() {
-	mergeSchema openapi/_base.yml > openapi/openapi.gen.json.tmp
-	mergeSchema openapi/openapi.gen.json.tmp openapi/_*.yml > openapi/openapi.gen.json
-	rm openapi/openapi.gen.json.tmp
+	tmp=$(mktemp -p openapi ".tmp.XXXXXXXXXX.json.tmp")
+	mergeSchema openapi/_base.yml > $tmp
+	mergeSchema $tmp openapi/_*.yml > openapi/openapi.gen.json
+	rm $tmp
 }
 
 mergeSchema() {

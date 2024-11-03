@@ -9,17 +9,14 @@ import (
 	"github.com/samber/do/v2"
 	"libdb.so/e2clicker/services/api/openapi"
 	"libdb.so/hserve"
-)
 
-// ServerConfig defines the configuration for [Server].
-type ServerConfig struct {
-	ListenAddress string `json:"listenAddress"`
-}
+	e2clickermodule "libdb.so/e2clicker/nix/modules/e2clicker"
+)
 
 // Server provides an HTTP server that serves a [Handler].
 type Server struct {
-	config *ServerConfig `do:""`
-	logger *slog.Logger  `do:""`
+	config *e2clickermodule.API `do:""`
+	logger *slog.Logger         `do:""`
 
 	router *chi.Mux
 
@@ -89,11 +86,11 @@ func (s *Server) HealthCheck(ctx context.Context) error {
 	}
 }
 
-func respond200(w http.ResponseWriter, r *http.Request) {
+func respond200(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(200)
 }
 
-func logRequest(logger *slog.Logger) func(next http.Handler) http.Handler {
+func logRequest(slog *slog.Logger) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			slog.DebugContext(r.Context(),

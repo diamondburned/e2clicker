@@ -11,11 +11,15 @@
     };
 
     gomod2nix = {
-      url = "github:nix-community/gomod2nix";
+      url = "github:obreitwi/gomod2nix?ref=fix/go_mod_vendor";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-utils.follows = "flake-utils";
       };
+    };
+
+    nixmod2go = {
+      url = "github:diamondburned/nixmod2go";
     };
 
     oapi-codegen = {
@@ -33,6 +37,7 @@
     {
       self,
       nixpkgs,
+      nixmod2go,
       flake-utils,
       ...
     }@inputs:
@@ -114,6 +119,7 @@
             yaml-language-server
             yq-go
 
+            nixmod2go.packages.${system}.default
             self.formatter.${system}
           ];
 
@@ -135,8 +141,8 @@
     ))
     // {
       nixosModules = {
-        e2clicker = import ./nix/modules/e2clicker.nix inputs;
-        e2clicker-postgresql = import ./nix/modules/e2clicker-postgresql.nix inputs;
+        e2clicker = import ./nix/modules/e2clicker;
+        e2clicker-postgresql = import ./nix/modules/e2clicker-postgresql;
       };
 
       nixosConfigurations = {

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"log/slog"
@@ -11,17 +12,16 @@ import (
 	"github.com/lmittmann/tint"
 	"github.com/samber/do/v2"
 	"github.com/spf13/pflag"
-	"libdb.so/e2clicker/cmd/e2clicker-backend/cfgtypes"
 	"libdb.so/e2clicker/services/api"
 	"libdb.so/e2clicker/services/notification"
 	"libdb.so/e2clicker/services/storage"
 	"libdb.so/e2clicker/services/user"
+
+	e2clickermodule "libdb.so/e2clicker/nix/modules/e2clicker"
 )
 
 var (
 	configFile       = "config.json"
-	logFormat        = cfgtypes.NewStringEnum("color", "json", "text")
-	verbosity        = 0
 	explainRootScope = false
 	explainService   = false
 )
@@ -32,23 +32,30 @@ func init() {
 	log.SetFlags(0)
 
 	pflag.StringVarP(&configFile, "config", "c", configFile, "Configuration file")
-	pflag.VarP(logFormat, "log-format", "l", "Log format (color, json, text)")
-	pflag.CountVarP(&verbosity, "verbose", "v", "Increase verbosity (default: warn)")
 	pflag.BoolVar(&explainRootScope, "explain-root-scope", explainRootScope, "Explain the root scope")
 	pflag.BoolVar(&explainService, "explain-service", explainService, "Explain the service")
 }
 
 func main() {
 	pflag.Parse()
-	logLevel -= slog.Level(verbosity) * 4 // every 4 level is a constant
+
+	var cfg e2clickermodule.BackendConfig
+	if err := readJSONFile(configFile, &cfg); err != nil {
+		log.Fatalln("cannot read config file:", err)
+	}
+
+	logLevel := slog.LevelInfo
+	if cfg.Debug {
+		logLevel = slog.LevelDebug
+	}
 
 	var slogHandler slog.Handler
-	switch logFormat.Value {
-	case "color":
+	switch cfg.LogFormat {
+	case e2clickermodule.LogFormatColor:
 		slogHandler = tint.NewHandler(os.Stderr, &tint.Options{Level: logLevel})
-	case "json":
+	case e2clickermodule.LogFormatJSON:
 		slogHandler = slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: logLevel})
-	case "text":
+	case e2clickermodule.LogFormatText:
 		slogHandler = slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: logLevel})
 	default:
 		panic("unknown log format")
@@ -57,7 +64,7 @@ func main() {
 	logger := slog.New(slogHandler)
 	slog.SetDefault(logger)
 
-	if err := run(context.Background()); err != nil {
+	if err := run(context.Background(), cfg); err != nil {
 		slog.Error(
 			"program failed",
 			tint.Err(err))
@@ -72,7 +79,7 @@ var Package = do.Package(
 	notification.Package,
 )
 
-func run(ctx context.Context) error {
+func run(ctx context.Context, cfg e2clickermodule.BackendConfig) error {
 	root := do.NewWithOpts(&do.InjectorOpts{
 		Logf: func(s string, args ...interface{}) {
 			s = strings.TrimPrefix(s, "DI: ")
@@ -82,10 +89,8 @@ func run(ctx context.Context) error {
 
 	do.ProvideValue(root, ctx)
 	do.ProvideValue(root, slog.Default())
-
-	if err := parseFile(root, configFile); err != nil {
-		return err
-	}
+	do.ProvideValue(root, cfg.API)
+	do.ProvideValue(root, cfg.PostgreSQL)
 
 	if explainRootScope {
 		explanation := do.ExplainInjector(root)
@@ -106,6 +111,19 @@ func run(ctx context.Context) error {
 	_, errs := root.ShutdownOnSignalsWithContext(ctx, os.Interrupt)
 	if errs != nil && errs.Len() > 0 {
 		return errs
+	}
+
+	return nil
+}
+
+func readJSONFile(path string, dst any) error {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("cannot read file: %w", err)
+	}
+
+	if err := json.Unmarshal(b, dst); err != nil {
+		return fmt.Errorf("cannot unmarshal config: %w", err)
 	}
 
 	return nil

@@ -15,19 +15,9 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/samber/do/v2"
 	"libdb.so/e2clicker/internal/sqlc/postgresqlc"
+
+	e2clickermodule "libdb.so/e2clicker/nix/modules/e2clicker"
 )
-
-// Config is the configuration for the storage service.
-type Config struct {
-	DatabaseURI string `json:"databaseURI"`
-}
-
-func (c *Config) Validate() error {
-	if c.DatabaseURI == "" {
-		return errors.New("database_uri is required")
-	}
-	return nil
-}
 
 const (
 	codeTableNotFound   = "42P01"
@@ -50,10 +40,10 @@ var (
 func newStorage(i do.Injector) (*Storage, error) {
 	ctx := do.MustInvoke[context.Context](i)
 	logger := do.MustInvoke[*slog.Logger](i)
-	config := do.MustInvoke[*Config](i)
+	config := do.MustInvoke[*e2clickermodule.PostgreSQL](i)
 
-	if err := config.Validate(); err != nil {
-		return nil, fmt.Errorf("invalid config: %w", err)
+	if config.DatabaseURI == "" {
+		return nil, errors.New("database_uri is required")
 	}
 
 	conncfg, err := pgxpool.ParseConfig(config.DatabaseURI)

@@ -45,8 +45,8 @@
     backend = {
       enable = true;
       debug = true;
-      port = 36001;
-      databaseURI = "postgresql://e2clicker-backend@/e2clicker-backend";
+      api.listenAddress = ":36001";
+      postgresql.databaseURI = "postgresql://e2clicker-backend@/e2clicker-backend";
     };
   };
 

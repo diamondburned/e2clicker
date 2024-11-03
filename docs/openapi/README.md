@@ -147,6 +147,7 @@ This operation does not require authentication
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
 |200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Successfully retrieved the current user.|[User](#schemauser)|
+|default|Default|The request is invalid.|[Error](#schemaerror)|
 
 <aside class="warning">
 To perform this operation, you must be authenticated by means of one of the following methods:
@@ -169,11 +170,23 @@ bearerAuth
 
 > 200 Response
 
+> default Response
+
+```json
+{
+  "message": "string",
+  "details": null,
+  "internal": true,
+  "internalCode": "string"
+}
+```
+
 <h3 id="get-a-user's-avatar-by-id-responses">Responses</h3>
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
 |200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Successfully retrieved the user's avatar.|string|
+|default|Default|The request is invalid.|[Error](#schemaerror)|
 
 <aside class="warning">
 To perform this operation, you must be authenticated by means of one of the following methods:

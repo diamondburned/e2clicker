@@ -12,6 +12,9 @@ export default defineConfig({
   plugins: [sveltekit()],
   server: {
     port: 8000,
+    watch: {
+      ignored: [".direnv/**", ".svelte-kit/**", "dist/**"],
+    },
     proxy: (() => {
       if (backendHTTPAddress) {
         console.log("Enabling backend reverse proxy in Vite.");
