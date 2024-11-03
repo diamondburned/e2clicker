@@ -76,8 +76,7 @@ func run(ctx context.Context) error {
 	root := do.NewWithOpts(&do.InjectorOpts{
 		Logf: func(s string, args ...interface{}) {
 			s = strings.TrimPrefix(s, "DI: ")
-			m := fmt.Sprintf(s, args...)
-			slog.DebugContext(ctx, m, "module", "do")
+			slog.DebugContext(ctx, fmt.Sprintf(s, args...), "module", "do")
 		},
 	}, Package)
 
