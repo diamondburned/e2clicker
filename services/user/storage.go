@@ -7,6 +7,10 @@ import (
 )
 
 type UserStorage interface {
+	// IsUserStorage is a marker method that ensures the interface is implemented.
+	// It also prevents [UserService] from implementing this interface.
+	// IsUserStorage()
+
 	CreateUser(ctx context.Context, id UserID, email string, passhash []byte, name string) (User, error)
 	User(ctx context.Context, id UserID) (User, error)
 	UserPasswordFromEmail(ctx context.Context, email string) (UserPassword, error)

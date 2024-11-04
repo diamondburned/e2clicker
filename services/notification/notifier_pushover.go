@@ -38,8 +38,14 @@ func (c *PushoverNotificationConfig) Validate() error {
 	return nil
 }
 
+// PushoverService is a service for sending notifications via Pushover.
 type PushoverService struct {
 	http *http.Client `do:""`
+}
+
+// NewPushoverService creates a new Pushover service.
+func NewPushoverService(c *http.Client) *PushoverService {
+	return &PushoverService{http: c}
 }
 
 func (s PushoverService) Notify(ctx context.Context, n *Notification, config *PushoverNotificationConfig) error {

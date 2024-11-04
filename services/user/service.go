@@ -6,22 +6,31 @@ import (
 	"strings"
 
 	scrypt "github.com/elithrar/simple-scrypt"
-	"github.com/samber/do/v2"
+	"go.uber.org/fx"
 	"libdb.so/e2clicker/internal/asset"
 )
 
 // UserService is a service for managing users.
 type UserService struct {
-	users        UserStorage        `do:""`
-	userAvatars  UserAvatarStorage  `do:""`
-	userSessions UserSessionStorage `do:""`
+	users        UserStorage
+	userAvatars  UserAvatarStorage
+	userSessions UserSessionStorage
 }
 
-func newUserService(i do.Injector) (*UserService, error) {
+// UserServiceConfig is a dependency injection container for [UserService].
+type UserServiceConfig struct {
+	fx.In
+	UserStorage
+	UserAvatarStorage
+	UserSessionStorage
+}
+
+// NewUserService creates a new user service.
+func NewUserService(c UserServiceConfig) (*UserService, error) {
 	return &UserService{
-		users:        do.MustInvokeAs[UserStorage](i),
-		userAvatars:  do.MustInvokeAs[UserAvatarStorage](i),
-		userSessions: do.MustInvokeAs[UserSessionStorage](i),
+		c.UserStorage,
+		c.UserAvatarStorage,
+		c.UserSessionStorage,
 	}, nil
 }
 

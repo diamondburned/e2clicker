@@ -40,8 +40,14 @@ func (c *GotifyNotificationConfig) Validate() error {
 	return nil
 }
 
+// GotifyService is a service for sending notifications via Gotify.
 type GotifyService struct {
-	http *http.Client `do:""`
+	http *http.Client
+}
+
+// NewGotifyService creates a new Gotify service.
+func NewGotifyService(c *http.Client) *GotifyService {
+	return &GotifyService{http: c}
 }
 
 func (s *GotifyService) Notify(ctx context.Context, n *Notification, config *GotifyNotificationConfig) error {

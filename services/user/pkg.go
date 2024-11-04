@@ -1,7 +1,16 @@
 package user
 
-import "github.com/samber/do/v2"
+import (
+	"log/slog"
 
-var Package = do.Package(
-	do.Lazy(newUserService),
+	"go.uber.org/fx"
+)
+
+var Module = fx.Module("user",
+	fx.Decorate(func(slog *slog.Logger) *slog.Logger {
+		return slog.With("module", "user")
+	}),
+	fx.Provide(
+		NewUserService,
+	),
 )

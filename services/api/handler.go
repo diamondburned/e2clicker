@@ -4,17 +4,36 @@ import (
 	"context"
 	"log/slog"
 
+	"go.uber.org/fx"
 	"libdb.so/e2clicker/services/api/openapi"
 	"libdb.so/e2clicker/services/user"
 )
 
-type oapiHandler struct {
-	users  *user.UserService `do:""`
-	logger *slog.Logger      `do:""`
+// OpenAPIHandler is the handler for the OpenAPI service.
+// It implements the OpenAPI service interface.
+type OpenAPIHandler struct {
+	logger *slog.Logger
+	users  *user.UserService
+}
+
+// OpenAPIHandlerServices is the set of service dependencies required by the
+// OpenAPIHandler.
+type OpenAPIHandlerServices struct {
+	fx.In
+
+	*user.UserService
+}
+
+// NewOpenAPIHandler creates a new OpenAPIHandler.
+func NewOpenAPIHandler(deps OpenAPIHandlerServices, logger *slog.Logger) *OpenAPIHandler {
+	return &OpenAPIHandler{
+		logger: logger,
+		users:  deps.UserService,
+	}
 }
 
 // (POST /login)
-func (h *oapiHandler) Login(ctx context.Context, request openapi.LoginRequestObject) (openapi.LoginResponseObject, error) {
+func (h *OpenAPIHandler) Login(ctx context.Context, request openapi.LoginRequestObject) (openapi.LoginResponseObject, error) {
 	uID, err := h.users.ValidateUserEmailPassword(ctx, request.Body.Email, request.Body.Password)
 	if err != nil {
 		return convertError[openapi.LogindefaultJSONResponse](ctx, err), nil
@@ -32,7 +51,7 @@ func (h *oapiHandler) Login(ctx context.Context, request openapi.LoginRequestObj
 }
 
 // (POST /register)
-func (h *oapiHandler) Register(ctx context.Context, request openapi.RegisterRequestObject) (openapi.RegisterResponseObject, error) {
+func (h *OpenAPIHandler) Register(ctx context.Context, request openapi.RegisterRequestObject) (openapi.RegisterResponseObject, error) {
 	u, err := h.users.CreateUser(ctx, request.Body.Email, request.Body.Password, request.Body.Name)
 	if err != nil {
 		return convertError[openapi.RegisterdefaultJSONResponse](ctx, err), nil
@@ -50,7 +69,7 @@ func (h *oapiHandler) Register(ctx context.Context, request openapi.RegisterRequ
 }
 
 // (GET /user/{userID})
-func (h *oapiHandler) User(ctx context.Context, request openapi.UserRequestObject) (openapi.UserResponseObject, error) {
+func (h *OpenAPIHandler) User(ctx context.Context, request openapi.UserRequestObject) (openapi.UserResponseObject, error) {
 	u, err := h.users.User(ctx, request.UserIDParam)
 	if err != nil {
 		return convertError[openapi.UserdefaultJSONResponse](ctx, err), nil
@@ -60,7 +79,7 @@ func (h *oapiHandler) User(ctx context.Context, request openapi.UserRequestObjec
 }
 
 // (GET /user/{userID}/avatar)
-func (h *oapiHandler) UserAvatar(ctx context.Context, request openapi.UserAvatarRequestObject) (openapi.UserAvatarResponseObject, error) {
+func (h *OpenAPIHandler) UserAvatar(ctx context.Context, request openapi.UserAvatarRequestObject) (openapi.UserAvatarResponseObject, error) {
 	u, err := h.users.UserAvatar(ctx, request.UserIDParam)
 	if err != nil {
 		return convertError[openapi.UserAvatardefaultJSONResponse](ctx, err), nil

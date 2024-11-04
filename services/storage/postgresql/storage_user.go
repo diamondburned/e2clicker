@@ -13,11 +13,9 @@ import (
 	"libdb.so/e2clicker/services/user"
 )
 
-var (
-	_ user.UserStorage        = (*Storage)(nil)
-	_ user.UserAvatarStorage  = (*Storage)(nil)
-	_ user.UserSessionStorage = (*Storage)(nil)
-)
+func (s *Storage) userStorage() user.UserStorage               { return s }
+func (s *Storage) userAvatarStorage() user.UserAvatarStorage   { return s }
+func (s *Storage) userSessionStorage() user.UserSessionStorage { return s }
 
 func (s *Storage) CreateUser(ctx context.Context, id user.UserID, email string, passhash []byte, name string) (user.User, error) {
 	u, err := s.q.CreateUser(ctx, postgresqlc.CreateUserParams{

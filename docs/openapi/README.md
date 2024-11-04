@@ -6,7 +6,7 @@
 
 Base URLs:
 
-* <a href="/api/user/v1">/api/user/v1</a>
+* <a href="/api">/api</a>
 
 # Authentication
 

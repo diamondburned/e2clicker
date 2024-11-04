@@ -1,9 +1,17 @@
 package api
 
 import (
-	"github.com/samber/do/v2"
+	"log/slog"
+
+	"go.uber.org/fx"
 )
 
-var Package = do.Package(
-	do.Lazy(newServer),
+var Module = fx.Module("api",
+	fx.Decorate(func(slog *slog.Logger) *slog.Logger {
+		return slog.With("module", "api")
+	}),
+	fx.Provide(
+		NewOpenAPIHandler,
+		NewServer,
+	),
 )

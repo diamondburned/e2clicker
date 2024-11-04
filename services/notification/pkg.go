@@ -2,12 +2,19 @@
 package notification
 
 import (
-	"github.com/samber/do/v2"
+	"log/slog"
+
+	"go.uber.org/fx"
 )
 
-var Package = do.Package(
-	do.Lazy(do.InvokeStruct[NotificationService]),
-	do.Lazy(do.InvokeStruct[UserNotificationService]),
-	do.Lazy(do.InvokeStruct[GotifyService]),
-	do.Lazy(do.InvokeStruct[PushoverService]),
+var Module = fx.Module("notification",
+	fx.Decorate(func(slog *slog.Logger) *slog.Logger {
+		return slog.With("module", "notification")
+	}),
+	fx.Provide(
+		NewNotificationService,
+		NewUserNotificationService,
+		NewGotifyService,
+		NewPushoverService,
+	),
 )

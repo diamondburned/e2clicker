@@ -13,7 +13,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/samber/do/v2"
+	"go.uber.org/fx"
 	"libdb.so/e2clicker/internal/sqlc/postgresqlc"
 
 	e2clickermodule "libdb.so/e2clicker/nix/modules/e2clicker"
@@ -26,22 +26,14 @@ const (
 
 // Storage is the PostgreSQL-backed storage.
 type Storage struct {
-	q       *postgresqlc.Queries
-	conn    *pgxpool.Pool
+	q       *postgresqlc.Queries // nil until start
+	conn    *pgxpool.Pool        // nil until start
 	conncfg *pgxpool.Config
 	logger  *slog.Logger
 }
 
-var (
-	_ do.ShutdownerWithContextAndError = (*Storage)(nil)
-	_ do.HealthcheckerWithContext      = (*Storage)(nil)
-)
-
-func newStorage(i do.Injector) (*Storage, error) {
-	ctx := do.MustInvoke[context.Context](i)
-	logger := do.MustInvoke[*slog.Logger](i)
-	config := do.MustInvoke[*e2clickermodule.PostgreSQL](i)
-
+// NewStorage creates a new PostgreSQL-backed storage.
+func NewStorage(lc fx.Lifecycle, config e2clickermodule.PostgreSQL, logger *slog.Logger) (*Storage, error) {
 	if config.DatabaseURI == "" {
 		return nil, errors.New("database_uri is required")
 	}
@@ -51,30 +43,42 @@ func newStorage(i do.Injector) (*Storage, error) {
 		return nil, fmt.Errorf("cannot parse url: %w", err)
 	}
 
-	conn, err := pgxpool.NewWithConfig(ctx, conncfg)
-	if err != nil {
-		return nil, fmt.Errorf("cannot create pool: %w", err)
+	logger = logger.With(slog.Group(
+		"postgresql",
+		"host", conncfg.ConnConfig.Host,
+		"database", conncfg.ConnConfig.Database,
+	))
+
+	s := &Storage{
+		q:       nil,
+		conn:    nil,
+		conncfg: conncfg,
+		logger:  logger,
 	}
 
-	if err := migrate(ctx, conn); err != nil {
-		return nil, fmt.Errorf("cannot migrate: %w", err)
-	}
+	lc.Append(fx.Hook{
+		OnStart: func(ctx context.Context) error {
+			conn, err := pgxpool.NewWithConfig(ctx, conncfg)
+			if err != nil {
+				return fmt.Errorf("cannot create pool: %w", err)
+			}
 
-	return &Storage{
-		postgresqlc.New(conn),
-		conn,
-		conncfg,
-		logger,
-	}, nil
-}
+			if err := migrate(ctx, conn); err != nil {
+				return fmt.Errorf("cannot migrate: %w", err)
+			}
 
-func (s *Storage) HealthCheck(ctx context.Context) error {
-	return s.conn.Ping(ctx)
-}
+			s.q = postgresqlc.New(conn)
+			s.conn = conn
 
-func (s *Storage) Shutdown(ctx context.Context) error {
-	s.conn.Close()
-	return nil
+			return nil
+		},
+		OnStop: func(ctx context.Context) error {
+			s.conn.Close()
+			return nil
+		},
+	})
+
+	return s, nil
 }
 
 func migrate(ctx context.Context, conn *pgxpool.Pool) error {

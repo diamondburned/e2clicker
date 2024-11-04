@@ -2,11 +2,13 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/samber/do/v2"
+	"go.uber.org/fx"
+	"libdb.so/e2clicker/internal/fxhooking"
 	"libdb.so/e2clicker/services/api/openapi"
 	"libdb.so/hserve"
 
@@ -15,75 +17,36 @@ import (
 
 // Server provides an HTTP server that serves a [Handler].
 type Server struct {
-	config *e2clickermodule.API `do:""`
-	logger *slog.Logger         `do:""`
-
-	router *chi.Mux
-
-	ctx  context.Context
-	stop func(error)
-	done chan struct{}
 }
 
-var (
-	_ do.ShutdownerWithContextAndError = (*Server)(nil)
-	_ do.HealthcheckerWithContext      = (*Server)(nil)
-)
+// NewServer creates a new HTTP server.
+func NewServer(
+	lx fx.Lifecycle,
+	handler *OpenAPIHandler,
+	logger *slog.Logger,
+	config e2clickermodule.API,
+) (*Server, error) {
+	logger = logger.With("addr", config.ListenAddress)
 
-func newServer(i do.Injector) (*Server, error) {
-	ctx := do.MustInvoke[context.Context](i)
-	s := do.MustInvokeStruct[Server](i)
+	router := chi.NewRouter()
+	router.Use(logRequest(logger))
 
-	s.router = chi.NewRouter()
-	s.router.Use(logRequest(s.logger))
+	openapi.HandlerFromMuxWithBaseURL(
+		openapi.NewStrictHandler(handler, nil),
+		router, "/api")
 
-	oapiHandler := do.MustInvokeStruct[oapiHandler](i)
-	openapi.HandlerFromMux(
-		openapi.NewStrictHandler(oapiHandler, nil),
-		s.router)
+	lx.Append(fxhooking.WrapRun(func(ctx context.Context) error {
+		logger.Info("listening to HTTP server")
+		defer logger.Warn("HTTP server stopped")
 
-	s.done = make(chan struct{})
-	s.ctx, s.stop = context.WithCancelCause(ctx)
-
-	go func() {
-		defer close(s.done)
-
-		s.logger.Info(
-			"listening to HTTP server",
-			"addr", s.config.ListenAddress)
-
-		if err := hserve.ListenAndServe(s.ctx, s.config.ListenAddress, s.router); err != nil {
-			s.logger.Error("http server error", "err", err)
-			s.stop(err)
+		if err := hserve.ListenAndServe(ctx, config.ListenAddress, router); err != nil {
+			return fmt.Errorf("HTTP server error: %w", err)
 		}
-	}()
 
-	return s, nil
-}
-
-func (s *Server) Shutdown(ctx context.Context) error {
-	s.stop(nil)
-	select {
-	case <-s.done:
-	case <-ctx.Done():
-		return ctx.Err()
-	}
-
-	cause := context.Cause(s.ctx)
-	if cause != nil && cause != s.ctx.Err() {
-		return cause
-	}
-
-	return nil
-}
-
-func (s *Server) HealthCheck(ctx context.Context) error {
-	select {
-	case <-s.done:
-		return context.Cause(s.ctx)
-	default:
 		return nil
-	}
+	}))
+
+	return &Server{}, nil
 }
 
 func respond200(w http.ResponseWriter, _ *http.Request) {

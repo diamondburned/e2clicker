@@ -3,6 +3,7 @@ package notification
 import (
 	"context"
 
+	"go.uber.org/fx"
 	"libdb.so/e2clicker/services/user"
 )
 
@@ -22,9 +23,27 @@ type UserStorage interface {
 	DeleteUserPreferences(ctx context.Context, id user.UserID) error
 }
 
+// UserNotificationService is a service that sends notifications to users.
 type UserNotificationService struct {
-	notifier Notifier    `do:""`
-	storage  UserStorage `do:""`
+	notifier Notifier
+	storage  UserStorage
+}
+
+// UserNotificationServiceConfig is the configuration for the user notification
+// service.
+type UserNotificationServiceConfig struct {
+	fx.In
+
+	Notifier
+	UserStorage
+}
+
+// NewUserNotificationService creates a new user notification service.
+func NewUserNotificationService(c UserNotificationServiceConfig) *UserNotificationService {
+	return &UserNotificationService{
+		notifier: c.Notifier,
+		storage:  c.UserStorage,
+	}
 }
 
 // NotifyUser sends a notification to a user.

@@ -42,9 +42,8 @@ let
       }).vendorEnv;
 
     # Needed for gomod2nix.
-    GO_NO_VENDOR_CHECKS = "1";
-    GO111MODULE = "on";
-    GOFLAGS = "-mod=vendor";
+    # GO111MODULE = "on";
+    # GOFLAGS = "-mod=vendor";
 
     buildPhase = ''
       runHook preBuild

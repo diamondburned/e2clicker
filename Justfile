@@ -34,10 +34,11 @@ build-clean:
 export BACKEND_HTTP_ADDRESS := "http://localhost:8000"
 
 dev: generate
-    nix run .#e2clicker-dev
+	zellij delete-session e2clicker || true
+	zellij --session e2clicker --layout ./nix/dev/zellij-layout.kdl
 
 [private]
-dev-vm:
+dev-vm: generate
     nix run .#nixosConfigurations.dev-vm.config.system.build.nixos-shell
 
 [private]

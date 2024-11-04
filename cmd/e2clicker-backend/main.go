@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -10,8 +9,9 @@ import (
 	"strings"
 
 	"github.com/lmittmann/tint"
-	"github.com/samber/do/v2"
 	"github.com/spf13/pflag"
+	"go.uber.org/fx"
+	"go.uber.org/fx/fxevent"
 	"libdb.so/e2clicker/services/api"
 	"libdb.so/e2clicker/services/notification"
 	"libdb.so/e2clicker/services/storage"
@@ -64,56 +64,23 @@ func main() {
 	logger := slog.New(slogHandler)
 	slog.SetDefault(logger)
 
-	if err := run(context.Background(), cfg); err != nil {
-		slog.Error(
-			"program failed",
-			tint.Err(err))
-		os.Exit(1)
-	}
-}
-
-var Package = do.Package(
-	api.Package,
-	user.Package,
-	storage.Package,
-	notification.Package,
-)
-
-func run(ctx context.Context, cfg e2clickermodule.BackendConfig) error {
-	root := do.NewWithOpts(&do.InjectorOpts{
-		Logf: func(s string, args ...interface{}) {
-			s = strings.TrimPrefix(s, "DI: ")
-			slog.DebugContext(ctx, fmt.Sprintf(s, args...), "module", "do")
-		},
-	}, Package)
-
-	do.ProvideValue(root, ctx)
-	do.ProvideValue(root, slog.Default())
-	do.ProvideValue(root, cfg.API)
-	do.ProvideValue(root, cfg.PostgreSQL)
-
-	if explainRootScope {
-		explanation := do.ExplainInjector(root)
-		fmt.Println(explanation.String())
-		return nil
-	}
-
-	_, err := do.Invoke[*api.Server](root)
-	if err != nil {
-		return err
-	}
-
-	if explainService {
-		explanation, _ := do.ExplainService[*api.Server](root)
-		fmt.Println(explanation.String())
-	}
-
-	_, errs := root.ShutdownOnSignalsWithContext(ctx, os.Interrupt)
-	if errs != nil && errs.Len() > 0 {
-		return errs
-	}
-
-	return nil
+	fx.New(
+		api.Module,
+		user.Module,
+		storage.Module,
+		notification.Module,
+		fx.Supply(slog.Default()),
+		fx.Supply(cfg.API),
+		fx.Supply(cfg.PostgreSQL),
+		fx.WithLogger(func(logger *slog.Logger) fxevent.Logger {
+			l := &fxevent.SlogLogger{Logger: logger}
+			l.UseLogLevel(slog.LevelDebug)
+			return l
+		}),
+		fx.Invoke(func(*api.Server) {
+			slog.Info("API server started successfully")
+		}),
+	).Run()
 }
 
 func readJSONFile(path string, dst any) error {
