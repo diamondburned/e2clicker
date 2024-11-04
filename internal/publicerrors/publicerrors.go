@@ -128,9 +128,8 @@ func MarshalJSON(ctx context.Context, err error, hiddenMessage string) ([]byte, 
 // If the error is public, then the error message is used. Otherwise, the error
 // message is hidden and replaced with [hiddenMessage].
 func MarshalError(ctx context.Context, err error, hiddenMessage string) MarshaledError {
-	marshaled := MarshaledError{
-		Internal: true,
-	}
+	initialError := err
+	marshaled := MarshaledError{Internal: true}
 
 	for err != nil {
 		// Check for value.
@@ -168,12 +167,12 @@ func MarshalError(ctx context.Context, err error, hiddenMessage string) Marshale
 	}
 
 	if marshaled.Internal {
-		marshaled.InternalCode = generateInternalCode(err)
+		marshaled.InternalCode = generateInternalCode(initialError)
 		slog.ErrorContext(ctx,
 			"internal error occured",
 			"internal", true,
-			"code", marshaled.InternalCode,
-			tint.Err(err))
+			"internal_code", marshaled.InternalCode,
+			tint.Err(initialError))
 	}
 
 	return marshaled
