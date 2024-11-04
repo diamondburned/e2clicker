@@ -12,8 +12,7 @@
     "securitySchemes": {
       "bearerAuth": {
         "type": "http",
-        "scheme": "bearer",
-        "bearerFormat": "[userID].[random]"
+        "scheme": "bearer"
       }
     },
     "schemas": {
@@ -40,10 +39,10 @@
           "message"
         ]
       },
-      "UserID": {
-        "description": "A unique user identifier.",
+      "UserSecret": {
+        "description": "A secret and unique user identifier. This secret is generated once and never changes. It is used to both authenticate and identify a user, so it should be kept secret.",
         "type": "string",
-        "x-go-type": "user.UserID",
+        "x-go-type": "user.Secret",
         "x-go-type-import": {
           "path": "libdb.so/e2clicker/services/user",
           "name": "userservice"
@@ -62,35 +61,52 @@
         "description": "A user of the system.",
         "type": "object",
         "required": [
-          "id",
-          "email",
           "name",
-          "locale"
+          "locale",
+          "has_avatar"
         ],
         "properties": {
-          "id": {
-            "$ref": "#/components/schemas/UserID"
-          },
-          "email": {
-            "type": "string",
-            "description": "The user's email address"
-          },
           "name": {
             "type": "string",
             "description": "The user's name"
           },
           "locale": {
             "$ref": "#/components/schemas/Locale"
+          },
+          "has_avatar": {
+            "type": "boolean",
+            "description": "Whether the user has an avatar."
           }
         }
       },
-      "SessionToken": {
-        "description": "A session token string. This is used in the Authorization header to authenticate requests.",
-        "type": "string",
-        "x-go-type": "user.SessionToken",
-        "x-go-type-import": {
-          "path": "libdb.so/e2clicker/services/user",
-          "name": "userservice"
+      "Session": {
+        "description": "A session for a user.",
+        "type": "object",
+        "required": [
+          "id",
+          "created_at",
+          "expires_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "The session identifier"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The time the session was created"
+          },
+          "last_used": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The last time the session was used"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The time the session expires"
+          }
         }
       }
     },
@@ -105,23 +121,6 @@
           }
         }
       }
-    },
-    "parameters": {
-      "userID": {
-        "in": "path",
-        "name": "userID",
-        "schema": {
-          "type": "string",
-          "x-go-type": "user.UserID",
-          "x-go-type-import": {
-            "path": "libdb.so/e2clicker/services/user",
-            "name": "userservice"
-          }
-        },
-        "required": true,
-        "description": "The ID of the user to get the avatar for.",
-        "x-go-name": "UserIDParam"
-      }
     }
   },
   "security": [
@@ -131,112 +130,23 @@
   ],
   "openapi": "3.0.0",
   "paths": {
-    "/login": {
-      "post": {
-        "summary": "Log into an existing account",
-        "operationId": "login",
-        "security": [],
-        "parameters": [
-          {
-            "in": "header",
-            "name": "User-Agent",
-            "schema": {
-              "type": "string"
-            },
-            "required": false,
-            "description": "The user agent string of the client making the request."
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "email",
-                  "password"
-                ],
-                "properties": {
-                  "email": {
-                    "type": "string",
-                    "description": "The username to log in with"
-                  },
-                  "password": {
-                    "type": "string",
-                    "description": "The password to log in with"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successfully logged in.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "userID",
-                    "token"
-                  ],
-                  "properties": {
-                    "userID": {
-                      "$ref": "#/components/schemas/UserID"
-                    },
-                    "token": {
-                      "$ref": "#/components/schemas/SessionToken"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/ErrorResponse"
-          }
-        }
-      }
-    },
     "/register": {
       "post": {
         "summary": "Register a new account",
         "operationId": "register",
         "security": [],
-        "parameters": [
-          {
-            "in": "header",
-            "name": "User-Agent",
-            "schema": {
-              "type": "string"
-            },
-            "required": false,
-            "description": "The user agent string of the client making the request."
-          }
-        ],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
                 "required": [
-                  "name",
-                  "email",
-                  "password"
+                  "name"
                 ],
                 "properties": {
                   "name": {
                     "type": "string",
                     "description": "The name to register with"
-                  },
-                  "email": {
-                    "type": "string",
-                    "description": "The username to register with"
-                  },
-                  "password": {
-                    "type": "string",
-                    "description": "The password to register with"
                   }
                 }
               }
@@ -249,17 +159,79 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/User"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "secret"
+                      ],
+                      "properties": {
+                        "secret": {
+                          "$ref": "#/components/schemas/UserSecret"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/auth": {
+      "post": {
+        "summary": "Authenticate a user and obtain a session",
+        "operationId": "auth",
+        "security": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "secret"
+                ],
+                "properties": {
+                  "secret": {
+                    "$ref": "#/components/schemas/UserSecret"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "header",
+            "name": "User-Agent",
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "description": "The user agent of the client making the request."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully logged in.",
+            "content": {
+              "application/json": {
+                "schema": {
                   "type": "object",
                   "required": [
-                    "user",
                     "token"
                   ],
                   "properties": {
-                    "user": {
-                      "$ref": "#/components/schemas/User"
-                    },
                     "token": {
-                      "$ref": "#/components/schemas/SessionToken"
+                      "type": "string",
+                      "description": "The session token"
                     }
                   }
                 }
@@ -272,15 +244,10 @@
         }
       }
     },
-    "/user/{userID}": {
+    "/me": {
       "get": {
-        "summary": "Get a user by ID",
-        "operationId": "user",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/userID"
-          }
-        ],
+        "summary": "Get the current user",
+        "operationId": "currentUser",
         "responses": {
           "200": {
             "description": "Successfully retrieved the current user.",
@@ -298,15 +265,10 @@
         }
       }
     },
-    "/user/{userID}/avatar": {
+    "/me/avatar": {
       "get": {
-        "summary": "Get a user's avatar by ID",
-        "operationId": "userAvatar",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/userID"
-          }
-        ],
+        "summary": "Get the current user's avatar",
+        "operationId": "currentUserAvatar",
         "responses": {
           "200": {
             "description": "Successfully retrieved the user's avatar.",
@@ -315,6 +277,57 @@
                 "schema": {
                   "type": "string",
                   "format": "binary"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      },
+      "post": {
+        "summary": "Set the current user's avatar",
+        "operationId": "setCurrentUserAvatar",
+        "requestBody": {
+          "content": {
+            "image/*": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Successfully set the user's avatar."
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/me/secret": {
+      "get": {
+        "summary": "Get the current user's secret",
+        "operationId": "currentUserSecret",
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved the user's secret.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "secret"
+                  ],
+                  "properties": {
+                    "secret": {
+                      "$ref": "#/components/schemas/UserSecret"
+                    }
+                  }
                 }
               }
             }

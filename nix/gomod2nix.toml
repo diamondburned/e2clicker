@@ -1,5 +1,5 @@
 schema = 4
-vendorModulesTxt = "# github.com/alecthomas/assert/v2 v2.10.0\n## explicit; go 1.18\ngithub.com/alecthomas/assert/v2\n# github.com/alecthomas/repr v0.4.0\n## explicit; go 1.18\ngithub.com/alecthomas/repr\n# github.com/apapsch/go-jsonmerge/v2 v2.0.0\n## explicit; go 1.12\ngithub.com/apapsch/go-jsonmerge/v2\n# github.com/elithrar/simple-scrypt v1.3.0\n## explicit\ngithub.com/elithrar/simple-scrypt\n# github.com/go-chi/chi/v5 v5.1.0\n## explicit; go 1.14\ngithub.com/go-chi/chi/v5\n# github.com/google/uuid v1.5.0\n## explicit\ngithub.com/google/uuid\n# github.com/hexops/gotextdiff v1.0.3\n## explicit; go 1.16\ngithub.com/hexops/gotextdiff\ngithub.com/hexops/gotextdiff/myers\ngithub.com/hexops/gotextdiff/span\n# github.com/jackc/pgpassfile v1.0.0\n## explicit; go 1.12\ngithub.com/jackc/pgpassfile\n# github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a\n## explicit; go 1.14\ngithub.com/jackc/pgservicefile\n# github.com/jackc/pgx/v5 v5.6.0\n## explicit; go 1.20\ngithub.com/jackc/pgx/v5\ngithub.com/jackc/pgx/v5/internal/iobufpool\ngithub.com/jackc/pgx/v5/internal/pgio\ngithub.com/jackc/pgx/v5/internal/sanitize\ngithub.com/jackc/pgx/v5/internal/stmtcache\ngithub.com/jackc/pgx/v5/pgconn\ngithub.com/jackc/pgx/v5/pgconn/ctxwatch\ngithub.com/jackc/pgx/v5/pgconn/internal/bgreader\ngithub.com/jackc/pgx/v5/pgproto3\ngithub.com/jackc/pgx/v5/pgtype\ngithub.com/jackc/pgx/v5/pgxpool\n# github.com/jackc/puddle/v2 v2.2.1\n## explicit; go 1.19\ngithub.com/jackc/puddle/v2\ngithub.com/jackc/puddle/v2/internal/genstack\n# github.com/lmittmann/tint v1.0.5\n## explicit; go 1.21\ngithub.com/lmittmann/tint\n# github.com/oapi-codegen/runtime v1.1.1\n## explicit; go 1.20\ngithub.com/oapi-codegen/runtime\ngithub.com/oapi-codegen/runtime/strictmiddleware/nethttp\ngithub.com/oapi-codegen/runtime/types\n# github.com/rs/xid v1.5.0\n## explicit; go 1.12\ngithub.com/rs/xid\n# github.com/spf13/pflag v1.0.5\n## explicit; go 1.12\ngithub.com/spf13/pflag\n# go.uber.org/dig v1.18.0\n## explicit; go 1.20\ngo.uber.org/dig\ngo.uber.org/dig/internal/digclock\ngo.uber.org/dig/internal/digerror\ngo.uber.org/dig/internal/digreflect\ngo.uber.org/dig/internal/dot\ngo.uber.org/dig/internal/graph\n# go.uber.org/fx v1.23.0\n## explicit; go 1.20\ngo.uber.org/fx\ngo.uber.org/fx/fxevent\ngo.uber.org/fx/internal/fxclock\ngo.uber.org/fx/internal/fxlog\ngo.uber.org/fx/internal/fxreflect\ngo.uber.org/fx/internal/lifecycle\n# go.uber.org/goleak v1.2.1\n## explicit; go 1.18\n# go.uber.org/multierr v1.10.0\n## explicit; go 1.19\ngo.uber.org/multierr\n# go.uber.org/zap v1.26.0\n## explicit; go 1.19\ngo.uber.org/zap\ngo.uber.org/zap/buffer\ngo.uber.org/zap/internal\ngo.uber.org/zap/internal/bufferpool\ngo.uber.org/zap/internal/color\ngo.uber.org/zap/internal/exit\ngo.uber.org/zap/internal/pool\ngo.uber.org/zap/internal/stacktrace\ngo.uber.org/zap/zapcore\n# golang.org/x/crypto v0.17.0\n## explicit; go 1.18\ngolang.org/x/crypto/pbkdf2\ngolang.org/x/crypto/scrypt\n# golang.org/x/sync v0.1.0\n## explicit\ngolang.org/x/sync/semaphore\n# golang.org/x/sys v0.15.0\n## explicit; go 1.18\ngolang.org/x/sys/unix\ngolang.org/x/sys/windows\n# golang.org/x/text v0.14.0\n## explicit; go 1.18\ngolang.org/x/text/cases\ngolang.org/x/text/internal\ngolang.org/x/text/internal/language\ngolang.org/x/text/internal/language/compact\ngolang.org/x/text/internal/tag\ngolang.org/x/text/language\ngolang.org/x/text/runes\ngolang.org/x/text/secure/bidirule\ngolang.org/x/text/secure/precis\ngolang.org/x/text/transform\ngolang.org/x/text/unicode/bidi\ngolang.org/x/text/unicode/norm\ngolang.org/x/text/width\n# libdb.so/hserve v0.0.0-20230404043009-95e112a6e0a5\n## explicit; go 1.15\nlibdb.so/hserve\n# libdb.so/lazymigrate v0.0.0-20240811151247-0597fc52ac48\n## explicit; go 1.21.0\nlibdb.so/lazymigrate\n"
+vendorModulesTxt = "# github.com/alecthomas/assert/v2 v2.10.0\n## explicit; go 1.18\ngithub.com/alecthomas/assert/v2\n# github.com/alecthomas/repr v0.4.0\n## explicit; go 1.18\ngithub.com/alecthomas/repr\n# github.com/apapsch/go-jsonmerge/v2 v2.0.0\n## explicit; go 1.12\ngithub.com/apapsch/go-jsonmerge/v2\n# github.com/getkin/kin-openapi v0.128.0\n## explicit; go 1.20\ngithub.com/getkin/kin-openapi/openapi3\ngithub.com/getkin/kin-openapi/openapi3filter\ngithub.com/getkin/kin-openapi/routers\ngithub.com/getkin/kin-openapi/routers/gorillamux\ngithub.com/getkin/kin-openapi/routers/legacy\ngithub.com/getkin/kin-openapi/routers/legacy/pathpattern\n# github.com/go-chi/chi/v5 v5.1.0\n## explicit; go 1.14\ngithub.com/go-chi/chi/v5\ngithub.com/go-chi/chi/v5/middleware\n# github.com/go-openapi/jsonpointer v0.21.0\n## explicit; go 1.20\ngithub.com/go-openapi/jsonpointer\n# github.com/go-openapi/swag v0.23.0\n## explicit; go 1.20\ngithub.com/go-openapi/swag\n# github.com/google/uuid v1.5.0\n## explicit\ngithub.com/google/uuid\n# github.com/gorilla/mux v1.8.1\n## explicit; go 1.20\ngithub.com/gorilla/mux\n# github.com/hexops/gotextdiff v1.0.3\n## explicit; go 1.16\ngithub.com/hexops/gotextdiff\ngithub.com/hexops/gotextdiff/myers\ngithub.com/hexops/gotextdiff/span\n# github.com/invopop/yaml v0.3.1\n## explicit; go 1.14\ngithub.com/invopop/yaml\n# github.com/jackc/pgpassfile v1.0.0\n## explicit; go 1.12\ngithub.com/jackc/pgpassfile\n# github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a\n## explicit; go 1.14\ngithub.com/jackc/pgservicefile\n# github.com/jackc/pgx/v5 v5.6.0\n## explicit; go 1.20\ngithub.com/jackc/pgx/v5\ngithub.com/jackc/pgx/v5/internal/iobufpool\ngithub.com/jackc/pgx/v5/internal/pgio\ngithub.com/jackc/pgx/v5/internal/sanitize\ngithub.com/jackc/pgx/v5/internal/stmtcache\ngithub.com/jackc/pgx/v5/pgconn\ngithub.com/jackc/pgx/v5/pgconn/ctxwatch\ngithub.com/jackc/pgx/v5/pgconn/internal/bgreader\ngithub.com/jackc/pgx/v5/pgproto3\ngithub.com/jackc/pgx/v5/pgtype\ngithub.com/jackc/pgx/v5/pgxpool\n# github.com/jackc/puddle/v2 v2.2.1\n## explicit; go 1.19\ngithub.com/jackc/puddle/v2\ngithub.com/jackc/puddle/v2/internal/genstack\n# github.com/josharian/intern v1.0.0\n## explicit; go 1.5\ngithub.com/josharian/intern\n# github.com/lmittmann/tint v1.0.5\n## explicit; go 1.21\ngithub.com/lmittmann/tint\n# github.com/mailru/easyjson v0.7.7\n## explicit; go 1.12\ngithub.com/mailru/easyjson/buffer\ngithub.com/mailru/easyjson/jlexer\ngithub.com/mailru/easyjson/jwriter\n# github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826\n## explicit\ngithub.com/mohae/deepcopy\n# github.com/oapi-codegen/nethttp-middleware v1.0.2\n## explicit; go 1.20\ngithub.com/oapi-codegen/nethttp-middleware\n# github.com/oapi-codegen/runtime v1.1.1\n## explicit; go 1.20\ngithub.com/oapi-codegen/runtime\ngithub.com/oapi-codegen/runtime/strictmiddleware/nethttp\ngithub.com/oapi-codegen/runtime/types\n# github.com/perimeterx/marshmallow v1.1.5\n## explicit; go 1.17\ngithub.com/perimeterx/marshmallow\n# github.com/rs/xid v1.5.0\n## explicit; go 1.12\ngithub.com/rs/xid\n# github.com/spf13/pflag v1.0.5\n## explicit; go 1.12\ngithub.com/spf13/pflag\n# go.uber.org/dig v1.18.0\n## explicit; go 1.20\ngo.uber.org/dig\ngo.uber.org/dig/internal/digclock\ngo.uber.org/dig/internal/digerror\ngo.uber.org/dig/internal/digreflect\ngo.uber.org/dig/internal/dot\ngo.uber.org/dig/internal/graph\n# go.uber.org/fx v1.23.0\n## explicit; go 1.20\ngo.uber.org/fx\ngo.uber.org/fx/fxevent\ngo.uber.org/fx/internal/fxclock\ngo.uber.org/fx/internal/fxlog\ngo.uber.org/fx/internal/fxreflect\ngo.uber.org/fx/internal/lifecycle\n# go.uber.org/goleak v1.2.1\n## explicit; go 1.18\n# go.uber.org/multierr v1.10.0\n## explicit; go 1.19\ngo.uber.org/multierr\n# go.uber.org/zap v1.26.0\n## explicit; go 1.19\ngo.uber.org/zap\ngo.uber.org/zap/buffer\ngo.uber.org/zap/internal\ngo.uber.org/zap/internal/bufferpool\ngo.uber.org/zap/internal/color\ngo.uber.org/zap/internal/exit\ngo.uber.org/zap/internal/pool\ngo.uber.org/zap/internal/stacktrace\ngo.uber.org/zap/zapcore\n# golang.org/x/crypto v0.17.0\n## explicit; go 1.18\ngolang.org/x/crypto/pbkdf2\n# golang.org/x/sync v0.1.0\n## explicit\ngolang.org/x/sync/semaphore\n# golang.org/x/sys v0.15.0\n## explicit; go 1.18\ngolang.org/x/sys/unix\ngolang.org/x/sys/windows\n# golang.org/x/text v0.14.0\n## explicit; go 1.18\ngolang.org/x/text/cases\ngolang.org/x/text/internal\ngolang.org/x/text/internal/language\ngolang.org/x/text/internal/language/compact\ngolang.org/x/text/internal/tag\ngolang.org/x/text/language\ngolang.org/x/text/runes\ngolang.org/x/text/secure/bidirule\ngolang.org/x/text/secure/precis\ngolang.org/x/text/transform\ngolang.org/x/text/unicode/bidi\ngolang.org/x/text/unicode/norm\ngolang.org/x/text/width\n# gopkg.in/yaml.v3 v3.0.1\n## explicit\ngopkg.in/yaml.v3\n# libdb.so/ctxt v0.0.0-20240229093153-2db38a5d3c12\n## explicit; go 1.21.0\nlibdb.so/ctxt\n# libdb.so/hserve v0.0.0-20230404043009-95e112a6e0a5\n## explicit; go 1.15\nlibdb.so/hserve\n# libdb.so/lazymigrate v0.0.0-20240811151247-0597fc52ac48\n## explicit; go 1.21.0\nlibdb.so/lazymigrate\n"
 
 [mod]
   [mod."github.com/alecthomas/assert/v2"]
@@ -11,18 +11,30 @@ vendorModulesTxt = "# github.com/alecthomas/assert/v2 v2.10.0\n## explicit; go 1
   [mod."github.com/apapsch/go-jsonmerge/v2"]
     version = "v2.0.0"
     hash = "sha256-xp/1B6XUN2EbddBfoUkTV3oTk+34m4kOZP+66HhfLg4="
-  [mod."github.com/elithrar/simple-scrypt"]
-    version = "v1.3.0"
-    hash = "sha256-7n+dG2kWBu8fYSRxx6oEbmnW1UmtMiDokZ0l357hfvY="
+  [mod."github.com/getkin/kin-openapi"]
+    version = "v0.128.0"
+    hash = "sha256-jZ4KCFNGOziU5vr/uzmKAfTkzCoomfOBMDI2FLmSdSY="
   [mod."github.com/go-chi/chi/v5"]
     version = "v5.1.0"
     hash = "sha256-DpVfbPlJe4zQNdBrirWq9Q37/awSu5zb3IJgcuyEED8="
+  [mod."github.com/go-openapi/jsonpointer"]
+    version = "v0.21.0"
+    hash = "sha256-bB8XTzo4hzXemi8Ey3tIXia3mfn38bvwIzKYLJYC650="
+  [mod."github.com/go-openapi/swag"]
+    version = "v0.23.0"
+    hash = "sha256-D5CzsSQ3SYJLwXT6BDahnG66LI8du59Dy1mY4KutA7A="
   [mod."github.com/google/uuid"]
     version = "v1.5.0"
     hash = "sha256-DasOte4xANR1VND5XEHKGhpGiyYq74TJmNrgWeIRX4U="
+  [mod."github.com/gorilla/mux"]
+    version = "v1.8.1"
+    hash = "sha256-nDABvAhlYgxUW2N/brrep7NkQXoSGcHhA+XI4+tK0F0="
   [mod."github.com/hexops/gotextdiff"]
     version = "v1.0.3"
     hash = "sha256-wVs5uJs2KHU1HnDCDdSe0vIgNZylvs8oNidDxwA3+O0="
+  [mod."github.com/invopop/yaml"]
+    version = "v0.3.1"
+    hash = "sha256-7x9sX9nc0ZL1+Fqh6hX+9ALNPXlIeCCkhGnwHR1VW0c="
   [mod."github.com/jackc/pgpassfile"]
     version = "v1.0.0"
     hash = "sha256-H0nFbC34/3pZUFnuiQk9W7yvAMh6qJDrqvHp+akBPLM="
@@ -35,12 +47,27 @@ vendorModulesTxt = "# github.com/alecthomas/assert/v2 v2.10.0\n## explicit; go 1
   [mod."github.com/jackc/puddle/v2"]
     version = "v2.2.1"
     hash = "sha256-Edf8SLT/8l+xfHm9IjUGxs1MHtic2VgRyfqb6OzGA9k="
+  [mod."github.com/josharian/intern"]
+    version = "v1.0.0"
+    hash = "sha256-LJR0QE2vOQ2/2shBbO5Yl8cVPq+NFrE3ers0vu9FRP0="
   [mod."github.com/lmittmann/tint"]
     version = "v1.0.5"
     hash = "sha256-NthPT7c1Q2VSp5IrWMGAvzX7AxEcTKk+O0F56pgaTsQ="
+  [mod."github.com/mailru/easyjson"]
+    version = "v0.7.7"
+    hash = "sha256-NVCz8MURpxgOjHXqxOZExqV4bnpHggpeAOyZDArjcy4="
+  [mod."github.com/mohae/deepcopy"]
+    version = "v0.0.0-20170929034955-c48cc78d4826"
+    hash = "sha256-TQMmKqIYwVhmMVh4RYQkAui97Eyj7poLmcAuDcHXsEk="
+  [mod."github.com/oapi-codegen/nethttp-middleware"]
+    version = "v1.0.2"
+    hash = "sha256-teUg+p/wf60x5W3OHcgIvh6kOUtawYBWgTaXjPDX6jg="
   [mod."github.com/oapi-codegen/runtime"]
     version = "v1.1.1"
     hash = "sha256-GRvzpQngQPAy59KvvcwhjYqjx4gttIhOtQKjqfQcNvI="
+  [mod."github.com/perimeterx/marshmallow"]
+    version = "v1.1.5"
+    hash = "sha256-fFWjg0FNohDSV0/wUjQ8fBq1g8h6yIqTrHkxqL2Tt0s="
   [mod."github.com/rs/xid"]
     version = "v1.5.0"
     hash = "sha256-u0QLm2YFMJqEjUhpWcLwfoS9lNHUxc2A79MObsqVbVU="
@@ -74,6 +101,12 @@ vendorModulesTxt = "# github.com/alecthomas/assert/v2 v2.10.0\n## explicit; go 1
   [mod."golang.org/x/text"]
     version = "v0.14.0"
     hash = "sha256-yh3B0tom1RfzQBf1RNmfdNWF1PtiqxV41jW1GVS6JAg="
+  [mod."gopkg.in/yaml.v3"]
+    version = "v3.0.1"
+    hash = "sha256-FqL9TKYJ0XkNwJFnq9j0VvJ5ZUU1RvH/52h/f5bkYAU="
+  [mod."libdb.so/ctxt"]
+    version = "v0.0.0-20240229093153-2db38a5d3c12"
+    hash = "sha256-mViBj67wYeuD4mQKMP/4gQo9lFNO6J8HZztHw9ZGPlk="
   [mod."libdb.so/hserve"]
     version = "v0.0.0-20230404043009-95e112a6e0a5"
     hash = "sha256-rXOzmWt4UqadlrVaazD7XVXYCEG5hV5ZuyJ+KcoW3as="

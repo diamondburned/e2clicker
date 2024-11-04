@@ -76,6 +76,8 @@
                   hash = "sha256-thJ3aU52yCusfjBCD2QvLynwiM32lq0IT9WaNJjfu6E=";
                 };
               });
+
+              pgformatter = import ./nix/pgformatter.nix { pkgs = super; };
             })
           ];
         };

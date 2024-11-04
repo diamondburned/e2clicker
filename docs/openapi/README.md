@@ -14,54 +14,6 @@ Base URLs:
 
 <h1 id="e2clicker-service-default">Default</h1>
 
-## Log into an existing account
-
-<a id="opIdlogin"></a>
-
-`POST /login`
-
-> Body parameter
-
-```json
-{
-  "email": "string",
-  "password": "string"
-}
-```
-
-<h3 id="log-into-an-existing-account-parameters">Parameters</h3>
-
-|Name|In|Type|Required|Description|
-|---|---|---|---|---|
-|User-Agent|header|string|false|The user agent string of the client making the request.|
-|body|body|object|false|none|
-|» email|body|string|true|The username to log in with|
-|» password|body|string|true|The password to log in with|
-
-> Example responses
-
-> 200 Response
-
-```json
-{
-  "userID": "string",
-  "token": "string"
-}
-```
-
-<h3 id="log-into-an-existing-account-responses">Responses</h3>
-
-|Status|Meaning|Description|Schema|
-|---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Successfully logged in.|Inline|
-|default|Default|The request is invalid.|[Error](#schemaerror)|
-
-<h3 id="log-into-an-existing-account-responseschema">Response Schema</h3>
-
-<aside class="success">
-This operation does not require authentication
-</aside>
-
 ## Register a new account
 
 <a id="opIdregister"></a>
@@ -72,9 +24,7 @@ This operation does not require authentication
 
 ```json
 {
-  "name": "string",
-  "email": "string",
-  "password": "string"
+  "name": "string"
 }
 ```
 
@@ -82,11 +32,8 @@ This operation does not require authentication
 
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
-|User-Agent|header|string|false|The user agent string of the client making the request.|
 |body|body|object|false|none|
 |» name|body|string|true|The name to register with|
-|» email|body|string|true|The username to register with|
-|» password|body|string|true|The password to register with|
 
 > Example responses
 
@@ -94,13 +41,10 @@ This operation does not require authentication
 
 ```json
 {
-  "user": {
-    "id": "string",
-    "email": "string",
-    "name": "string",
-    "locale": "string"
-  },
-  "token": "string"
+  "name": "string",
+  "locale": "string",
+  "has_avatar": true,
+  "secret": "string"
 }
 ```
 
@@ -117,17 +61,26 @@ This operation does not require authentication
 This operation does not require authentication
 </aside>
 
-## Get a user by ID
+## Authenticate a user and obtain a session
 
-<a id="opIduser"></a>
+<a id="opIdauth"></a>
 
-`GET /user/{userID}`
+`POST /auth`
 
-<h3 id="get-a-user-by-id-parameters">Parameters</h3>
+> Body parameter
+
+```json
+{
+  "secret": "string"
+}
+```
+
+<h3 id="authenticate-a-user-and-obtain-a-session-parameters">Parameters</h3>
 
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
-|userID|path|string|true|The ID of the user to get the avatar for.|
+|User-Agent|header|string|false|The user agent of the client making the request.|
+|body|body|object|false|none|
 
 > Example responses
 
@@ -135,14 +88,48 @@ This operation does not require authentication
 
 ```json
 {
-  "id": "string",
-  "email": "string",
-  "name": "string",
-  "locale": "string"
+  "token": "string"
 }
 ```
 
-<h3 id="get-a-user-by-id-responses">Responses</h3>
+<h3 id="authenticate-a-user-and-obtain-a-session-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Successfully logged in.|Inline|
+|default|Default|The request is invalid.|[Error](#schemaerror)|
+
+<h3 id="authenticate-a-user-and-obtain-a-session-responseschema">Response Schema</h3>
+
+Status Code **200**
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|» token|string|true|none|The session token|
+
+<aside class="success">
+This operation does not require authentication
+</aside>
+
+## Get the current user
+
+<a id="opIdcurrentUser"></a>
+
+`GET /me`
+
+> Example responses
+
+> 200 Response
+
+```json
+{
+  "name": "string",
+  "locale": "string",
+  "has_avatar": true
+}
+```
+
+<h3 id="get-the-current-user-responses">Responses</h3>
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
@@ -154,17 +141,11 @@ To perform this operation, you must be authenticated by means of one of the foll
 bearerAuth
 </aside>
 
-## Get a user's avatar by ID
+## Get the current user's avatar
 
-<a id="opIduserAvatar"></a>
+<a id="opIdcurrentUserAvatar"></a>
 
-`GET /user/{userID}/avatar`
-
-<h3 id="get-a-user's-avatar-by-id-parameters">Parameters</h3>
-
-|Name|In|Type|Required|Description|
-|---|---|---|---|---|
-|userID|path|string|true|The ID of the user to get the avatar for.|
+`GET /me/avatar`
 
 > Example responses
 
@@ -181,12 +162,81 @@ bearerAuth
 }
 ```
 
-<h3 id="get-a-user's-avatar-by-id-responses">Responses</h3>
+<h3 id="get-the-current-user's-avatar-responses">Responses</h3>
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
 |200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Successfully retrieved the user's avatar.|string|
 |default|Default|The request is invalid.|[Error](#schemaerror)|
+
+<aside class="warning">
+To perform this operation, you must be authenticated by means of one of the following methods:
+bearerAuth
+</aside>
+
+## Set the current user's avatar
+
+<a id="opIdsetCurrentUserAvatar"></a>
+
+`POST /me/avatar`
+
+> Body parameter
+
+<h3 id="set-the-current-user's-avatar-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|body|body|string(binary)|false|none|
+
+> Example responses
+
+> default Response
+
+```json
+{
+  "message": "string",
+  "details": null,
+  "internal": true,
+  "internalCode": "string"
+}
+```
+
+<h3 id="set-the-current-user's-avatar-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|204|[No Content](https://tools.ietf.org/html/rfc7231#section-6.3.5)|Successfully set the user's avatar.|None|
+|default|Default|The request is invalid.|[Error](#schemaerror)|
+
+<aside class="warning">
+To perform this operation, you must be authenticated by means of one of the following methods:
+bearerAuth
+</aside>
+
+## Get the current user's secret
+
+<a id="opIdcurrentUserSecret"></a>
+
+`GET /me/secret`
+
+> Example responses
+
+> 200 Response
+
+```json
+{
+  "secret": "string"
+}
+```
+
+<h3 id="get-the-current-user's-secret-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Successfully retrieved the user's secret.|Inline|
+|default|Default|The request is invalid.|[Error](#schemaerror)|
+
+<h3 id="get-the-current-user's-secret-responseschema">Response Schema</h3>
 
 <aside class="warning">
 To perform this operation, you must be authenticated by means of one of the following methods:
@@ -221,25 +271,25 @@ bearerAuth
 |internal|boolean|false|none|Whether the error is internal|
 |internalCode|string|false|none|An internal code for the error (useless for clients)|
 
-<h2 id="tocS_UserID">UserID</h2>
+<h2 id="tocS_UserSecret">UserSecret</h2>
 <!-- backwards compatibility -->
-<a id="schemauserid"></a>
-<a id="schema_UserID"></a>
-<a id="tocSuserid"></a>
-<a id="tocsuserid"></a>
+<a id="schemausersecret"></a>
+<a id="schema_UserSecret"></a>
+<a id="tocSusersecret"></a>
+<a id="tocsusersecret"></a>
 
 ```json
 "string"
 
 ```
 
-A unique user identifier.
+A secret and unique user identifier. This secret is generated once and never changes. It is used to both authenticate and identify a user, so it should be kept secret.
 
 ### Properties
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|*anonymous*|string|false|none|A unique user identifier.|
+|*anonymous*|string|false|none|A secret and unique user identifier. This secret is generated once and never changes. It is used to both authenticate and identify a user, so it should be kept secret.|
 
 <h2 id="tocS_Locale">Locale</h2>
 <!-- backwards compatibility -->
@@ -270,10 +320,9 @@ A locale identifier.
 
 ```json
 {
-  "id": "string",
-  "email": "string",
   "name": "string",
-  "locale": "string"
+  "locale": "string",
+  "has_avatar": true
 }
 
 ```
@@ -282,25 +331,35 @@ A user of the system.
 
 ### Properties
 
-*None*
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|name|string|true|none|The user's name|
 
-<h2 id="tocS_SessionToken">SessionToken</h2>
+<h2 id="tocS_Session">Session</h2>
 <!-- backwards compatibility -->
-<a id="schemasessiontoken"></a>
-<a id="schema_SessionToken"></a>
-<a id="tocSsessiontoken"></a>
-<a id="tocssessiontoken"></a>
+<a id="schemasession"></a>
+<a id="schema_Session"></a>
+<a id="tocSsession"></a>
+<a id="tocssession"></a>
 
 ```json
-"string"
+{
+  "id": 0,
+  "created_at": "2019-08-24T14:15:22Z",
+  "last_used": "2019-08-24T14:15:22Z",
+  "expires_at": "2019-08-24T14:15:22Z"
+}
 
 ```
 
-A session token string. This is used in the Authorization header to authenticate requests.
+A session for a user.
 
 ### Properties
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|*anonymous*|string|false|none|A session token string. This is used in the Authorization header to authenticate requests.|
+|id|integer|true|none|The session identifier|
+|created_at|string(date-time)|true|none|The time the session was created|
+|last_used|string(date-time)|false|none|The last time the session was used|
+|expires_at|string(date-time)|true|none|The time the session expires|
 

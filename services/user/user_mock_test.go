@@ -20,23 +20,17 @@ var _ UserStorage = &UserStorageMock{}
 //
 //		// make and configure a mocked UserStorage
 //		mockedUserStorage := &UserStorageMock{
-//			CreateUserFunc: func(ctx context.Context, id UserID, email string, passhash []byte, name string) (User, error) {
+//			CreateUserFunc: func(ctx context.Context, secret Secret, name string) (User, error) {
 //				panic("mock out the CreateUser method")
 //			},
-//			UpdateUserEmailPasswordFunc: func(ctx context.Context, id UserID, email string, passhash []byte) error {
-//				panic("mock out the UpdateUserEmailPassword method")
-//			},
-//			UpdateUserLocaleFunc: func(ctx context.Context, id UserID, locale Locale) error {
+//			UpdateUserLocaleFunc: func(ctx context.Context, secret Secret, locale Locale) error {
 //				panic("mock out the UpdateUserLocale method")
 //			},
-//			UpdateUserNameFunc: func(ctx context.Context, id UserID, name string) error {
+//			UpdateUserNameFunc: func(ctx context.Context, secret Secret, name string) error {
 //				panic("mock out the UpdateUserName method")
 //			},
-//			UserFunc: func(ctx context.Context, id UserID) (User, error) {
+//			UserFunc: func(ctx context.Context, secret Secret) (User, error) {
 //				panic("mock out the User method")
-//			},
-//			UserPasswordFromEmailFunc: func(ctx context.Context, email string) (UserPassword, error) {
-//				panic("mock out the UserPasswordFromEmail method")
 //			},
 //		}
 //
@@ -46,22 +40,16 @@ var _ UserStorage = &UserStorageMock{}
 //	}
 type UserStorageMock struct {
 	// CreateUserFunc mocks the CreateUser method.
-	CreateUserFunc func(ctx context.Context, id UserID, email string, passhash []byte, name string) (User, error)
-
-	// UpdateUserEmailPasswordFunc mocks the UpdateUserEmailPassword method.
-	UpdateUserEmailPasswordFunc func(ctx context.Context, id UserID, email string, passhash []byte) error
+	CreateUserFunc func(ctx context.Context, secret Secret, name string) (User, error)
 
 	// UpdateUserLocaleFunc mocks the UpdateUserLocale method.
-	UpdateUserLocaleFunc func(ctx context.Context, id UserID, locale Locale) error
+	UpdateUserLocaleFunc func(ctx context.Context, secret Secret, locale Locale) error
 
 	// UpdateUserNameFunc mocks the UpdateUserName method.
-	UpdateUserNameFunc func(ctx context.Context, id UserID, name string) error
+	UpdateUserNameFunc func(ctx context.Context, secret Secret, name string) error
 
 	// UserFunc mocks the User method.
-	UserFunc func(ctx context.Context, id UserID) (User, error)
-
-	// UserPasswordFromEmailFunc mocks the UserPasswordFromEmail method.
-	UserPasswordFromEmailFunc func(ctx context.Context, email string) (UserPassword, error)
+	UserFunc func(ctx context.Context, secret Secret) (User, error)
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -69,32 +57,17 @@ type UserStorageMock struct {
 		CreateUser []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
-			// ID is the id argument value.
-			ID UserID
-			// Email is the email argument value.
-			Email string
-			// Passhash is the passhash argument value.
-			Passhash []byte
+			// Secret is the secret argument value.
+			Secret Secret
 			// Name is the name argument value.
 			Name string
-		}
-		// UpdateUserEmailPassword holds details about calls to the UpdateUserEmailPassword method.
-		UpdateUserEmailPassword []struct {
-			// Ctx is the ctx argument value.
-			Ctx context.Context
-			// ID is the id argument value.
-			ID UserID
-			// Email is the email argument value.
-			Email string
-			// Passhash is the passhash argument value.
-			Passhash []byte
 		}
 		// UpdateUserLocale holds details about calls to the UpdateUserLocale method.
 		UpdateUserLocale []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
-			// ID is the id argument value.
-			ID UserID
+			// Secret is the secret argument value.
+			Secret Secret
 			// Locale is the locale argument value.
 			Locale Locale
 		}
@@ -102,8 +75,8 @@ type UserStorageMock struct {
 		UpdateUserName []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
-			// ID is the id argument value.
-			ID UserID
+			// Secret is the secret argument value.
+			Secret Secret
 			// Name is the name argument value.
 			Name string
 		}
@@ -111,39 +84,26 @@ type UserStorageMock struct {
 		User []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
-			// ID is the id argument value.
-			ID UserID
-		}
-		// UserPasswordFromEmail holds details about calls to the UserPasswordFromEmail method.
-		UserPasswordFromEmail []struct {
-			// Ctx is the ctx argument value.
-			Ctx context.Context
-			// Email is the email argument value.
-			Email string
+			// Secret is the secret argument value.
+			Secret Secret
 		}
 	}
-	lockCreateUser              sync.RWMutex
-	lockUpdateUserEmailPassword sync.RWMutex
-	lockUpdateUserLocale        sync.RWMutex
-	lockUpdateUserName          sync.RWMutex
-	lockUser                    sync.RWMutex
-	lockUserPasswordFromEmail   sync.RWMutex
+	lockCreateUser       sync.RWMutex
+	lockUpdateUserLocale sync.RWMutex
+	lockUpdateUserName   sync.RWMutex
+	lockUser             sync.RWMutex
 }
 
 // CreateUser calls CreateUserFunc.
-func (mock *UserStorageMock) CreateUser(ctx context.Context, id UserID, email string, passhash []byte, name string) (User, error) {
+func (mock *UserStorageMock) CreateUser(ctx context.Context, secret Secret, name string) (User, error) {
 	callInfo := struct {
-		Ctx      context.Context
-		ID       UserID
-		Email    string
-		Passhash []byte
-		Name     string
+		Ctx    context.Context
+		Secret Secret
+		Name   string
 	}{
-		Ctx:      ctx,
-		ID:       id,
-		Email:    email,
-		Passhash: passhash,
-		Name:     name,
+		Ctx:    ctx,
+		Secret: secret,
+		Name:   name,
 	}
 	mock.lockCreateUser.Lock()
 	mock.calls.CreateUser = append(mock.calls.CreateUser, callInfo)
@@ -155,7 +115,7 @@ func (mock *UserStorageMock) CreateUser(ctx context.Context, id UserID, email st
 		)
 		return userOut, errOut
 	}
-	return mock.CreateUserFunc(ctx, id, email, passhash, name)
+	return mock.CreateUserFunc(ctx, secret, name)
 }
 
 // CreateUserCalls gets all the calls that were made to CreateUser.
@@ -163,18 +123,14 @@ func (mock *UserStorageMock) CreateUser(ctx context.Context, id UserID, email st
 //
 //	len(mockedUserStorage.CreateUserCalls())
 func (mock *UserStorageMock) CreateUserCalls() []struct {
-	Ctx      context.Context
-	ID       UserID
-	Email    string
-	Passhash []byte
-	Name     string
+	Ctx    context.Context
+	Secret Secret
+	Name   string
 } {
 	var calls []struct {
-		Ctx      context.Context
-		ID       UserID
-		Email    string
-		Passhash []byte
-		Name     string
+		Ctx    context.Context
+		Secret Secret
+		Name   string
 	}
 	mock.lockCreateUser.RLock()
 	calls = mock.calls.CreateUser
@@ -182,62 +138,15 @@ func (mock *UserStorageMock) CreateUserCalls() []struct {
 	return calls
 }
 
-// UpdateUserEmailPassword calls UpdateUserEmailPasswordFunc.
-func (mock *UserStorageMock) UpdateUserEmailPassword(ctx context.Context, id UserID, email string, passhash []byte) error {
-	callInfo := struct {
-		Ctx      context.Context
-		ID       UserID
-		Email    string
-		Passhash []byte
-	}{
-		Ctx:      ctx,
-		ID:       id,
-		Email:    email,
-		Passhash: passhash,
-	}
-	mock.lockUpdateUserEmailPassword.Lock()
-	mock.calls.UpdateUserEmailPassword = append(mock.calls.UpdateUserEmailPassword, callInfo)
-	mock.lockUpdateUserEmailPassword.Unlock()
-	if mock.UpdateUserEmailPasswordFunc == nil {
-		var (
-			errOut error
-		)
-		return errOut
-	}
-	return mock.UpdateUserEmailPasswordFunc(ctx, id, email, passhash)
-}
-
-// UpdateUserEmailPasswordCalls gets all the calls that were made to UpdateUserEmailPassword.
-// Check the length with:
-//
-//	len(mockedUserStorage.UpdateUserEmailPasswordCalls())
-func (mock *UserStorageMock) UpdateUserEmailPasswordCalls() []struct {
-	Ctx      context.Context
-	ID       UserID
-	Email    string
-	Passhash []byte
-} {
-	var calls []struct {
-		Ctx      context.Context
-		ID       UserID
-		Email    string
-		Passhash []byte
-	}
-	mock.lockUpdateUserEmailPassword.RLock()
-	calls = mock.calls.UpdateUserEmailPassword
-	mock.lockUpdateUserEmailPassword.RUnlock()
-	return calls
-}
-
 // UpdateUserLocale calls UpdateUserLocaleFunc.
-func (mock *UserStorageMock) UpdateUserLocale(ctx context.Context, id UserID, locale Locale) error {
+func (mock *UserStorageMock) UpdateUserLocale(ctx context.Context, secret Secret, locale Locale) error {
 	callInfo := struct {
 		Ctx    context.Context
-		ID     UserID
+		Secret Secret
 		Locale Locale
 	}{
 		Ctx:    ctx,
-		ID:     id,
+		Secret: secret,
 		Locale: locale,
 	}
 	mock.lockUpdateUserLocale.Lock()
@@ -249,7 +158,7 @@ func (mock *UserStorageMock) UpdateUserLocale(ctx context.Context, id UserID, lo
 		)
 		return errOut
 	}
-	return mock.UpdateUserLocaleFunc(ctx, id, locale)
+	return mock.UpdateUserLocaleFunc(ctx, secret, locale)
 }
 
 // UpdateUserLocaleCalls gets all the calls that were made to UpdateUserLocale.
@@ -258,12 +167,12 @@ func (mock *UserStorageMock) UpdateUserLocale(ctx context.Context, id UserID, lo
 //	len(mockedUserStorage.UpdateUserLocaleCalls())
 func (mock *UserStorageMock) UpdateUserLocaleCalls() []struct {
 	Ctx    context.Context
-	ID     UserID
+	Secret Secret
 	Locale Locale
 } {
 	var calls []struct {
 		Ctx    context.Context
-		ID     UserID
+		Secret Secret
 		Locale Locale
 	}
 	mock.lockUpdateUserLocale.RLock()
@@ -273,15 +182,15 @@ func (mock *UserStorageMock) UpdateUserLocaleCalls() []struct {
 }
 
 // UpdateUserName calls UpdateUserNameFunc.
-func (mock *UserStorageMock) UpdateUserName(ctx context.Context, id UserID, name string) error {
+func (mock *UserStorageMock) UpdateUserName(ctx context.Context, secret Secret, name string) error {
 	callInfo := struct {
-		Ctx  context.Context
-		ID   UserID
-		Name string
+		Ctx    context.Context
+		Secret Secret
+		Name   string
 	}{
-		Ctx:  ctx,
-		ID:   id,
-		Name: name,
+		Ctx:    ctx,
+		Secret: secret,
+		Name:   name,
 	}
 	mock.lockUpdateUserName.Lock()
 	mock.calls.UpdateUserName = append(mock.calls.UpdateUserName, callInfo)
@@ -292,7 +201,7 @@ func (mock *UserStorageMock) UpdateUserName(ctx context.Context, id UserID, name
 		)
 		return errOut
 	}
-	return mock.UpdateUserNameFunc(ctx, id, name)
+	return mock.UpdateUserNameFunc(ctx, secret, name)
 }
 
 // UpdateUserNameCalls gets all the calls that were made to UpdateUserName.
@@ -300,14 +209,14 @@ func (mock *UserStorageMock) UpdateUserName(ctx context.Context, id UserID, name
 //
 //	len(mockedUserStorage.UpdateUserNameCalls())
 func (mock *UserStorageMock) UpdateUserNameCalls() []struct {
-	Ctx  context.Context
-	ID   UserID
-	Name string
+	Ctx    context.Context
+	Secret Secret
+	Name   string
 } {
 	var calls []struct {
-		Ctx  context.Context
-		ID   UserID
-		Name string
+		Ctx    context.Context
+		Secret Secret
+		Name   string
 	}
 	mock.lockUpdateUserName.RLock()
 	calls = mock.calls.UpdateUserName
@@ -316,13 +225,13 @@ func (mock *UserStorageMock) UpdateUserNameCalls() []struct {
 }
 
 // User calls UserFunc.
-func (mock *UserStorageMock) User(ctx context.Context, id UserID) (User, error) {
+func (mock *UserStorageMock) User(ctx context.Context, secret Secret) (User, error) {
 	callInfo := struct {
-		Ctx context.Context
-		ID  UserID
+		Ctx    context.Context
+		Secret Secret
 	}{
-		Ctx: ctx,
-		ID:  id,
+		Ctx:    ctx,
+		Secret: secret,
 	}
 	mock.lockUser.Lock()
 	mock.calls.User = append(mock.calls.User, callInfo)
@@ -334,7 +243,7 @@ func (mock *UserStorageMock) User(ctx context.Context, id UserID) (User, error) 
 		)
 		return userOut, errOut
 	}
-	return mock.UserFunc(ctx, id)
+	return mock.UserFunc(ctx, secret)
 }
 
 // UserCalls gets all the calls that were made to User.
@@ -342,56 +251,16 @@ func (mock *UserStorageMock) User(ctx context.Context, id UserID) (User, error) 
 //
 //	len(mockedUserStorage.UserCalls())
 func (mock *UserStorageMock) UserCalls() []struct {
-	Ctx context.Context
-	ID  UserID
+	Ctx    context.Context
+	Secret Secret
 } {
 	var calls []struct {
-		Ctx context.Context
-		ID  UserID
+		Ctx    context.Context
+		Secret Secret
 	}
 	mock.lockUser.RLock()
 	calls = mock.calls.User
 	mock.lockUser.RUnlock()
-	return calls
-}
-
-// UserPasswordFromEmail calls UserPasswordFromEmailFunc.
-func (mock *UserStorageMock) UserPasswordFromEmail(ctx context.Context, email string) (UserPassword, error) {
-	callInfo := struct {
-		Ctx   context.Context
-		Email string
-	}{
-		Ctx:   ctx,
-		Email: email,
-	}
-	mock.lockUserPasswordFromEmail.Lock()
-	mock.calls.UserPasswordFromEmail = append(mock.calls.UserPasswordFromEmail, callInfo)
-	mock.lockUserPasswordFromEmail.Unlock()
-	if mock.UserPasswordFromEmailFunc == nil {
-		var (
-			userPasswordOut UserPassword
-			errOut          error
-		)
-		return userPasswordOut, errOut
-	}
-	return mock.UserPasswordFromEmailFunc(ctx, email)
-}
-
-// UserPasswordFromEmailCalls gets all the calls that were made to UserPasswordFromEmail.
-// Check the length with:
-//
-//	len(mockedUserStorage.UserPasswordFromEmailCalls())
-func (mock *UserStorageMock) UserPasswordFromEmailCalls() []struct {
-	Ctx   context.Context
-	Email string
-} {
-	var calls []struct {
-		Ctx   context.Context
-		Email string
-	}
-	mock.lockUserPasswordFromEmail.RLock()
-	calls = mock.calls.UserPasswordFromEmail
-	mock.lockUserPasswordFromEmail.RUnlock()
 	return calls
 }
 
@@ -405,10 +274,10 @@ var _ UserAvatarStorage = &UserAvatarStorageMock{}
 //
 //		// make and configure a mocked UserAvatarStorage
 //		mockedUserAvatarStorage := &UserAvatarStorageMock{
-//			SetUserAvatarFunc: func(ctx context.Context, id UserID, a asset.Asset[io.Reader]) error {
+//			SetUserAvatarFunc: func(ctx context.Context, secret Secret, a asset.Asset[io.Reader]) error {
 //				panic("mock out the SetUserAvatar method")
 //			},
-//			UserAvatarFunc: func(ctx context.Context, id UserID) (asset.Asset[io.ReadCloser], error) {
+//			UserAvatarFunc: func(ctx context.Context, secret Secret) (asset.Asset[io.ReadCloser], error) {
 //				panic("mock out the UserAvatar method")
 //			},
 //		}
@@ -419,10 +288,10 @@ var _ UserAvatarStorage = &UserAvatarStorageMock{}
 //	}
 type UserAvatarStorageMock struct {
 	// SetUserAvatarFunc mocks the SetUserAvatar method.
-	SetUserAvatarFunc func(ctx context.Context, id UserID, a asset.Asset[io.Reader]) error
+	SetUserAvatarFunc func(ctx context.Context, secret Secret, a asset.Asset[io.Reader]) error
 
 	// UserAvatarFunc mocks the UserAvatar method.
-	UserAvatarFunc func(ctx context.Context, id UserID) (asset.Asset[io.ReadCloser], error)
+	UserAvatarFunc func(ctx context.Context, secret Secret) (asset.Asset[io.ReadCloser], error)
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -430,8 +299,8 @@ type UserAvatarStorageMock struct {
 		SetUserAvatar []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
-			// ID is the id argument value.
-			ID UserID
+			// Secret is the secret argument value.
+			Secret Secret
 			// A is the a argument value.
 			A asset.Asset[io.Reader]
 		}
@@ -439,8 +308,8 @@ type UserAvatarStorageMock struct {
 		UserAvatar []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
-			// ID is the id argument value.
-			ID UserID
+			// Secret is the secret argument value.
+			Secret Secret
 		}
 	}
 	lockSetUserAvatar sync.RWMutex
@@ -448,15 +317,15 @@ type UserAvatarStorageMock struct {
 }
 
 // SetUserAvatar calls SetUserAvatarFunc.
-func (mock *UserAvatarStorageMock) SetUserAvatar(ctx context.Context, id UserID, a asset.Asset[io.Reader]) error {
+func (mock *UserAvatarStorageMock) SetUserAvatar(ctx context.Context, secret Secret, a asset.Asset[io.Reader]) error {
 	callInfo := struct {
-		Ctx context.Context
-		ID  UserID
-		A   asset.Asset[io.Reader]
+		Ctx    context.Context
+		Secret Secret
+		A      asset.Asset[io.Reader]
 	}{
-		Ctx: ctx,
-		ID:  id,
-		A:   a,
+		Ctx:    ctx,
+		Secret: secret,
+		A:      a,
 	}
 	mock.lockSetUserAvatar.Lock()
 	mock.calls.SetUserAvatar = append(mock.calls.SetUserAvatar, callInfo)
@@ -467,7 +336,7 @@ func (mock *UserAvatarStorageMock) SetUserAvatar(ctx context.Context, id UserID,
 		)
 		return errOut
 	}
-	return mock.SetUserAvatarFunc(ctx, id, a)
+	return mock.SetUserAvatarFunc(ctx, secret, a)
 }
 
 // SetUserAvatarCalls gets all the calls that were made to SetUserAvatar.
@@ -475,14 +344,14 @@ func (mock *UserAvatarStorageMock) SetUserAvatar(ctx context.Context, id UserID,
 //
 //	len(mockedUserAvatarStorage.SetUserAvatarCalls())
 func (mock *UserAvatarStorageMock) SetUserAvatarCalls() []struct {
-	Ctx context.Context
-	ID  UserID
-	A   asset.Asset[io.Reader]
+	Ctx    context.Context
+	Secret Secret
+	A      asset.Asset[io.Reader]
 } {
 	var calls []struct {
-		Ctx context.Context
-		ID  UserID
-		A   asset.Asset[io.Reader]
+		Ctx    context.Context
+		Secret Secret
+		A      asset.Asset[io.Reader]
 	}
 	mock.lockSetUserAvatar.RLock()
 	calls = mock.calls.SetUserAvatar
@@ -491,13 +360,13 @@ func (mock *UserAvatarStorageMock) SetUserAvatarCalls() []struct {
 }
 
 // UserAvatar calls UserAvatarFunc.
-func (mock *UserAvatarStorageMock) UserAvatar(ctx context.Context, id UserID) (asset.Asset[io.ReadCloser], error) {
+func (mock *UserAvatarStorageMock) UserAvatar(ctx context.Context, secret Secret) (asset.Asset[io.ReadCloser], error) {
 	callInfo := struct {
-		Ctx context.Context
-		ID  UserID
+		Ctx    context.Context
+		Secret Secret
 	}{
-		Ctx: ctx,
-		ID:  id,
+		Ctx:    ctx,
+		Secret: secret,
 	}
 	mock.lockUserAvatar.Lock()
 	mock.calls.UserAvatar = append(mock.calls.UserAvatar, callInfo)
@@ -509,7 +378,7 @@ func (mock *UserAvatarStorageMock) UserAvatar(ctx context.Context, id UserID) (a
 		)
 		return assetOut, errOut
 	}
-	return mock.UserAvatarFunc(ctx, id)
+	return mock.UserAvatarFunc(ctx, secret)
 }
 
 // UserAvatarCalls gets all the calls that were made to UserAvatar.
@@ -517,12 +386,12 @@ func (mock *UserAvatarStorageMock) UserAvatar(ctx context.Context, id UserID) (a
 //
 //	len(mockedUserAvatarStorage.UserAvatarCalls())
 func (mock *UserAvatarStorageMock) UserAvatarCalls() []struct {
-	Ctx context.Context
-	ID  UserID
+	Ctx    context.Context
+	Secret Secret
 } {
 	var calls []struct {
-		Ctx context.Context
-		ID  UserID
+		Ctx    context.Context
+		Secret Secret
 	}
 	mock.lockUserAvatar.RLock()
 	calls = mock.calls.UserAvatar
@@ -540,10 +409,10 @@ var _ UserSessionStorage = &UserSessionStorageMock{}
 //
 //		// make and configure a mocked UserSessionStorage
 //		mockedUserSessionStorage := &UserSessionStorageMock{
-//			RegisterSessionFunc: func(ctx context.Context, id UserID, token []byte, userAgent string) error {
+//			RegisterSessionFunc: func(ctx context.Context, token []byte, userSecret Secret, userAgent string) error {
 //				panic("mock out the RegisterSession method")
 //			},
-//			ValidateSessionFunc: func(ctx context.Context, token []byte) (User, error) {
+//			ValidateSessionFunc: func(ctx context.Context, token []byte) (Session, error) {
 //				panic("mock out the ValidateSession method")
 //			},
 //		}
@@ -554,10 +423,10 @@ var _ UserSessionStorage = &UserSessionStorageMock{}
 //	}
 type UserSessionStorageMock struct {
 	// RegisterSessionFunc mocks the RegisterSession method.
-	RegisterSessionFunc func(ctx context.Context, id UserID, token []byte, userAgent string) error
+	RegisterSessionFunc func(ctx context.Context, token []byte, userSecret Secret, userAgent string) error
 
 	// ValidateSessionFunc mocks the ValidateSession method.
-	ValidateSessionFunc func(ctx context.Context, token []byte) (User, error)
+	ValidateSessionFunc func(ctx context.Context, token []byte) (Session, error)
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -565,10 +434,10 @@ type UserSessionStorageMock struct {
 		RegisterSession []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
-			// ID is the id argument value.
-			ID UserID
 			// Token is the token argument value.
 			Token []byte
+			// UserSecret is the userSecret argument value.
+			UserSecret Secret
 			// UserAgent is the userAgent argument value.
 			UserAgent string
 		}
@@ -585,17 +454,17 @@ type UserSessionStorageMock struct {
 }
 
 // RegisterSession calls RegisterSessionFunc.
-func (mock *UserSessionStorageMock) RegisterSession(ctx context.Context, id UserID, token []byte, userAgent string) error {
+func (mock *UserSessionStorageMock) RegisterSession(ctx context.Context, token []byte, userSecret Secret, userAgent string) error {
 	callInfo := struct {
-		Ctx       context.Context
-		ID        UserID
-		Token     []byte
-		UserAgent string
+		Ctx        context.Context
+		Token      []byte
+		UserSecret Secret
+		UserAgent  string
 	}{
-		Ctx:       ctx,
-		ID:        id,
-		Token:     token,
-		UserAgent: userAgent,
+		Ctx:        ctx,
+		Token:      token,
+		UserSecret: userSecret,
+		UserAgent:  userAgent,
 	}
 	mock.lockRegisterSession.Lock()
 	mock.calls.RegisterSession = append(mock.calls.RegisterSession, callInfo)
@@ -606,7 +475,7 @@ func (mock *UserSessionStorageMock) RegisterSession(ctx context.Context, id User
 		)
 		return errOut
 	}
-	return mock.RegisterSessionFunc(ctx, id, token, userAgent)
+	return mock.RegisterSessionFunc(ctx, token, userSecret, userAgent)
 }
 
 // RegisterSessionCalls gets all the calls that were made to RegisterSession.
@@ -614,16 +483,16 @@ func (mock *UserSessionStorageMock) RegisterSession(ctx context.Context, id User
 //
 //	len(mockedUserSessionStorage.RegisterSessionCalls())
 func (mock *UserSessionStorageMock) RegisterSessionCalls() []struct {
-	Ctx       context.Context
-	ID        UserID
-	Token     []byte
-	UserAgent string
+	Ctx        context.Context
+	Token      []byte
+	UserSecret Secret
+	UserAgent  string
 } {
 	var calls []struct {
-		Ctx       context.Context
-		ID        UserID
-		Token     []byte
-		UserAgent string
+		Ctx        context.Context
+		Token      []byte
+		UserSecret Secret
+		UserAgent  string
 	}
 	mock.lockRegisterSession.RLock()
 	calls = mock.calls.RegisterSession
@@ -632,7 +501,7 @@ func (mock *UserSessionStorageMock) RegisterSessionCalls() []struct {
 }
 
 // ValidateSession calls ValidateSessionFunc.
-func (mock *UserSessionStorageMock) ValidateSession(ctx context.Context, token []byte) (User, error) {
+func (mock *UserSessionStorageMock) ValidateSession(ctx context.Context, token []byte) (Session, error) {
 	callInfo := struct {
 		Ctx   context.Context
 		Token []byte
@@ -645,10 +514,10 @@ func (mock *UserSessionStorageMock) ValidateSession(ctx context.Context, token [
 	mock.lockValidateSession.Unlock()
 	if mock.ValidateSessionFunc == nil {
 		var (
-			userOut User
-			errOut  error
+			sessionOut Session
+			errOut     error
 		)
-		return userOut, errOut
+		return sessionOut, errOut
 	}
 	return mock.ValidateSessionFunc(ctx, token)
 }

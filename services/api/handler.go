@@ -5,6 +5,7 @@ import (
 	"log/slog"
 
 	"go.uber.org/fx"
+	"libdb.so/e2clicker/internal/asset"
 	"libdb.so/e2clicker/services/api/openapi"
 	"libdb.so/e2clicker/services/user"
 )
@@ -32,62 +33,89 @@ func NewOpenAPIHandler(deps OpenAPIHandlerServices, logger *slog.Logger) *OpenAP
 	}
 }
 
-// (POST /login)
-func (h *OpenAPIHandler) Login(ctx context.Context, request openapi.LoginRequestObject) (openapi.LoginResponseObject, error) {
-	uID, err := h.users.ValidateUserEmailPassword(ctx, request.Body.Email, request.Body.Password)
-	if err != nil {
-		return convertError[openapi.LogindefaultJSONResponse](ctx, err), nil
-	}
+func (h *OpenAPIHandler) asStrictHandler() openapi.StrictServerInterface { return h }
 
-	token, err := h.users.RegisterSession(ctx, uID, optstr(request.Params.UserAgent))
-	if err != nil {
-		return convertError[openapi.LogindefaultJSONResponse](ctx, err), nil
-	}
-
-	return openapi.Login200JSONResponse{
-		UserID: uID,
-		Token:  token,
-	}, nil
-}
-
+// Register a new account
 // (POST /register)
 func (h *OpenAPIHandler) Register(ctx context.Context, request openapi.RegisterRequestObject) (openapi.RegisterResponseObject, error) {
-	u, err := h.users.CreateUser(ctx, request.Body.Email, request.Body.Password, request.Body.Name)
+	u, err := h.users.CreateUser(ctx, request.Body.Name)
 	if err != nil {
-		return convertError[openapi.RegisterdefaultJSONResponse](ctx, err), nil
-	}
-
-	token, err := h.users.RegisterSession(ctx, u.ID, optstr(request.Params.UserAgent))
-	if err != nil {
-		return convertError[openapi.RegisterdefaultJSONResponse](ctx, err), nil
+		return nil, err
 	}
 
 	return openapi.Register200JSONResponse{
-		User:  convertUser(u),
-		Token: token,
+		Name:      u.Name,
+		Locale:    u.Locale,
+		HasAvatar: u.HasAvatar,
+		Secret:    u.Secret,
 	}, nil
 }
 
-// (GET /user/{userID})
-func (h *OpenAPIHandler) User(ctx context.Context, request openapi.UserRequestObject) (openapi.UserResponseObject, error) {
-	u, err := h.users.User(ctx, request.UserIDParam)
+// Authenticate a user
+// (POST /auth)
+func (h *OpenAPIHandler) Auth(ctx context.Context, request openapi.AuthRequestObject) (openapi.AuthResponseObject, error) {
+	t, err := h.users.CreateSession(ctx, request.Body.Secret, optstr(request.Params.UserAgent))
 	if err != nil {
-		return convertError[openapi.UserdefaultJSONResponse](ctx, err), nil
+		return nil, err
 	}
 
-	return openapi.User200JSONResponse(convertUser(u)), nil
+	return openapi.Auth200JSONResponse{
+		Token: string(t),
+	}, nil
 }
 
-// (GET /user/{userID}/avatar)
-func (h *OpenAPIHandler) UserAvatar(ctx context.Context, request openapi.UserAvatarRequestObject) (openapi.UserAvatarResponseObject, error) {
-	u, err := h.users.UserAvatar(ctx, request.UserIDParam)
+// Get the current user
+// (GET /me)
+func (h *OpenAPIHandler) CurrentUser(ctx context.Context, request openapi.CurrentUserRequestObject) (openapi.CurrentUserResponseObject, error) {
+	session := sessionFromCtx(ctx)
+
+	u, err := h.users.User(ctx, session.UserSecret)
 	if err != nil {
-		return convertError[openapi.UserAvatardefaultJSONResponse](ctx, err), nil
+		return nil, err
 	}
 
-	return openapi.UserAvatar200ImageResponse{
-		Body:          u.Reader(),
-		ContentType:   u.ContentType,
-		ContentLength: u.ContentLength,
+	return openapi.CurrentUser200JSONResponse(convertUser(u)), nil
+}
+
+// Get the current user's avatar
+// (GET /me/avatar)
+func (h *OpenAPIHandler) CurrentUserAvatar(ctx context.Context, request openapi.CurrentUserAvatarRequestObject) (openapi.CurrentUserAvatarResponseObject, error) {
+	session := sessionFromCtx(ctx)
+
+	a, err := h.users.UserAvatar(ctx, session.UserSecret)
+	if err != nil {
+		return nil, err
+	}
+
+	return openapi.CurrentUserAvatar200ImageResponse{
+		Body:          a.Reader(),
+		ContentType:   a.ContentType,
+		ContentLength: a.ContentLength,
+	}, nil
+}
+
+// Set the current user's avatar
+// (POST /me/avatar)
+func (h *OpenAPIHandler) SetCurrentUserAvatar(ctx context.Context, request openapi.SetCurrentUserAvatarRequestObject) (openapi.SetCurrentUserAvatarResponseObject, error) {
+	session := sessionFromCtx(ctx)
+
+	err := h.users.SetUserAvatar(ctx, session.UserSecret, asset.NewAssetReader(
+		request.Body,
+		request.ContentType,
+		-1,
+	))
+	if err != nil {
+		return nil, err
+	}
+
+	return openapi.SetCurrentUserAvatar204Response{}, nil
+}
+
+// Get the current user's secret
+// (GET /me/secret)
+func (h *OpenAPIHandler) CurrentUserSecret(ctx context.Context, request openapi.CurrentUserSecretRequestObject) (openapi.CurrentUserSecretResponseObject, error) {
+	session := sessionFromCtx(ctx)
+	return openapi.CurrentUserSecret200JSONResponse{
+		Secret: session.UserSecret,
 	}, nil
 }

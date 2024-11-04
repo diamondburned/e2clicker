@@ -11,7 +11,11 @@ var Module = fx.Module("api",
 		return slog.With("module", "api")
 	}),
 	fx.Provide(
-		NewOpenAPIHandler,
 		NewServer,
+		NewAuthenticator,
+		NewOpenAPIHandler,
+
+		(*Authenticator).AuthenticationFunc, // openapi3filter.AuthenticationFunc
+		(*OpenAPIHandler).asStrictHandler,   // openapi.StrictServerInterface
 	),
 )

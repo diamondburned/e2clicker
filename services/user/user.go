@@ -2,186 +2,84 @@
 package user
 
 import (
-	"crypto/rand"
-	"encoding/base64"
+	"context"
+	"encoding"
 	"fmt"
-	"io"
-	"strings"
 	"time"
 
 	"github.com/rs/xid"
-	"golang.org/x/text/language"
+	"libdb.so/e2clicker/internal/asset"
 )
 
-// UserID is a unique identifier for a user.
-type UserID struct {
-	x xid.ID
+// User is a user in the system.
+type User struct {
+	Name      string
+	Locale    Locale
+	HasAvatar bool
 }
 
-// NullUserID is a zero value for [UserID].
-var NullUserID = UserID{}
-
-// ParseUserID parses a user ID from a string. See [UserID.String].
-func ParseUserID(s string) (UserID, error) {
-	v, err := xid.FromString(s)
-	if err != nil {
-		return UserID{}, err
-	}
-	return UserID{v}, nil
+// UserWithSecret is a user with their secret.
+type UserWithSecret struct {
+	User
+	Secret Secret
 }
 
-// ParseRawUserID parses a user ID from raw bytes. See [UserID.Bytes].
-func ParseRawUserID(b []byte) (UserID, error) {
-	v, err := xid.FromBytes(b)
-	if err != nil {
-		return UserID{}, err
-	}
-	return UserID{v}, nil
+type UserStorage interface {
+	// CreateUser creates a user in the storage with the given name.
+	CreateUser(ctx context.Context, secret Secret, name string) (User, error)
+	// User gets the user identified by the given secret.
+	User(ctx context.Context, secret Secret) (User, error)
+	// UpdateUserName updates the user's name.
+	UpdateUserName(ctx context.Context, secret Secret, name string) error
+	// UpdateUserLocale updates the user's locale.
+	UpdateUserLocale(ctx context.Context, secret Secret, locale Locale) error
 }
 
-// GenerateUserID generates a new user ID.
-func GenerateUserID() UserID {
-	return UserID{xid.New()}
+type UserAvatarStorage interface {
+	// UserAvatar returns the user's avatar.
+	// The returned asset is an open reader that must be closed by the caller.
+	UserAvatar(ctx context.Context, secret Secret) (asset.ReadCloser, error)
+	// SetUserAvatar sets the user's avatar.
+	// The caller must still close the given reader.
+	SetUserAvatar(ctx context.Context, secret Secret, a asset.Reader) error
 }
 
-// String formats the user ID into a string.
-func (id UserID) String() string {
-	return id.x.String()
+// Secret is a secret identifier for a user. This secret is generated once
+// and never changes. It is used to both authenticate and identify a user, so it
+// should be kept secret.
+type Secret xid.ID
+
+var (
+	_ fmt.Stringer             = Secret{}
+	_ encoding.TextMarshaler   = Secret{}
+	_ encoding.TextUnmarshaler = (*Secret)(nil)
+)
+
+func generateUserSecret() Secret {
+	return Secret(xid.New())
 }
 
-// Bytes returns the user ID as raw bytes. This is useful for storing.
-func (id UserID) Bytes() []byte {
-	return id.x.Bytes()
+// String formats the user secret into a string.
+func (id Secret) String() string {
+	return xid.ID(id).String()
 }
 
-// CreatedAt returns the creation time of the user ID.
-func (id UserID) CreatedAt() time.Time {
-	return id.x.Time()
+// CreatedAt returns the creation time of the user secret.
+func (id Secret) CreatedAt() time.Time {
+	return xid.ID(id).Time()
 }
 
 // MarshalText implements the [encoding.TextMarshaler] interface.
-func (id UserID) MarshalText() ([]byte, error) {
+func (id Secret) MarshalText() ([]byte, error) {
 	return []byte(id.String()), nil
 }
 
 // UnmarshalText implements the [encoding.TextUnmarshaler] interface.
-func (id *UserID) UnmarshalText(text []byte) error {
+func (id *Secret) UnmarshalText(text []byte) error {
 	v, err := xid.FromString(string(text))
 	if err != nil {
 		return err
 	}
-	*id = UserID{v}
+	*id = Secret(v)
 	return nil
-}
-
-// SessionToken is a token that represents a user session.
-// The type represents an already validated token. The random part is not
-// exposed to the user except via [String].
-type SessionToken struct {
-	UserID       UserID
-	randomBase64 string
-}
-
-// ParseSessionToken parses a token string into a [SessionToken].
-func ParseSessionToken(token string) (SessionToken, error) {
-	rawUserID, randomBase64, ok := strings.Cut(token, ".")
-	if !ok {
-		return SessionToken{}, fmt.Errorf("invalid token format")
-	}
-
-	userID, err := xid.FromString(rawUserID)
-	if err != nil {
-		return SessionToken{}, fmt.Errorf("invalid user ID: %w", err)
-	}
-
-	return SessionToken{
-		UserID:       UserID{userID},
-		randomBase64: randomBase64,
-	}, nil
-}
-
-func newSessionToken(userID UserID) (SessionToken, error) {
-	var rawToken [24]byte
-
-	_, err := io.ReadFull(rand.Reader, rawToken[:])
-	if err != nil {
-		return SessionToken{}, fmt.Errorf("failed to generate session token: %w", err)
-	}
-
-	return SessionToken{
-		UserID:       userID,
-		randomBase64: base64.URLEncoding.EncodeToString(rawToken[:]),
-	}, nil
-}
-
-// String returns the token as a string.
-func (t SessionToken) String() string { return t.UserID.String() + "." + t.randomBase64 }
-
-func (t SessionToken) randomBytes() []byte {
-	b, err := base64.URLEncoding.DecodeString(t.randomBase64)
-	if err != nil {
-		panic("invalid base64 in session token (bug; only use this method on new tokens)")
-	}
-	return b
-}
-
-// MarshalText implements the [encoding.TextMarshaler] interface.
-func (t SessionToken) MarshalText() ([]byte, error) { return []byte(t.String()), nil }
-
-// UnmarshalText implements the [encoding.TextUnmarshaler] interface.
-func (t *SessionToken) UnmarshalText(text []byte) error {
-	token, err := ParseSessionToken(string(text))
-	if err != nil {
-		return err
-	}
-	*t = token
-	return nil
-}
-
-// User is a user in the system.
-type User struct {
-	ID        UserID `json:"id"`
-	Email     string `json:"email"`
-	Name      string `json:"name"`
-	Locale    Locale `json:"locale"`
-	HasAvatar bool   `json:"hasAvatar,omitempty"`
-}
-
-// UserPassword is a subset of [User] that only contains the password hash.
-type UserPassword struct {
-	ID       UserID
-	Passhash []byte
-}
-
-// Locale is a user's preferred languages. It is used for localization.
-// The format of the string is specified by RFC 2616 but is validated by
-// [language.ParseAcceptLanguage], which is more lax.
-type Locale string
-
-// ParseLocale parses a locale string into a [Locale] type.
-func ParseLocale(locale string) (Locale, error) {
-	l := Locale(locale)
-	return l, l.Validate()
-}
-
-// Tags returns the Locale as a list of language tags.
-// If l is empty or invalid, then this function returns one [language.Und]. The
-// returned list is never empty.
-func (l Locale) Tags() []language.Tag {
-	tags, _, _ := language.ParseAcceptLanguage(string(l))
-	if len(tags) == 0 {
-		return []language.Tag{language.Und}
-	}
-	return tags
-}
-
-// Validate checks if the Locale is valid.
-func (l Locale) Validate() error {
-	_, _, err := language.ParseAcceptLanguage(string(l))
-	return err
-}
-
-// String implements the [fmt.Stringer] interface.
-func (l Locale) String() string {
-	return string(l)
 }

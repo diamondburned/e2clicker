@@ -2,7 +2,7 @@ package user
 
 import "testing"
 
-//go:generate moq -out storage_mock_test.go -stub . UserStorage UserAvatarStorage UserSessionStorage
+//go:generate moq -out user_mock_test.go -stub . UserStorage UserAvatarStorage UserSessionStorage
 
 type mockUserService struct {
 	UserService
@@ -17,6 +17,10 @@ func newMockUserService(*testing.T) *mockUserService {
 		avatars:  &UserAvatarStorageMock{},
 		sessions: &UserSessionStorageMock{},
 	}
-	s.UserService = UserService{s.users, s.avatars, s.sessions}
+	s.UserService = UserService{
+		s.users,
+		s.avatars,
+		s.sessions,
+	}
 	return s
 }

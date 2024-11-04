@@ -12,11 +12,11 @@ func optstr(s *string) string {
 	return *s
 }
 
+func anyPtr[T any](value T) *any {
+	v := any(value)
+	return &v
+}
+
 func convertUser(u user.User) openapi.User {
-	return openapi.User{
-		ID:     u.ID,
-		Name:   u.Name,
-		Email:  u.Email,
-		Locale: u.Locale,
-	}
+	return openapi.User(u)
 }

@@ -15,19 +15,19 @@ import (
 )
 
 const addUserDosage = `-- name: AddUserDosage :exec
-INSERT INTO dosage_history (user_id, last_dose, taken_at, delivery_method, dose) (
+INSERT INTO dosage_history (user_secret, last_dose, taken_at, delivery_method, dose) (
   SELECT $1, $2, now(), delivery_method, dose
   FROM dosage_schedule
-  WHERE user_id = $1)
+  WHERE user_secret = $1)
 `
 
 type AddUserDosageParams struct {
-	UserID   interface{}
-	LastDose pgtype.Int8
+	UserSecret sqlc.XID
+	LastDose   pgtype.Int8
 }
 
 func (q *Queries) AddUserDosage(ctx context.Context, arg AddUserDosageParams) error {
-	_, err := q.db.Exec(ctx, addUserDosage, arg.UserID, arg.LastDose)
+	_, err := q.db.Exec(ctx, addUserDosage, arg.UserSecret, arg.LastDose)
 	return err
 }
 
@@ -35,40 +35,25 @@ const createUser = `-- name: CreateUser :one
 /*
  * User
  */
-INSERT INTO users (user_id, email, passhash, name)
-  VALUES ($1, $2, $3, $4)
-RETURNING user_id, email, name, locale, registered_at
+INSERT INTO users (secret, name)
+  VALUES ($1, $2)
+RETURNING secret, name, locale, registered_at, notification_preferences
 `
 
 type CreateUserParams struct {
-	UserID   sqlc.UserID
-	Email    string
-	Passhash []byte
-	Name     string
+	Secret sqlc.XID
+	Name   string
 }
 
-type CreateUserRow struct {
-	UserID       sqlc.UserID
-	Email        string
-	Name         string
-	Locale       userservice.Locale
-	RegisteredAt pgtype.Timestamp
-}
-
-func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateUserRow, error) {
-	row := q.db.QueryRow(ctx, createUser,
-		arg.UserID,
-		arg.Email,
-		arg.Passhash,
-		arg.Name,
-	)
-	var i CreateUserRow
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
+	row := q.db.QueryRow(ctx, createUser, arg.Secret, arg.Name)
+	var i User
 	err := row.Scan(
-		&i.UserID,
-		&i.Email,
+		&i.Secret,
 		&i.Name,
 		&i.Locale,
 		&i.RegisteredAt,
+		&i.NotificationPreferences,
 	)
 	return i, err
 }
@@ -115,90 +100,70 @@ func (q *Queries) DeliveryMethods(ctx context.Context) ([]DeliveryMethod, error)
 }
 
 const registerSession = `-- name: RegisterSession :exec
-/*
- * User Session
+/*                                                                                 
+ * User Session                                                                    
  */
-INSERT INTO user_sessions (user_id, token, created_at, last_used, user_agent)
+INSERT INTO user_sessions (user_secret, token, created_at, last_used, user_agent)
   VALUES ($1, $2, now(), now(), $3)
 `
 
 type RegisterSessionParams struct {
-	UserID    sqlc.UserID
-	Token     []byte
-	UserAgent pgtype.Text
+	UserSecret sqlc.XID
+	Token      []byte
+	UserAgent  pgtype.Text
 }
 
 func (q *Queries) RegisterSession(ctx context.Context, arg RegisterSessionParams) error {
-	_, err := q.db.Exec(ctx, registerSession, arg.UserID, arg.Token, arg.UserAgent)
+	_, err := q.db.Exec(ctx, registerSession, arg.UserSecret, arg.Token, arg.UserAgent)
 	return err
 }
 
 const setUserAvatar = `-- name: SetUserAvatar :exec
-INSERT INTO user_avatars (user_id, avatar_image, mime_type)
+INSERT INTO user_avatars (user_secret, avatar_image, mime_type)
   VALUES ($1, $2, $3)
-ON CONFLICT (user_id)
+ON CONFLICT (user_secret)
   DO UPDATE SET
     avatar_image = $2, mime_type = $3
 `
 
 type SetUserAvatarParams struct {
-	UserID      sqlc.UserID
+	UserSecret  sqlc.XID
 	AvatarImage []byte
 	MIMEType    string
 }
 
 func (q *Queries) SetUserAvatar(ctx context.Context, arg SetUserAvatarParams) error {
-	_, err := q.db.Exec(ctx, setUserAvatar, arg.UserID, arg.AvatarImage, arg.MIMEType)
+	_, err := q.db.Exec(ctx, setUserAvatar, arg.UserSecret, arg.AvatarImage, arg.MIMEType)
 	return err
 }
 
-const setUserCustomNotification = `-- name: SetUserCustomNotification :exec
+const setUserNotificationPreferences = `-- name: SetUserNotificationPreferences :exec
 UPDATE
   users
-SET custom_notification = $2
-WHERE user_id = $1
+SET notification_preferences = $2
+WHERE secret = $1
 `
 
-type SetUserCustomNotificationParams struct {
-	UserID             sqlc.UserID
-	CustomNotification *notificationservice.Notification
+type SetUserNotificationPreferencesParams struct {
+	Secret                  sqlc.XID
+	NotificationPreferences *notificationservice.UserPreferences
 }
 
-func (q *Queries) SetUserCustomNotification(ctx context.Context, arg SetUserCustomNotificationParams) error {
-	_, err := q.db.Exec(ctx, setUserCustomNotification, arg.UserID, arg.CustomNotification)
-	return err
-}
-
-const setUserNotificationService = `-- name: SetUserNotificationService :exec
-/*
- * User Notifications
- */
-UPDATE
-  users
-SET notification_service = $2
-WHERE user_id = $1
-`
-
-type SetUserNotificationServiceParams struct {
-	UserID              sqlc.UserID
-	NotificationService *notificationservice.NotificationConfigJSON
-}
-
-func (q *Queries) SetUserNotificationService(ctx context.Context, arg SetUserNotificationServiceParams) error {
-	_, err := q.db.Exec(ctx, setUserNotificationService, arg.UserID, arg.NotificationService)
+func (q *Queries) SetUserNotificationPreferences(ctx context.Context, arg SetUserNotificationPreferencesParams) error {
+	_, err := q.db.Exec(ctx, setUserNotificationPreferences, arg.Secret, arg.NotificationPreferences)
 	return err
 }
 
 const updateUserDosageSchedule = `-- name: UpdateUserDosageSchedule :exec
-INSERT INTO dosage_schedule (user_id, delivery_method, dose, interval, concurrence)
+INSERT INTO dosage_schedule (user_secret, delivery_method, dose, interval, concurrence)
   VALUES ($1, $2, $3, $4, $5)
-ON CONFLICT (user_id)
+ON CONFLICT (user_secret)
   DO UPDATE SET
     delivery_method = $2, dose = $3, interval = $4, concurrence = $5
 `
 
 type UpdateUserDosageScheduleParams struct {
-	UserID         sqlc.UserID
+	UserSecret     sqlc.XID
 	DeliveryMethod pgtype.Text
 	Dose           pgtype.Numeric
 	Interval       pgtype.Interval
@@ -207,7 +172,7 @@ type UpdateUserDosageScheduleParams struct {
 
 func (q *Queries) UpdateUserDosageSchedule(ctx context.Context, arg UpdateUserDosageScheduleParams) error {
 	_, err := q.db.Exec(ctx, updateUserDosageSchedule,
-		arg.UserID,
+		arg.UserSecret,
 		arg.DeliveryMethod,
 		arg.Dose,
 		arg.Interval,
@@ -216,38 +181,20 @@ func (q *Queries) UpdateUserDosageSchedule(ctx context.Context, arg UpdateUserDo
 	return err
 }
 
-const updateUserEmailPassword = `-- name: UpdateUserEmailPassword :exec
-UPDATE
-  users
-SET email = $2, passhash = $3
-WHERE user_id = $1
-`
-
-type UpdateUserEmailPasswordParams struct {
-	UserID   sqlc.UserID
-	Email    string
-	Passhash []byte
-}
-
-func (q *Queries) UpdateUserEmailPassword(ctx context.Context, arg UpdateUserEmailPasswordParams) error {
-	_, err := q.db.Exec(ctx, updateUserEmailPassword, arg.UserID, arg.Email, arg.Passhash)
-	return err
-}
-
 const updateUserLocale = `-- name: UpdateUserLocale :exec
 UPDATE
   users
 SET locale = $2
-WHERE user_id = $1
+WHERE secret = $1
 `
 
 type UpdateUserLocaleParams struct {
-	UserID sqlc.UserID
+	Secret sqlc.XID
 	Locale userservice.Locale
 }
 
 func (q *Queries) UpdateUserLocale(ctx context.Context, arg UpdateUserLocaleParams) error {
-	_, err := q.db.Exec(ctx, updateUserLocale, arg.UserID, arg.Locale)
+	_, err := q.db.Exec(ctx, updateUserLocale, arg.Secret, arg.Locale)
 	return err
 }
 
@@ -255,46 +202,32 @@ const updateUserName = `-- name: UpdateUserName :exec
 UPDATE
   users
 SET name = $2
-WHERE user_id = $1
+WHERE secret = $1
 `
 
 type UpdateUserNameParams struct {
-	UserID sqlc.UserID
+	Secret sqlc.XID
 	Name   string
 }
 
 func (q *Queries) UpdateUserName(ctx context.Context, arg UpdateUserNameParams) error {
-	_, err := q.db.Exec(ctx, updateUserName, arg.UserID, arg.Name)
+	_, err := q.db.Exec(ctx, updateUserName, arg.Secret, arg.Name)
 	return err
 }
 
 const user = `-- name: User :one
-SELECT user_id, email, name, locale, registered_at, EXISTS (
-    SELECT user_id
-    FROM user_avatars
-    WHERE user_id = users.user_id) AS has_avatar
-FROM users
-WHERE users.user_id = $1
+SELECT secret, name, locale, has_avatar
+FROM users_with_avatar
+WHERE secret = $1
 `
 
-type UserRow struct {
-	UserID       sqlc.UserID
-	Email        string
-	Name         string
-	Locale       userservice.Locale
-	RegisteredAt pgtype.Timestamp
-	HasAvatar    bool
-}
-
-func (q *Queries) User(ctx context.Context, userID sqlc.UserID) (UserRow, error) {
-	row := q.db.QueryRow(ctx, user, userID)
-	var i UserRow
+func (q *Queries) User(ctx context.Context, secret sqlc.XID) (UsersWithAvatar, error) {
+	row := q.db.QueryRow(ctx, user, secret)
+	var i UsersWithAvatar
 	err := row.Scan(
-		&i.UserID,
-		&i.Email,
+		&i.Secret,
 		&i.Name,
 		&i.Locale,
-		&i.RegisteredAt,
 		&i.HasAvatar,
 	)
 	return i, err
@@ -306,7 +239,7 @@ const userAvatar = `-- name: UserAvatar :one
  */
 SELECT avatar_image, mime_type
 FROM user_avatars
-WHERE user_id = $1
+WHERE user_secret = $1
 `
 
 type UserAvatarRow struct {
@@ -314,30 +247,30 @@ type UserAvatarRow struct {
 	MIMEType    string
 }
 
-func (q *Queries) UserAvatar(ctx context.Context, userID sqlc.UserID) (UserAvatarRow, error) {
-	row := q.db.QueryRow(ctx, userAvatar, userID)
+func (q *Queries) UserAvatar(ctx context.Context, userSecret sqlc.XID) (UserAvatarRow, error) {
+	row := q.db.QueryRow(ctx, userAvatar, userSecret)
 	var i UserAvatarRow
 	err := row.Scan(&i.AvatarImage, &i.MIMEType)
 	return i, err
 }
 
 const userDosageHistory = `-- name: UserDosageHistory :many
-SELECT dose_id, last_dose, user_id, delivery_method, dose, taken_at, taken_off_at
+SELECT dose_id, last_dose, user_secret, delivery_method, dose, taken_at, taken_off_at
 FROM dosage_history
-WHERE user_id = $1
+WHERE user_secret = $1
   AND taken_at >= $2
 ORDER BY dose_id DESC
 LIMIT $3
 `
 
 type UserDosageHistoryParams struct {
-	UserID  interface{}
-	TakenAt pgtype.Timestamptz
-	Limit   int32
+	UserSecret sqlc.XID
+	TakenAt    pgtype.Timestamptz
+	Limit      int32
 }
 
 func (q *Queries) UserDosageHistory(ctx context.Context, arg UserDosageHistoryParams) ([]DosageHistory, error) {
-	rows, err := q.db.Query(ctx, userDosageHistory, arg.UserID, arg.TakenAt, arg.Limit)
+	rows, err := q.db.Query(ctx, userDosageHistory, arg.UserSecret, arg.TakenAt, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
@@ -348,7 +281,7 @@ func (q *Queries) UserDosageHistory(ctx context.Context, arg UserDosageHistoryPa
 		if err := rows.Scan(
 			&i.DoseID,
 			&i.LastDose,
-			&i.UserID,
+			&i.UserSecret,
 			&i.DeliveryMethod,
 			&i.Dose,
 			&i.TakenAt,
@@ -368,50 +301,54 @@ const userDosageSchedule = `-- name: UserDosageSchedule :exec
 /*
  * Dosage and dosage-related
  */
-SELECT user_id, delivery_method, dose, interval, concurrence
+SELECT user_secret, delivery_method, dose, interval, concurrence
 FROM dosage_schedule
-WHERE user_id = $1
+WHERE user_secret = $1
 `
 
-func (q *Queries) UserDosageSchedule(ctx context.Context, userID sqlc.UserID) error {
-	_, err := q.db.Exec(ctx, userDosageSchedule, userID)
+func (q *Queries) UserDosageSchedule(ctx context.Context, userSecret sqlc.XID) error {
+	_, err := q.db.Exec(ctx, userDosageSchedule, userSecret)
 	return err
 }
 
-const userPasswordHashFromEmail = `-- name: UserPasswordHashFromEmail :one
-SELECT user_id, passhash
+const userNotificationPreferences = `-- name: UserNotificationPreferences :one
+/*
+ * User Notifications
+ */
+SELECT notification_preferences
 FROM users
-WHERE email = $1
+WHERE secret = $1
 `
 
-type UserPasswordHashFromEmailRow struct {
-	UserID   sqlc.UserID
-	Passhash []byte
-}
-
-func (q *Queries) UserPasswordHashFromEmail(ctx context.Context, email string) (UserPasswordHashFromEmailRow, error) {
-	row := q.db.QueryRow(ctx, userPasswordHashFromEmail, email)
-	var i UserPasswordHashFromEmailRow
-	err := row.Scan(&i.UserID, &i.Passhash)
-	return i, err
+func (q *Queries) UserNotificationPreferences(ctx context.Context, secret sqlc.XID) (*notificationservice.UserPreferences, error) {
+	row := q.db.QueryRow(ctx, userNotificationPreferences, secret)
+	var notification_preferences *notificationservice.UserPreferences
+	err := row.Scan(&notification_preferences)
+	return notification_preferences, err
 }
 
 const validateSession = `-- name: ValidateSession :one
 UPDATE
   user_sessions
 SET last_used = now()
-FROM users
-WHERE user_sessions.user_id = users.user_id
-  AND token = $1
-  AND last_used > now() - '7 days'::interval
-RETURNING users.user_id
+WHERE token = $1
+  AND now() < expires_at
+RETURNING id, user_secret, token, created_at, last_used, expires_at, user_agent
 `
 
-func (q *Queries) ValidateSession(ctx context.Context, token []byte) (sqlc.UserID, error) {
+func (q *Queries) ValidateSession(ctx context.Context, token []byte) (UserSession, error) {
 	row := q.db.QueryRow(ctx, validateSession, token)
-	var user_id sqlc.UserID
-	err := row.Scan(&user_id)
-	return user_id, err
+	var i UserSession
+	err := row.Scan(
+		&i.ID,
+		&i.UserSecret,
+		&i.Token,
+		&i.CreatedAt,
+		&i.LastUsed,
+		&i.ExpiresAt,
+		&i.UserAgent,
+	)
+	return i, err
 }
 
 const version = `-- name: Version :one

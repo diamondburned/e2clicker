@@ -8,19 +8,20 @@ import (
 )
 
 // UserPreferences is the preferences of a user.
+// It is JSON-serializable.
 type UserPreferences struct {
-	NotificationConfig  NotificationConfig                       `json:"notification_config,omitempty"`
-	CustomNotifications map[NotificationMessageType]Notification `json:"custom_notification,omitempty"`
+	NotificationConfig  NotificationConfigJSON                   `json:"notificationConfig"`
+	CustomNotifications map[NotificationMessageType]Notification `json:"customNotification,omitempty"`
 }
 
 type UserStorage interface {
 	// UserPreferences returns the preferences of a user.
 	// If null, the user will not receive any notifications.
-	UserPreferences(ctx context.Context, id user.UserID) (*UserPreferences, error)
+	UserPreferences(ctx context.Context, userSecret user.Secret) (*UserPreferences, error)
 	// SetUserPreferences sets the preferences of a user.
-	SetUserPreferences(ctx context.Context, id user.UserID, prefs *UserPreferences) error
-	// DeleteUserPreferences deletes the preferences of a user.
-	DeleteUserPreferences(ctx context.Context, id user.UserID) error
+	// Null is an acceptable value and means the user will not receive any
+	// notifications.
+	SetUserPreferences(ctx context.Context, userSecret user.Secret, prefs *UserPreferences) error
 }
 
 // UserNotificationService is a service that sends notifications to users.
@@ -47,13 +48,13 @@ func NewUserNotificationService(c UserNotificationServiceConfig) *UserNotificati
 }
 
 // NotifyUser sends a notification to a user.
-func (u *UserNotificationService) NotifyUser(ctx context.Context, id user.UserID, t NotificationMessageType) error {
+func (u *UserNotificationService) NotifyUser(ctx context.Context, id user.Secret, t NotificationMessageType) error {
 	prefs, err := u.storage.UserPreferences(ctx, id)
 	if err != nil {
 		return err
 	}
 
-	if prefs == nil || prefs.NotificationConfig == nil {
+	if prefs == nil || prefs.NotificationConfig.NotificationConfig == nil {
 		return nil
 	}
 
@@ -70,23 +71,24 @@ func (u *UserNotificationService) NotifyUser(ctx context.Context, id user.UserID
 	return u.notifier.Notify(ctx, n, prefs.NotificationConfig)
 }
 
-// UserPreferences gets the preferences of a user.
-// The function never returns nil.
-func (u *UserNotificationService) UserPreferences(ctx context.Context, id user.UserID) (*UserPreferences, error) {
-	p, err := u.storage.UserPreferences(ctx, id)
+// UserPreferences returns the preferences of a user.
+// If null, the user will not receive any notifications.
+func (u *UserNotificationService) UserPreferences(ctx context.Context, secret user.Secret) (*UserPreferences, error) {
+	p, err := u.storage.UserPreferences(ctx, secret)
 	if err != nil || p != nil {
 		return p, err
 	}
 	return &UserPreferences{}, nil
 }
 
-func (u *UserNotificationService) SetUserPreferences(ctx context.Context, id user.UserID, prefs *UserPreferences) error {
-	if prefs == nil {
-		prefs = &UserPreferences{}
-	}
-	return u.storage.SetUserPreferences(ctx, id, prefs)
+// SetUserPreferences sets the preferences of a user.
+// Null is an acceptable value and means the user will not receive any
+// notifications.
+func (u *UserNotificationService) SetUserPreferences(ctx context.Context, secret user.Secret, prefs *UserPreferences) error {
+	return u.storage.SetUserPreferences(ctx, secret, prefs)
 }
 
-func (u *UserNotificationService) DeleteUserPreferences(ctx context.Context, id user.UserID) error {
-	return u.storage.DeleteUserPreferences(ctx, id)
+// DeleteUserPreferences calls [SetUserPreferences] with a nil [UserPreferences].
+func (u *UserNotificationService) DeleteUserPreferences(ctx context.Context, secret user.Secret) error {
+	return u.storage.SetUserPreferences(ctx, secret, nil)
 }

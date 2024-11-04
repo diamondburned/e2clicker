@@ -4,12 +4,19 @@
 package openapi
 
 import (
+	"bytes"
+	"compress/gzip"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"path"
+	"strings"
 
+	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-chi/chi/v5"
 	"github.com/oapi-codegen/runtime"
 	strictnethttp "github.com/oapi-codegen/runtime/strictmiddleware/nethttp"
@@ -38,45 +45,33 @@ type Error struct {
 // Locale A locale identifier.
 type Locale = user.Locale
 
-// SessionToken A session token string. This is used in the Authorization header to authenticate requests.
-type SessionToken = user.SessionToken
-
 // User A user of the system.
 type User struct {
-	// ID A unique user identifier.
-	ID UserID `json:"id"`
-
-	// Email The user's email address
-	Email string `json:"email"`
-
 	// Name The user's name
 	Name string `json:"name"`
 
 	// Locale A locale identifier.
 	Locale Locale `json:"locale"`
+
+	// HasAvatar Whether the user has an avatar.
+	HasAvatar bool `json:"has_avatar"`
 }
 
-// UserID A unique user identifier.
-type UserID = user.UserID
-
-// UserIDParam defines model for userID.
-type UserIDParam = user.UserID
+// UserSecret A secret and unique user identifier. This secret is generated once and never changes. It is used to both authenticate and identify a user, so it should be kept secret.
+type UserSecret = user.Secret
 
 // ErrorResponse defines model for ErrorResponse.
 type ErrorResponse = Error
 
-// LoginJSONBody defines parameters for Login.
-type LoginJSONBody struct {
-	// Email The username to log in with
-	Email string `json:"email"`
-
-	// Password The password to log in with
-	Password string `json:"password"`
+// AuthJSONBody defines parameters for Auth.
+type AuthJSONBody struct {
+	// Secret A secret and unique user identifier. This secret is generated once and never changes. It is used to both authenticate and identify a user, so it should be kept secret.
+	Secret UserSecret `json:"secret"`
 }
 
-// LoginParams defines parameters for Login.
-type LoginParams struct {
-	// UserAgent The user agent string of the client making the request.
+// AuthParams defines parameters for Auth.
+type AuthParams struct {
+	// UserAgent The user agent of the client making the request.
 	UserAgent *string `json:"User-Agent,omitempty"`
 }
 
@@ -84,67 +79,73 @@ type LoginParams struct {
 type RegisterJSONBody struct {
 	// Name The name to register with
 	Name string `json:"name"`
-
-	// Email The username to register with
-	Email string `json:"email"`
-
-	// Password The password to register with
-	Password string `json:"password"`
 }
 
-// RegisterParams defines parameters for Register.
-type RegisterParams struct {
-	// UserAgent The user agent string of the client making the request.
-	UserAgent *string `json:"User-Agent,omitempty"`
-}
-
-// LoginJSONRequestBody defines body for Login for application/json ContentType.
-type LoginJSONRequestBody LoginJSONBody
+// AuthJSONRequestBody defines body for Auth for application/json ContentType.
+type AuthJSONRequestBody AuthJSONBody
 
 // RegisterJSONRequestBody defines body for Register for application/json ContentType.
 type RegisterJSONRequestBody RegisterJSONBody
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
-	// Log into an existing account
-	// (POST /login)
-	Login(w http.ResponseWriter, r *http.Request, params LoginParams)
+	// Authenticate a user and obtain a session
+	// (POST /auth)
+	Auth(w http.ResponseWriter, r *http.Request, params AuthParams)
+	// Get the current user
+	// (GET /me)
+	CurrentUser(w http.ResponseWriter, r *http.Request)
+	// Get the current user's avatar
+	// (GET /me/avatar)
+	CurrentUserAvatar(w http.ResponseWriter, r *http.Request)
+	// Set the current user's avatar
+	// (POST /me/avatar)
+	SetCurrentUserAvatar(w http.ResponseWriter, r *http.Request)
+	// Get the current user's secret
+	// (GET /me/secret)
+	CurrentUserSecret(w http.ResponseWriter, r *http.Request)
 	// Register a new account
 	// (POST /register)
-	Register(w http.ResponseWriter, r *http.Request, params RegisterParams)
-	// Get a user by ID
-	// (GET /user/{userID})
-	User(w http.ResponseWriter, r *http.Request, userIDParam UserIDParam)
-	// Get a user's avatar by ID
-	// (GET /user/{userID}/avatar)
-	UserAvatar(w http.ResponseWriter, r *http.Request, userIDParam UserIDParam)
+	Register(w http.ResponseWriter, r *http.Request)
 }
 
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
 
 type Unimplemented struct{}
 
-// Log into an existing account
-// (POST /login)
-func (_ Unimplemented) Login(w http.ResponseWriter, r *http.Request, params LoginParams) {
+// Authenticate a user and obtain a session
+// (POST /auth)
+func (_ Unimplemented) Auth(w http.ResponseWriter, r *http.Request, params AuthParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get the current user
+// (GET /me)
+func (_ Unimplemented) CurrentUser(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get the current user's avatar
+// (GET /me/avatar)
+func (_ Unimplemented) CurrentUserAvatar(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Set the current user's avatar
+// (POST /me/avatar)
+func (_ Unimplemented) SetCurrentUserAvatar(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get the current user's secret
+// (GET /me/secret)
+func (_ Unimplemented) CurrentUserSecret(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Register a new account
 // (POST /register)
-func (_ Unimplemented) Register(w http.ResponseWriter, r *http.Request, params RegisterParams) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
-// Get a user by ID
-// (GET /user/{userID})
-func (_ Unimplemented) User(w http.ResponseWriter, r *http.Request, userIDParam UserIDParam) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
-// Get a user's avatar by ID
-// (GET /user/{userID}/avatar)
-func (_ Unimplemented) UserAvatar(w http.ResponseWriter, r *http.Request, userIDParam UserIDParam) {
+func (_ Unimplemented) Register(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -157,14 +158,14 @@ type ServerInterfaceWrapper struct {
 
 type MiddlewareFunc func(http.Handler) http.Handler
 
-// Login operation middleware
-func (siw *ServerInterfaceWrapper) Login(w http.ResponseWriter, r *http.Request) {
+// Auth operation middleware
+func (siw *ServerInterfaceWrapper) Auth(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	var err error
 
 	// Parameter object where we will unmarshal all parameters from the context
-	var params LoginParams
+	var params AuthParams
 
 	headers := r.Header
 
@@ -188,7 +189,75 @@ func (siw *ServerInterfaceWrapper) Login(w http.ResponseWriter, r *http.Request)
 	}
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.Login(w, r, params)
+		siw.Handler.Auth(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// CurrentUser operation middleware
+func (siw *ServerInterfaceWrapper) CurrentUser(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CurrentUser(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// CurrentUserAvatar operation middleware
+func (siw *ServerInterfaceWrapper) CurrentUserAvatar(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CurrentUserAvatar(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// SetCurrentUserAvatar operation middleware
+func (siw *ServerInterfaceWrapper) SetCurrentUserAvatar(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetCurrentUserAvatar(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// CurrentUserSecret operation middleware
+func (siw *ServerInterfaceWrapper) CurrentUserSecret(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CurrentUserSecret(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -202,90 +271,8 @@ func (siw *ServerInterfaceWrapper) Login(w http.ResponseWriter, r *http.Request)
 func (siw *ServerInterfaceWrapper) Register(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	var err error
-
-	// Parameter object where we will unmarshal all parameters from the context
-	var params RegisterParams
-
-	headers := r.Header
-
-	// ------------- Optional header parameter "User-Agent" -------------
-	if valueList, found := headers[http.CanonicalHeaderKey("User-Agent")]; found {
-		var UserAgent string
-		n := len(valueList)
-		if n != 1 {
-			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "User-Agent", Count: n})
-			return
-		}
-
-		err = runtime.BindStyledParameterWithOptions("simple", "User-Agent", valueList[0], &UserAgent, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false})
-		if err != nil {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "User-Agent", Err: err})
-			return
-		}
-
-		params.UserAgent = &UserAgent
-
-	}
-
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.Register(w, r, params)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r.WithContext(ctx))
-}
-
-// User operation middleware
-func (siw *ServerInterfaceWrapper) User(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	var err error
-
-	// ------------- Path parameter "userID" -------------
-	var userIDParam UserIDParam
-
-	err = runtime.BindStyledParameterWithOptions("simple", "userID", chi.URLParam(r, "userID"), &userIDParam, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "userID", Err: err})
-		return
-	}
-
-	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.User(w, r, userIDParam)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r.WithContext(ctx))
-}
-
-// UserAvatar operation middleware
-func (siw *ServerInterfaceWrapper) UserAvatar(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	var err error
-
-	// ------------- Path parameter "userID" -------------
-	var userIDParam UserIDParam
-
-	err = runtime.BindStyledParameterWithOptions("simple", "userID", chi.URLParam(r, "userID"), &userIDParam, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "userID", Err: err})
-		return
-	}
-
-	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.UserAvatar(w, r, userIDParam)
+		siw.Handler.Register(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -409,16 +396,22 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	}
 
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/login", wrapper.Login)
+		r.Post(options.BaseURL+"/auth", wrapper.Auth)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/me", wrapper.CurrentUser)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/me/avatar", wrapper.CurrentUserAvatar)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/me/avatar", wrapper.SetCurrentUserAvatar)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/me/secret", wrapper.CurrentUserSecret)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/register", wrapper.Register)
-	})
-	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/user/{userID}", wrapper.User)
-	})
-	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/user/{userID}/avatar", wrapper.UserAvatar)
 	})
 
 	return r
@@ -426,36 +419,160 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 
 type ErrorResponseJSONResponse Error
 
-type LoginRequestObject struct {
-	Params LoginParams
-	Body   *LoginJSONRequestBody
+type AuthRequestObject struct {
+	Params AuthParams
+	Body   *AuthJSONRequestBody
 }
 
-type LoginResponseObject interface {
-	VisitLoginResponse(w http.ResponseWriter) error
+type AuthResponseObject interface {
+	VisitAuthResponse(w http.ResponseWriter) error
 }
 
-type Login200JSONResponse struct {
-	// UserID A unique user identifier.
-	UserID UserID `json:"userID"`
-
-	// Token A session token string. This is used in the Authorization header to authenticate requests.
-	Token SessionToken `json:"token"`
+type Auth200JSONResponse struct {
+	// Token The session token
+	Token string `json:"token"`
 }
 
-func (response Login200JSONResponse) VisitLoginResponse(w http.ResponseWriter) error {
+func (response Auth200JSONResponse) VisitAuthResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type LogindefaultJSONResponse struct {
+type AuthdefaultJSONResponse struct {
 	Body       Error
 	StatusCode int
 }
 
-func (response LogindefaultJSONResponse) VisitLoginResponse(w http.ResponseWriter) error {
+func (response AuthdefaultJSONResponse) VisitAuthResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+
+	return json.NewEncoder(w).Encode(response.Body)
+}
+
+type CurrentUserRequestObject struct {
+}
+
+type CurrentUserResponseObject interface {
+	VisitCurrentUserResponse(w http.ResponseWriter) error
+}
+
+type CurrentUser200JSONResponse User
+
+func (response CurrentUser200JSONResponse) VisitCurrentUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CurrentUserdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response CurrentUserdefaultJSONResponse) VisitCurrentUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+
+	return json.NewEncoder(w).Encode(response.Body)
+}
+
+type CurrentUserAvatarRequestObject struct {
+}
+
+type CurrentUserAvatarResponseObject interface {
+	VisitCurrentUserAvatarResponse(w http.ResponseWriter) error
+}
+
+type CurrentUserAvatar200ImageResponse struct {
+	Body          io.Reader
+	ContentType   string
+	ContentLength int64
+}
+
+func (response CurrentUserAvatar200ImageResponse) VisitCurrentUserAvatarResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", response.ContentType)
+	if response.ContentLength != 0 {
+		w.Header().Set("Content-Length", fmt.Sprint(response.ContentLength))
+	}
+	w.WriteHeader(200)
+
+	if closer, ok := response.Body.(io.ReadCloser); ok {
+		defer closer.Close()
+	}
+	_, err := io.Copy(w, response.Body)
+	return err
+}
+
+type CurrentUserAvatardefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response CurrentUserAvatardefaultJSONResponse) VisitCurrentUserAvatarResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+
+	return json.NewEncoder(w).Encode(response.Body)
+}
+
+type SetCurrentUserAvatarRequestObject struct {
+	ContentType string
+	Body        io.Reader
+}
+
+type SetCurrentUserAvatarResponseObject interface {
+	VisitSetCurrentUserAvatarResponse(w http.ResponseWriter) error
+}
+
+type SetCurrentUserAvatar204Response struct {
+}
+
+func (response SetCurrentUserAvatar204Response) VisitSetCurrentUserAvatarResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type SetCurrentUserAvatardefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response SetCurrentUserAvatardefaultJSONResponse) VisitSetCurrentUserAvatarResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+
+	return json.NewEncoder(w).Encode(response.Body)
+}
+
+type CurrentUserSecretRequestObject struct {
+}
+
+type CurrentUserSecretResponseObject interface {
+	VisitCurrentUserSecretResponse(w http.ResponseWriter) error
+}
+
+type CurrentUserSecret200JSONResponse struct {
+	// Secret A secret and unique user identifier. This secret is generated once and never changes. It is used to both authenticate and identify a user, so it should be kept secret.
+	Secret UserSecret `json:"secret"`
+}
+
+func (response CurrentUserSecret200JSONResponse) VisitCurrentUserSecretResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CurrentUserSecretdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response CurrentUserSecretdefaultJSONResponse) VisitCurrentUserSecretResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(response.StatusCode)
 
@@ -463,8 +580,7 @@ func (response LogindefaultJSONResponse) VisitLoginResponse(w http.ResponseWrite
 }
 
 type RegisterRequestObject struct {
-	Params RegisterParams
-	Body   *RegisterJSONRequestBody
+	Body *RegisterJSONRequestBody
 }
 
 type RegisterResponseObject interface {
@@ -472,11 +588,17 @@ type RegisterResponseObject interface {
 }
 
 type Register200JSONResponse struct {
-	// User A user of the system.
-	User User `json:"user"`
+	// Name The user's name
+	Name string `json:"name"`
 
-	// Token A session token string. This is used in the Authorization header to authenticate requests.
-	Token SessionToken `json:"token"`
+	// Locale A locale identifier.
+	Locale Locale `json:"locale"`
+
+	// HasAvatar Whether the user has an avatar.
+	HasAvatar bool `json:"has_avatar"`
+
+	// Secret A secret and unique user identifier. This secret is generated once and never changes. It is used to both authenticate and identify a user, so it should be kept secret.
+	Secret UserSecret `json:"secret"`
 }
 
 func (response Register200JSONResponse) VisitRegisterResponse(w http.ResponseWriter) error {
@@ -498,89 +620,26 @@ func (response RegisterdefaultJSONResponse) VisitRegisterResponse(w http.Respons
 	return json.NewEncoder(w).Encode(response.Body)
 }
 
-type UserRequestObject struct {
-	UserIDParam UserIDParam `json:"userID"`
-}
-
-type UserResponseObject interface {
-	VisitUserResponse(w http.ResponseWriter) error
-}
-
-type User200JSONResponse User
-
-func (response User200JSONResponse) VisitUserResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type UserdefaultJSONResponse struct {
-	Body       Error
-	StatusCode int
-}
-
-func (response UserdefaultJSONResponse) VisitUserResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(response.StatusCode)
-
-	return json.NewEncoder(w).Encode(response.Body)
-}
-
-type UserAvatarRequestObject struct {
-	UserIDParam UserIDParam `json:"userID"`
-}
-
-type UserAvatarResponseObject interface {
-	VisitUserAvatarResponse(w http.ResponseWriter) error
-}
-
-type UserAvatar200ImageResponse struct {
-	Body          io.Reader
-	ContentType   string
-	ContentLength int64
-}
-
-func (response UserAvatar200ImageResponse) VisitUserAvatarResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", response.ContentType)
-	if response.ContentLength != 0 {
-		w.Header().Set("Content-Length", fmt.Sprint(response.ContentLength))
-	}
-	w.WriteHeader(200)
-
-	if closer, ok := response.Body.(io.ReadCloser); ok {
-		defer closer.Close()
-	}
-	_, err := io.Copy(w, response.Body)
-	return err
-}
-
-type UserAvatardefaultJSONResponse struct {
-	Body       Error
-	StatusCode int
-}
-
-func (response UserAvatardefaultJSONResponse) VisitUserAvatarResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(response.StatusCode)
-
-	return json.NewEncoder(w).Encode(response.Body)
-}
-
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
-	// Log into an existing account
-	// (POST /login)
-	Login(ctx context.Context, request LoginRequestObject) (LoginResponseObject, error)
+	// Authenticate a user and obtain a session
+	// (POST /auth)
+	Auth(ctx context.Context, request AuthRequestObject) (AuthResponseObject, error)
+	// Get the current user
+	// (GET /me)
+	CurrentUser(ctx context.Context, request CurrentUserRequestObject) (CurrentUserResponseObject, error)
+	// Get the current user's avatar
+	// (GET /me/avatar)
+	CurrentUserAvatar(ctx context.Context, request CurrentUserAvatarRequestObject) (CurrentUserAvatarResponseObject, error)
+	// Set the current user's avatar
+	// (POST /me/avatar)
+	SetCurrentUserAvatar(ctx context.Context, request SetCurrentUserAvatarRequestObject) (SetCurrentUserAvatarResponseObject, error)
+	// Get the current user's secret
+	// (GET /me/secret)
+	CurrentUserSecret(ctx context.Context, request CurrentUserSecretRequestObject) (CurrentUserSecretResponseObject, error)
 	// Register a new account
 	// (POST /register)
 	Register(ctx context.Context, request RegisterRequestObject) (RegisterResponseObject, error)
-	// Get a user by ID
-	// (GET /user/{userID})
-	User(ctx context.Context, request UserRequestObject) (UserResponseObject, error)
-	// Get a user's avatar by ID
-	// (GET /user/{userID}/avatar)
-	UserAvatar(ctx context.Context, request UserAvatarRequestObject) (UserAvatarResponseObject, error)
 }
 
 type StrictHandlerFunc = strictnethttp.StrictHTTPHandlerFunc
@@ -612,13 +671,13 @@ type strictHandler struct {
 	options     StrictHTTPServerOptions
 }
 
-// Login operation middleware
-func (sh *strictHandler) Login(w http.ResponseWriter, r *http.Request, params LoginParams) {
-	var request LoginRequestObject
+// Auth operation middleware
+func (sh *strictHandler) Auth(w http.ResponseWriter, r *http.Request, params AuthParams) {
+	var request AuthRequestObject
 
 	request.Params = params
 
-	var body LoginJSONRequestBody
+	var body AuthJSONRequestBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
 		return
@@ -626,18 +685,118 @@ func (sh *strictHandler) Login(w http.ResponseWriter, r *http.Request, params Lo
 	request.Body = &body
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.Login(ctx, request.(LoginRequestObject))
+		return sh.ssi.Auth(ctx, request.(AuthRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "Login")
+		handler = middleware(handler, "Auth")
 	}
 
 	response, err := handler(r.Context(), w, r, request)
 
 	if err != nil {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(LoginResponseObject); ok {
-		if err := validResponse.VisitLoginResponse(w); err != nil {
+	} else if validResponse, ok := response.(AuthResponseObject); ok {
+		if err := validResponse.VisitAuthResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CurrentUser operation middleware
+func (sh *strictHandler) CurrentUser(w http.ResponseWriter, r *http.Request) {
+	var request CurrentUserRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CurrentUser(ctx, request.(CurrentUserRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CurrentUser")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CurrentUserResponseObject); ok {
+		if err := validResponse.VisitCurrentUserResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CurrentUserAvatar operation middleware
+func (sh *strictHandler) CurrentUserAvatar(w http.ResponseWriter, r *http.Request) {
+	var request CurrentUserAvatarRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CurrentUserAvatar(ctx, request.(CurrentUserAvatarRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CurrentUserAvatar")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CurrentUserAvatarResponseObject); ok {
+		if err := validResponse.VisitCurrentUserAvatarResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SetCurrentUserAvatar operation middleware
+func (sh *strictHandler) SetCurrentUserAvatar(w http.ResponseWriter, r *http.Request) {
+	var request SetCurrentUserAvatarRequestObject
+
+	request.ContentType = r.Header.Get("Content-Type")
+
+	request.Body = r.Body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SetCurrentUserAvatar(ctx, request.(SetCurrentUserAvatarRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SetCurrentUserAvatar")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SetCurrentUserAvatarResponseObject); ok {
+		if err := validResponse.VisitSetCurrentUserAvatarResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CurrentUserSecret operation middleware
+func (sh *strictHandler) CurrentUserSecret(w http.ResponseWriter, r *http.Request) {
+	var request CurrentUserSecretRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CurrentUserSecret(ctx, request.(CurrentUserSecretRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CurrentUserSecret")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CurrentUserSecretResponseObject); ok {
+		if err := validResponse.VisitCurrentUserSecretResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -646,10 +805,8 @@ func (sh *strictHandler) Login(w http.ResponseWriter, r *http.Request, params Lo
 }
 
 // Register operation middleware
-func (sh *strictHandler) Register(w http.ResponseWriter, r *http.Request, params RegisterParams) {
+func (sh *strictHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var request RegisterRequestObject
-
-	request.Params = params
 
 	var body RegisterJSONRequestBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -678,54 +835,97 @@ func (sh *strictHandler) Register(w http.ResponseWriter, r *http.Request, params
 	}
 }
 
-// User operation middleware
-func (sh *strictHandler) User(w http.ResponseWriter, r *http.Request, userIDParam UserIDParam) {
-	var request UserRequestObject
+// Base64 encoded, gzipped, json marshaled Swagger object
+var swaggerSpec = []string{
 
-	request.UserIDParam = userIDParam
+	"H4sIAAAAAAAC/8xXW2vkRhP9K0V/H2wSZMls8jRvzhLCQiCw3iUPzhBqpBqp161ubVdrNoPRfw99kUZz",
+	"sT1mnCVvg7qup06d7nkQUq+NWDwIJ50isRD0tlSyvCcLTHYjSxKZ2JBlabRYiGsxZMIfkGWxuHsQvVVi",
+	"IQrspBiWmShN2xlN2rGPyVT2VrrtbdlQS+HTitCSveldE5JuO5+zca4TmeBgJhbJSAxD+obB9RdrjZ15",
+	"mdVnKp3IRGdNR9bJmKElZqxpZsjOSl2LTFTEpZWdi73cQDKF+H0ldQ2uIaCQaPD2DqUKUQ9cq0r6n6gg",
+	"2QCuTO/23aV2ZDWqWSkrYxShPqrlj4ZcQ3bnD5Jh8p/Femeqc1rTkzOUpiJYm3ns73omRczhc6mkn9f3",
+	"AW5LX3ppqRKLuwnI5ZCJT0z2lkpL7gQYwOEEUFfQa/mlJ+iZLMiKtJNrSTaHj43k0U4y1KTJoqMKjC4p",
+	"eGrakIWyQV0T5/A+2PVMFTgDK+MawN41PmKJLrqkBFvAkDADNiAdcGN6VcGK4J46l7LmIjsC7e+r2lyl",
+	"jz5AnlqcnVzJtjM2dN2hJ61QclWtcjbFtClF2hQufBCRCY3tGHJcIg/ub6ZERacAVOFkDtg51aZ4/1K1",
+	"fuSnag2jNetAJ96yo3ZW7LSTcyKFBJlQY7kN8l+4QYdWLA+3NxbzHL8/NpFibxiCwzBFXzyI/1tai4X4",
+	"X7EToyLJSJEgG/aKeNl6hv4bZEANMUAuhiEuD3dGM+3U6kP6coyj78BjROziqm9QySr/0+cujXakwxSx",
+	"65TnuzS6+Mze8yFJ4nOdRrUchljaqMRBs+cafLf0sm060l7CF+LH/Dq/9pqKrgl9FJZqyS5yoTMcyuK+",
+	"bdFuxUJ8SKeAoOkrYFmaXnsC+KGGut9XMzOxV8oy8oTY/WyqrQ98duvP8u0CZnlLLzpj5/BVumaCcm/K",
+	"b6+vj2d725clMa97pbagTF1TBVLnL5ksKvX7OgzrqRmHFR2yp9GI8neMB09y/lyKpIrDMCwjBBWtsVeP",
+	"+k4IFftLEJ0LTJf/MZlu9gQ+bprXebNyKDUgMHF4iBzSK3D5W1DrNcEMaHRosSU3Pqek509DWM2V2btd",
+	"3dQU9uqozkTkvct7jYrpMdEE9KFGCY/XP7R4Pz5/Em55eNB9E7Y/hbgz96SPAY+fz1rnRBqILiPwl3E4",
+	"SklNBwT+leITsOyt9aimG3afrO/i4ad49kKALTkraeNfRQd58te6OaKqvApIxe6GPQurN5yu1KdAuxkt",
+	"LoJuL90BdrLFmoofTpJ0Itra2BadfzRI7Tu6FLHshCDevgijW3KnYXpMBy/o8wD7n57BnlMjB6i/BsV2",
+	"0nsuxXh85T9Ksel/wGtQbPf/4795BV0wgWH4JwAA///sLGxxQRAAAA==",
+}
 
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.User(ctx, request.(UserRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "User")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
+// GetSwagger returns the content of the embedded swagger specification file
+// or error if failed to decode
+func decodeSpec() ([]byte, error) {
+	zipped, err := base64.StdEncoding.DecodeString(strings.Join(swaggerSpec, ""))
 	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(UserResponseObject); ok {
-		if err := validResponse.VisitUserResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+		return nil, fmt.Errorf("error base64 decoding spec: %w", err)
+	}
+	zr, err := gzip.NewReader(bytes.NewReader(zipped))
+	if err != nil {
+		return nil, fmt.Errorf("error decompressing spec: %w", err)
+	}
+	var buf bytes.Buffer
+	_, err = buf.ReadFrom(zr)
+	if err != nil {
+		return nil, fmt.Errorf("error decompressing spec: %w", err)
+	}
+
+	return buf.Bytes(), nil
+}
+
+var rawSpec = decodeSpecCached()
+
+// a naive cached of a decoded swagger spec
+func decodeSpecCached() func() ([]byte, error) {
+	data, err := decodeSpec()
+	return func() ([]byte, error) {
+		return data, err
 	}
 }
 
-// UserAvatar operation middleware
-func (sh *strictHandler) UserAvatar(w http.ResponseWriter, r *http.Request, userIDParam UserIDParam) {
-	var request UserAvatarRequestObject
-
-	request.UserIDParam = userIDParam
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.UserAvatar(ctx, request.(UserAvatarRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "UserAvatar")
+// Constructs a synthetic filesystem for resolving external references when loading openapi specifications.
+func PathToRawSpec(pathToFile string) map[string]func() ([]byte, error) {
+	res := make(map[string]func() ([]byte, error))
+	if len(pathToFile) > 0 {
+		res[pathToFile] = rawSpec
 	}
 
-	response, err := handler(r.Context(), w, r, request)
+	return res
+}
 
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(UserAvatarResponseObject); ok {
-		if err := validResponse.VisitUserAvatarResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
+// GetSwagger returns the Swagger specification corresponding to the generated code
+// in this file. The external references of Swagger specification are resolved.
+// The logic of resolving external references is tightly connected to "import-mapping" feature.
+// Externally referenced files must be embedded in the corresponding golang packages.
+// Urls can be supported but this task was out of the scope.
+func GetSwagger() (swagger *openapi3.T, err error) {
+	resolvePath := PathToRawSpec("")
+
+	loader := openapi3.NewLoader()
+	loader.IsExternalRefsAllowed = true
+	loader.ReadFromURIFunc = func(loader *openapi3.Loader, url *url.URL) ([]byte, error) {
+		pathToFile := url.String()
+		pathToFile = path.Clean(pathToFile)
+		getSpec, ok := resolvePath[pathToFile]
+		if !ok {
+			err1 := fmt.Errorf("path not found: %s", pathToFile)
+			return nil, err1
 		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+		return getSpec()
 	}
+	var specData []byte
+	specData, err = rawSpec()
+	if err != nil {
+		return
+	}
+	swagger, err = loader.LoadFromData(specData)
+	if err != nil {
+		return
+	}
+	return
 }

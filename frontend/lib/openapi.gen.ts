@@ -14,8 +14,15 @@ const oazapfts = Oazapfts.runtime(defaults);
 export const servers = {
     server1: "/api"
 };
-export type UserId = string;
-export type SessionToken = string;
+export type Locale = string;
+export type User = {
+    /** The user's name */
+    name: string;
+    locale: Locale;
+    /** Whether the user has an avatar. */
+    has_avatar: boolean;
+};
+export type UserSecret = string;
 export type Error = {
     /** A message describing the error */
     message: string;
@@ -26,62 +33,17 @@ export type Error = {
     /** An internal code for the error (useless for clients) */
     internalCode?: string;
 };
-export type Locale = string;
-export type User = {
-    id: UserId;
-    /** The user's email address */
-    email: string;
-    /** The user's name */
-    name: string;
-    locale: Locale;
-};
-/**
- * Log into an existing account
- */
-export function login(body?: {
-    /** The username to log in with */
-    email: string;
-    /** The password to log in with */
-    password: string;
-}, { userAgent }: {
-    userAgent?: string;
-} = {}, opts?: Oazapfts.RequestOpts) {
-    return oazapfts.ok(oazapfts.fetchJson<{
-        status: 200;
-        data: {
-            userID: UserId;
-            token: SessionToken;
-        };
-    } | {
-        status: number;
-        data: Error;
-    }>("/login", oazapfts.json({
-        ...opts,
-        method: "POST",
-        body,
-        headers: oazapfts.mergeHeaders(opts?.headers, {
-            "User-Agent": userAgent
-        })
-    })));
-}
 /**
  * Register a new account
  */
 export function register(body?: {
     /** The name to register with */
     name: string;
-    /** The username to register with */
-    email: string;
-    /** The password to register with */
-    password: string;
-}, { userAgent }: {
-    userAgent?: string;
-} = {}, opts?: Oazapfts.RequestOpts) {
+}, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
-        data: {
-            user: User;
-            token: SessionToken;
+        data: User & {
+            secret: UserSecret;
         };
     } | {
         status: number;
@@ -89,6 +51,29 @@ export function register(body?: {
     }>("/register", oazapfts.json({
         ...opts,
         method: "POST",
+        body
+    })));
+}
+/**
+ * Authenticate a user and obtain a session
+ */
+export function auth(body?: {
+    secret: UserSecret;
+}, { userAgent }: {
+    userAgent?: string;
+} = {}, opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 200;
+        data: {
+            /** The session token */
+            token: string;
+        };
+    } | {
+        status: number;
+        data: Error;
+    }>("/auth", oazapfts.json({
+        ...opts,
+        method: "POST",
         body,
         headers: oazapfts.mergeHeaders(opts?.headers, {
             "User-Agent": userAgent
@@ -96,30 +81,61 @@ export function register(body?: {
     })));
 }
 /**
- * Get a user by ID
+ * Get the current user
  */
-export function user(userId: string, opts?: Oazapfts.RequestOpts) {
+export function currentUser(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
         data: User;
     } | {
         status: number;
         data: Error;
-    }>(`/user/${encodeURIComponent(userId)}`, {
+    }>("/me", {
         ...opts
     }));
 }
 /**
- * Get a user's avatar by ID
+ * Get the current user's avatar
  */
-export function userAvatar(userId: string, opts?: Oazapfts.RequestOpts) {
+export function currentUserAvatar(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
         data: Blob;
     } | {
         status: number;
         data: Error;
-    }>(`/user/${encodeURIComponent(userId)}/avatar`, {
+    }>("/me/avatar", {
+        ...opts
+    }));
+}
+/**
+ * Set the current user's avatar
+ */
+export function setCurrentUserAvatar(body?: Blob, opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 204;
+    } | {
+        status: number;
+        data: Error;
+    }>("/me/avatar", {
+        ...opts,
+        method: "POST",
+        body
+    }));
+}
+/**
+ * Get the current user's secret
+ */
+export function currentUserSecret(opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 200;
+        data: {
+            secret: UserSecret;
+        };
+    } | {
+        status: number;
+        data: Error;
+    }>("/me/secret", {
         ...opts
     }));
 }

@@ -25,7 +25,7 @@ mergeSchema() {
 openapi::backend() {
 	oapi-codegen \
 		--package "openapi" \
-		--generate types,chi-server,strict-server \
+		--generate types,chi-server,strict-server,embedded-spec \
 		--alias-types \
 		--response-type-suffix Response \
 		-o "./services/api/openapi/openapi.gen.go" \

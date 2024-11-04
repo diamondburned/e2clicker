@@ -10,7 +10,6 @@ components:
     bearerAuth:
       type: http
       scheme: bearer
-      bearerFormat: "[userID].[random]"
 
   schemas:
     Error:

@@ -126,7 +126,8 @@ func MarshalJSON(ctx context.Context, err error, hiddenMessage string) ([]byte, 
 
 // MarshalError marshals the given error to a [MarshaledError].
 // If the error is public, then the error message is used. Otherwise, the error
-// message is hidden and replaced with [hiddenMessage].
+// message is hidden and replaced with [hiddenMessage]. If err is nil, then the
+// error message is [HiddenMessage].
 func MarshalError(ctx context.Context, err error, hiddenMessage string) MarshaledError {
 	initialError := err
 	marshaled := MarshaledError{Internal: true}

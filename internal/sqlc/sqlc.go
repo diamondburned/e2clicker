@@ -1,23 +1,23 @@
 package sqlc
 
-import "libdb.so/e2clicker/services/user"
+import (
+	"github.com/rs/xid"
+)
 
 //go:generate sqlc generate
 
-// UserID is a wrapper around user.UserID to add SQL type methods.
-type UserID struct {
-	user.UserID
-}
+// XID is a wrapper around xid.ID to add SQL type methods.
+type XID xid.ID
 
-func (id *UserID) ScanBytes(v []byte) error {
-	u, err := user.ParseRawUserID(v)
+func (id *XID) ScanBytes(b []byte) error {
+	v, err := xid.FromBytes(b)
 	if err != nil {
 		return err
 	}
-	id.UserID = u
+	*id = XID(v)
 	return nil
 }
 
-func (id UserID) BytesValue() ([]byte, error) {
-	return id.UserID.Bytes(), nil
+func (id XID) BytesValue() ([]byte, error) {
+	return xid.ID(id).Bytes(), nil
 }

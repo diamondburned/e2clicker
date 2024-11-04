@@ -20,7 +20,7 @@ type DeliveryMethod struct {
 type DosageHistory struct {
 	DoseID         int64
 	LastDose       pgtype.Int8
-	UserID         interface{}
+	UserSecret     sqlc.XID
 	DeliveryMethod pgtype.Text
 	Dose           pgtype.Numeric
 	TakenAt        pgtype.Timestamptz
@@ -28,7 +28,7 @@ type DosageHistory struct {
 }
 
 type DosageSchedule struct {
-	UserID         sqlc.UserID
+	UserSecret     sqlc.XID
 	DeliveryMethod pgtype.Text
 	Dose           pgtype.Numeric
 	Interval       pgtype.Interval
@@ -42,34 +42,39 @@ type Meta struct {
 
 type NotificationHistory struct {
 	NotificationID int64
-	UserID         interface{}
+	UserSecret     pgtype.Uint32
 	DosageID       pgtype.Int8
 	SentAt         pgtype.Timestamptz
 	ErrorReason    pgtype.Text
 }
 
 type User struct {
-	UserID              sqlc.UserID
-	Email               string
-	Passhash            []byte
-	Name                string
-	Locale              userservice.Locale
-	RegisteredAt        pgtype.Timestamp
-	NotificationService *notificationservice.NotificationConfigJSON
-	CustomNotification  *notificationservice.Notification
+	Secret                  sqlc.XID
+	Name                    string
+	Locale                  userservice.Locale
+	RegisteredAt            pgtype.Timestamp
+	NotificationPreferences *notificationservice.UserPreferences
 }
 
 type UserAvatar struct {
-	UserID      sqlc.UserID
+	UserSecret  sqlc.XID
 	MIMEType    string
 	AvatarImage []byte
 }
 
 type UserSession struct {
-	SessionID int64
-	UserID    sqlc.UserID
-	Token     []byte
-	CreatedAt pgtype.Timestamp
-	LastUsed  pgtype.Timestamp
-	UserAgent pgtype.Text
+	ID         int64
+	UserSecret sqlc.XID
+	Token      []byte
+	CreatedAt  pgtype.Timestamp
+	LastUsed   pgtype.Timestamp
+	ExpiresAt  pgtype.Timestamp
+	UserAgent  pgtype.Text
+}
+
+type UsersWithAvatar struct {
+	Secret    sqlc.XID
+	Name      string
+	Locale    userservice.Locale
+	HasAvatar bool
 }

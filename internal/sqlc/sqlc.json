@@ -13,11 +13,11 @@
           "initialisms": ["id", "mime"],
           "overrides": [
             {
-              "db_type": "userid",
+              "db_type": "xid",
               "go_type": {
                 "import": "libdb.so/e2clicker/internal/sqlc",
                 "package": "sqlc",
-                "type": "UserID"
+                "type": "XID"
               }
             },
             {
@@ -38,21 +38,11 @@
               "nullable": true
             },
             {
-              "db_type": "notification",
+              "db_type": "notificationpreferences",
               "go_type": {
                 "import": "libdb.so/e2clicker/services/notification",
                 "package": "notificationservice",
-                "type": "Notification",
-                "pointer": true
-              },
-              "nullable": true
-            },
-            {
-              "db_type": "notificationconfig",
-              "go_type": {
-                "import": "libdb.so/e2clicker/services/notification",
-                "package": "notificationservice",
-                "type": "NotificationConfigJSON",
+                "type": "UserPreferences",
                 "pointer": true
               },
               "nullable": true

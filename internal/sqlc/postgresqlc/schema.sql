@@ -13,11 +13,9 @@ UPDATE
   meta
 SET v = 2;
 
-CREATE DOMAIN userid AS bytea;
+CREATE DOMAIN xid AS bytea;
 
-CREATE DOMAIN notification AS jsonb;
-
-CREATE DOMAIN notificationconfig AS jsonb;
+CREATE DOMAIN notificationpreferences AS jsonb;
 
 CREATE DOMAIN locale AS text;
 
@@ -35,53 +33,54 @@ INSERT INTO delivery_methods (id, units, name)
   ('patch', 'mcg/day', 'Patch');
 
 CREATE TABLE users (
-  -- The user's ID in xid format.
-  user_id userid PRIMARY KEY,
-  -- The user's email address.
-  email text NOT NULL UNIQUE,
-  -- The user's password hash.
-  passhash bytea NOT NULL,
+  -- The user's secret in xid format.
+  secret xid PRIMARY KEY,
   -- The user's display name.
   name text NOT NULL,
   -- The user's locale.
   locale locale NOT NULL DEFAULT 'en-US',
   -- The time the user was created.
   registered_at timestamp NOT NULL DEFAULT now(),
-  -- The notification service for this user. If null, notifications are
-  -- disabled.
-  notification_service notificationconfig,
-  -- The custom notification message for this user. If null, the default
-  -- message is used.
-  custom_notification notification
-);
-
-CREATE TABLE user_sessions (
-  -- The session ID. This should never be used to log in, but it can be used
-  -- to revoke a session.
-  session_id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-  -- The user's ID in xid format.
-  user_id userid NOT NULL REFERENCES users (user_id) ON DELETE CASCADE,
-  -- The session token.
-  token bytea UNIQUE NOT NULL,
-  -- The time the session was created.
-  created_at timestamp NOT NULL DEFAULT now(),
-  -- The time the session was last used.
-  last_used timestamp NOT NULL DEFAULT now(),
-  -- The user agent string, if any. Collected for management purposes.
-  user_agent text
+  -- The [notification.UserPreferences] type in the Go codebase.
+  notification_preferences notificationpreferences
 );
 
 CREATE TABLE user_avatars (
-  -- The user's ID in xid format.
-  user_id userid PRIMARY KEY REFERENCES users (user_id) ON DELETE CASCADE,
+  -- The user's secret in xid format.
+  user_secret xid PRIMARY KEY REFERENCES users (secret) ON DELETE CASCADE,
   -- The MIME type of the image.
   mime_type text NOT NULL,
   -- The user's avatar image, limited to 1MB.
   avatar_image bytea NOT NULL CHECK (octet_length(avatar_image) <= 1048576)
 );
 
+CREATE VIEW users_with_avatar AS
+SELECT secret, name, locale, EXISTS (
+    SELECT user_secret
+    FROM user_avatars
+    WHERE user_secret = users.secret) AS has_avatar
+FROM users;
+
+CREATE TABLE user_sessions (
+  -- The session ID. This should never be used to log in, but it can be used
+  -- to revoke a session.
+  id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  -- The user's secret in xid format.
+  user_secret xid PRIMARY KEY REFERENCES users (secret) ON DELETE CASCADE,
+  -- The session token.
+  token bytea UNIQUE NOT NULL,
+  -- The time the session was created.
+  created_at timestamp NOT NULL DEFAULT now(),
+  -- The time the session was last used.
+  last_used timestamp NOT NULL DEFAULT now(),
+  -- The time the session expires.
+  expires_at timestamp GENERATED ALWAYS AS (last_used + '30 days'::interval) STORED,
+  -- The user agent string, if any. Collected for management purposes.
+  user_agent text
+);
+
 CREATE TABLE dosage_schedule (
-  user_id userid PRIMARY KEY REFERENCES users (user_id) ON DELETE CASCADE,
+  user_secret xid PRIMARY KEY REFERENCES users (secret) ON DELETE CASCADE,
   -- The delivery method of the medication.
   delivery_method text REFERENCES delivery_methods (id) ON DELETE CASCADE,
   -- The dose of the medication.
@@ -99,7 +98,7 @@ CREATE TABLE dosage_history (
   -- This is mostly used for reconciling dose conflicts.
   last_dose bigint REFERENCES dosage_history (dose_id) ON DELETE SET NULL,
   -- The user that took the dose.
-  user_id userid REFERENCES users (user_id) ON DELETE CASCADE,
+  user_secret xid NOT NULL REFERENCES users (secret) ON DELETE CASCADE,
   -- The delivery method of the medication.
   delivery_method text REFERENCES delivery_methods (id) ON DELETE CASCADE,
   -- The dose of the medication.
@@ -116,7 +115,7 @@ CREATE INDEX dosage_history_taken_at ON dosage_history USING BTREE (user_id, tak
 CREATE TABLE notification_history (
   notification_id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
   -- The user that the notification was for.
-  user_id userid REFERENCES users (user_id) ON DELETE CASCADE,
+  user_secret xid REFERENCES users (secret) ON DELETE CASCADE,
   -- The dosage that the notification was for.
   dosage_id bigint REFERENCES dosage_history (dose_id) ON DELETE CASCADE,
   -- The time the notification was sent.

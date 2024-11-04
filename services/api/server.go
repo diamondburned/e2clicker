@@ -6,12 +6,15 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/fx"
 	"libdb.so/e2clicker/internal/fxhooking"
 	"libdb.so/e2clicker/services/api/openapi"
 	"libdb.so/hserve"
 
+	nethttpmiddleware "github.com/oapi-codegen/nethttp-middleware"
+	strictnethttp "github.com/oapi-codegen/runtime/strictmiddleware/nethttp"
 	e2clickermodule "libdb.so/e2clicker/nix/modules/e2clicker"
 )
 
@@ -19,21 +22,65 @@ import (
 type Server struct {
 }
 
+// ServerInputs is a set of dependencies required by the [Server].
+type ServerInputs struct {
+	fx.In
+
+	Handler       openapi.StrictServerInterface
+	Authenticator openapi3filter.AuthenticationFunc
+}
+
 // NewServer creates a new HTTP server.
 func NewServer(
 	lx fx.Lifecycle,
-	handler *OpenAPIHandler,
-	logger *slog.Logger,
+	inputs ServerInputs,
 	config e2clickermodule.API,
+	logger *slog.Logger,
 ) (*Server, error) {
 	logger = logger.With("addr", config.ListenAddress)
 
+	swaggerAPI, err := openapi.GetSwagger()
+	if err != nil {
+		return nil, fmt.Errorf("cannot get swagger schema: %w", err)
+	}
+
+	validator := nethttpmiddleware.OapiRequestValidatorWithOptions(swaggerAPI, &nethttpmiddleware.Options{
+		ErrorHandler: writeValidationError,
+		Options: openapi3filter.Options{
+			MultiError:         false,
+			AuthenticationFunc: inputs.Authenticator,
+		},
+	})
+
 	router := chi.NewRouter()
 	router.Use(logRequest(logger))
+	router.Use(recovererMiddleware)
 
-	openapi.HandlerFromMuxWithBaseURL(
-		openapi.NewStrictHandler(handler, nil),
-		router, "/api")
+	openapi.HandlerWithOptions(
+		openapi.NewStrictHandlerWithOptions(
+			inputs.Handler,
+			[]strictnethttp.StrictHTTPMiddlewareFunc{
+				func(f strictnethttp.StrictHTTPHandlerFunc, operationID string) strictnethttp.StrictHTTPHandlerFunc {
+					return func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (response interface{}, err error) {
+						h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+							response, err = f(ctx, w, r, request)
+						})
+						validator(h).ServeHTTP(w, r)
+						return
+					}
+				},
+			},
+			openapi.StrictHTTPServerOptions{
+				RequestErrorHandlerFunc:  errorWriterForCode(http.StatusBadRequest),
+				ResponseErrorHandlerFunc: errorWriterForCode(http.StatusInternalServerError),
+			},
+		),
+		openapi.ChiServerOptions{
+			BaseURL:          "/api",
+			BaseRouter:       router,
+			ErrorHandlerFunc: errorWriterForCode(http.StatusBadRequest),
+		},
+	)
 
 	lx.Append(fxhooking.WrapRun(func(ctx context.Context) error {
 		logger.Info("listening to HTTP server")
