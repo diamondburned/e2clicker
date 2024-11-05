@@ -7,6 +7,7 @@ import (
 	"go.uber.org/fx"
 	"libdb.so/e2clicker/internal/asset"
 	"libdb.so/e2clicker/services/api/openapi"
+	"libdb.so/e2clicker/services/dosage"
 	"libdb.so/e2clicker/services/user"
 )
 
@@ -15,6 +16,7 @@ import (
 type OpenAPIHandler struct {
 	logger *slog.Logger
 	users  *user.UserService
+	dosage dosage.DosageStorage
 }
 
 // OpenAPIHandlerServices is the set of service dependencies required by the
@@ -23,6 +25,7 @@ type OpenAPIHandlerServices struct {
 	fx.In
 
 	*user.UserService
+	dosage.DosageStorage
 }
 
 // NewOpenAPIHandler creates a new OpenAPIHandler.
@@ -30,6 +33,7 @@ func NewOpenAPIHandler(deps OpenAPIHandlerServices, logger *slog.Logger) *OpenAP
 	return &OpenAPIHandler{
 		logger: logger,
 		users:  deps.UserService,
+		dosage: deps.DosageStorage,
 	}
 }
 
@@ -144,4 +148,117 @@ func (h *OpenAPIHandler) DeleteUserSession(ctx context.Context, request openapi.
 	}
 
 	return openapi.DeleteUserSession204Response{}, nil
+}
+
+// List all available delivery methods
+// (GET /delivery-methods)
+func (h *OpenAPIHandler) DeliveryMethods(ctx context.Context, request openapi.DeliveryMethodsRequestObject) (openapi.DeliveryMethodsResponseObject, error) {
+	methods, err := h.dosage.DeliveryMethods(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return openapi.DeliveryMethods200JSONResponse(
+		convertList(methods, func(m dosage.DeliveryMethod) openapi.DeliveryMethod {
+			return openapi.DeliveryMethod(m)
+		}),
+	), nil
+}
+
+func (h *OpenAPIHandler) DoseHistory(ctx context.Context, request openapi.DoseHistoryRequestObject) (openapi.DoseHistoryResponseObject, error) {
+	session := sessionFromCtx(ctx)
+
+	s, err := h.dosage.DoseHistory(ctx, session.UserSecret, request.Body.Start, request.Body.End)
+	if err != nil {
+		return nil, err
+	}
+
+	return openapi.DoseHistory200JSONResponse(
+		convertList(s.Entries, convertDosageObservation),
+	), nil
+}
+
+func (h *OpenAPIHandler) RecordDose(ctx context.Context, request openapi.RecordDoseRequestObject) (openapi.RecordDoseResponseObject, error) {
+	session := sessionFromCtx(ctx)
+
+	o, err := h.dosage.RecordDose(ctx, session.UserSecret, request.Body.TakenAt)
+	if err != nil {
+		return nil, err
+	}
+
+	return openapi.RecordDose200JSONResponse(convertDosageObservation(o)), nil
+}
+
+func (h *OpenAPIHandler) EditDose(ctx context.Context, request openapi.EditDoseRequestObject) (openapi.EditDoseResponseObject, error) {
+	session := sessionFromCtx(ctx)
+
+	o := dosage.Observation{
+		DoseID:         request.Body.ID,
+		DeliveryMethod: request.Body.DeliveryMethod,
+		Dose:           request.Body.Dose,
+		TakenAt:        request.Body.TakenAt,
+		TakenOffAt:     request.Body.TakenOffAt,
+	}
+
+	if err := h.dosage.EditDose(ctx, session.UserSecret, o); err != nil {
+		return nil, err
+	}
+
+	return openapi.EditDose204Response{}, nil
+}
+
+func (h *OpenAPIHandler) ForgetDoses(ctx context.Context, request openapi.ForgetDosesRequestObject) (openapi.ForgetDosesResponseObject, error) {
+	session := sessionFromCtx(ctx)
+
+	if err := h.dosage.ForgetDoses(ctx, session.UserSecret, request.Body.DoseIDs); err != nil {
+		return nil, err
+	}
+
+	return openapi.ForgetDoses204Response{}, nil
+}
+
+func convertDosageObservation(o dosage.Observation) openapi.DosageObservation {
+	return openapi.DosageObservation{
+		ID:             o.DoseID,
+		DeliveryMethod: o.DeliveryMethod,
+		Dose:           o.Dose,
+		TakenAt:        o.TakenAt,
+		TakenOffAt:     o.TakenOffAt,
+	}
+}
+
+// Get the user's dosage schedule
+// (GET /dosage/schedule)
+func (h *OpenAPIHandler) DosageSchedule(ctx context.Context, request openapi.DosageScheduleRequestObject) (openapi.DosageScheduleResponseObject, error) {
+	session := sessionFromCtx(ctx)
+
+	s, err := h.dosage.DosageSchedule(ctx, session.UserSecret)
+	if err != nil {
+		return nil, err
+	}
+
+	return openapi.DosageSchedule200JSONResponse(openapi.DosageSchedule{
+		DeliveryMethod: s.DeliveryMethod,
+		Dose:           s.Dose,
+		Interval:       float64(s.Interval),
+		Concurrence:    s.Concurrence,
+	}), nil
+}
+
+// Set the user's dosage schedule
+// (PUT /dosage/schedule)
+func (h *OpenAPIHandler) SetDosageSchedule(ctx context.Context, request openapi.SetDosageScheduleRequestObject) (openapi.SetDosageScheduleResponseObject, error) {
+	session := sessionFromCtx(ctx)
+
+	if err := h.dosage.SetDosageSchedule(ctx, dosage.Schedule{
+		UserSecret:     session.UserSecret,
+		DeliveryMethod: request.Body.DeliveryMethod,
+		Dose:           request.Body.Dose,
+		Interval:       dosage.Days(request.Body.Interval),
+		Concurrence:    request.Body.Concurrence,
+	}); err != nil {
+		return nil, err
+	}
+
+	return openapi.SetDosageSchedule204Response{}, nil
 }

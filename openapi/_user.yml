@@ -107,7 +107,7 @@ paths:
                 format: binary
         default:
           $ref: "#/components/responses/ErrorResponse"
-    post:
+    put:
       summary: Set the current user's avatar
       operationId: setCurrentUserAvatar
       requestBody:

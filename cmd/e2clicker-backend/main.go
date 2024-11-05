@@ -13,6 +13,7 @@ import (
 	"go.uber.org/fx"
 	"go.uber.org/fx/fxevent"
 	"libdb.so/e2clicker/services/api"
+	"libdb.so/e2clicker/services/dosage"
 	"libdb.so/e2clicker/services/notification"
 	"libdb.so/e2clicker/services/storage"
 	"libdb.so/e2clicker/services/user"
@@ -67,6 +68,7 @@ func main() {
 	fx.New(
 		api.Module,
 		user.Module,
+		dosage.Module,
 		storage.Module,
 		notification.Module,
 		fx.Supply(slog.Default()),

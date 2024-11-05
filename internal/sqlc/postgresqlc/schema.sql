@@ -87,30 +87,29 @@ CREATE TABLE dosage_schedule (
   delivery_method text REFERENCES delivery_methods (id) ON DELETE CASCADE,
   -- The dose of the medication.
   -- The units are determined by the delivery method.
-  dose numeric(4, 2) NOT NULL,
+  dose real NOT NULL,
   -- The interval between doses.
   interval interval NOT NULL CHECK (interval > '0 minutes'::interval),
   -- How many patches are on at a time. Only relevant (non-null) for patches.
-  concurrence numeric(2, 0)
+  concurrence smallint
 );
 
 CREATE TABLE dosage_history (
   dose_id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-  -- The dose that is previous to this one.
-  -- This is mostly used for reconciling dose conflicts.
-  last_dose bigint REFERENCES dosage_history (dose_id) ON DELETE SET NULL,
   -- The user that took the dose.
   user_secret xid_ NOT NULL REFERENCES users (secret) ON DELETE CASCADE,
   -- The delivery method of the medication.
   delivery_method text REFERENCES delivery_methods (id) ON DELETE CASCADE,
   -- The dose of the medication.
   -- This is usually copied from the schedule, but can be overridden.
-  dose numeric(4, 2) NOT NULL,
+  dose real NOT NULL,
   -- The time the dose was taken.
   taken_at timestamptz NOT NULL,
   -- The time the patch was taken off. This is only applicable to patches.
   taken_off_at timestamptz
 );
+
+CREATE INDEX dosage_history_user_secret ON dosage_history USING HASH (user_secret);
 
 CREATE INDEX dosage_history_taken_at ON dosage_history USING BTREE (user_secret, taken_at);
 

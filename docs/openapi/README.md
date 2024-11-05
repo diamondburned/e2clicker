@@ -14,6 +14,316 @@ Base URLs:
 
 <h1 id="e2clicker-service-default">Default</h1>
 
+## List all available delivery methods
+
+<a id="opIddeliveryMethods"></a>
+
+`GET /delivery-methods`
+
+> Example responses
+
+> 200 Response
+
+```json
+[
+  {
+    "id": "string",
+    "units": "string",
+    "name": "string"
+  }
+]
+```
+
+<h3 id="list-all-available-delivery-methods-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Successfully retrieved delivery methods.|Inline|
+|default|Default|The request is invalid.|[Error](#schemaerror)|
+
+<h3 id="list-all-available-delivery-methods-responseschema">Response Schema</h3>
+
+Status Code **200**
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|*anonymous*|[[DeliveryMethod](#schemadeliverymethod)]|false|none|none|
+
+<aside class="success">
+This operation does not require authentication
+</aside>
+
+## Get the user's dosage schedule
+
+<a id="opIddosageSchedule"></a>
+
+`GET /dosage/schedule`
+
+> Example responses
+
+> 200 Response
+
+```json
+{
+  "deliveryMethod": "string",
+  "dose": 0.1,
+  "interval": 0.1,
+  "concurrence": 0
+}
+```
+
+<h3 id="get-the-user's-dosage-schedule-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Successfully retrieved dosage schedule.|[DosageSchedule](#schemadosageschedule)|
+
+<aside class="warning">
+To perform this operation, you must be authenticated by means of one of the following methods:
+bearerAuth
+</aside>
+
+## Set the user's dosage schedule
+
+<a id="opIdsetDosageSchedule"></a>
+
+`PUT /dosage/schedule`
+
+> Body parameter
+
+```json
+{
+  "deliveryMethod": "string",
+  "dose": 0.1,
+  "interval": 0.1,
+  "concurrence": 0
+}
+```
+
+<h3 id="set-the-user's-dosage-schedule-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|body|body|[DosageSchedule](#schemadosageschedule)|false|none|
+
+> Example responses
+
+> default Response
+
+```json
+{
+  "message": "string",
+  "details": null,
+  "internal": true,
+  "internalCode": "string"
+}
+```
+
+<h3 id="set-the-user's-dosage-schedule-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|204|[No Content](https://tools.ietf.org/html/rfc7231#section-6.3.5)|Successfully set dosage schedule.|None|
+|default|Default|The request is invalid.|[Error](#schemaerror)|
+
+<aside class="warning">
+To perform this operation, you must be authenticated by means of one of the following methods:
+bearerAuth
+</aside>
+
+## Get the user's dosage history within a time range
+
+<a id="opIddoseHistory"></a>
+
+`GET /dosage/history`
+
+> Body parameter
+
+```yaml
+start: 2019-08-24T14:15:22Z
+end: 2019-08-24T14:15:22Z
+
+```
+
+<h3 id="get-the-user's-dosage-history-within-a-time-range-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|body|body|object|false|none|
+|» start|body|string(date-time)|true|The start date of the history to retrieve.|
+|» end|body|string(date-time)|true|The end date of the history to retrieve.|
+
+> Example responses
+
+> 200 Response
+
+```json
+[
+  {
+    "id": 0,
+    "deliveryMethod": "string",
+    "dose": 0.1,
+    "takenAt": "2019-08-24T14:15:22Z",
+    "takenOffAt": "2019-08-24T14:15:22Z"
+  }
+]
+```
+
+<h3 id="get-the-user's-dosage-history-within-a-time-range-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Successfully retrieved dosage history.|[DosageHistory](#schemadosagehistory)|
+|default|Default|The request is invalid.|[Error](#schemaerror)|
+
+<aside class="warning">
+To perform this operation, you must be authenticated by means of one of the following methods:
+bearerAuth
+</aside>
+
+## Record a new dosage to the user's history
+
+<a id="opIdrecordDose"></a>
+
+`POST /dosage/history`
+
+> Body parameter
+
+```json
+{
+  "takenAt": "2019-08-24T14:15:22Z"
+}
+```
+
+<h3 id="record-a-new-dosage-to-the-user's-history-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|body|body|object|false|none|
+|» takenAt|body|string(date-time)|true|The time the dosage was taken.|
+
+> Example responses
+
+> 200 Response
+
+```json
+{
+  "id": 0,
+  "deliveryMethod": "string",
+  "dose": 0.1,
+  "takenAt": "2019-08-24T14:15:22Z",
+  "takenOffAt": "2019-08-24T14:15:22Z"
+}
+```
+
+<h3 id="record-a-new-dosage-to-the-user's-history-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Successfully recorded dosage.|[DosageObservation](#schemadosageobservation)|
+
+<aside class="warning">
+To perform this operation, you must be authenticated by means of one of the following methods:
+bearerAuth
+</aside>
+
+## Update a dosage in the user's history
+
+<a id="opIdeditDose"></a>
+
+`PUT /dosage/history`
+
+> Body parameter
+
+```json
+{
+  "id": 0,
+  "deliveryMethod": "string",
+  "dose": 0.1,
+  "takenAt": "2019-08-24T14:15:22Z",
+  "takenOffAt": "2019-08-24T14:15:22Z"
+}
+```
+
+<h3 id="update-a-dosage-in-the-user's-history-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|body|body|[DosageObservation](#schemadosageobservation)|false|none|
+
+> Example responses
+
+> default Response
+
+```json
+{
+  "message": "string",
+  "details": null,
+  "internal": true,
+  "internalCode": "string"
+}
+```
+
+<h3 id="update-a-dosage-in-the-user's-history-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|204|[No Content](https://tools.ietf.org/html/rfc7231#section-6.3.5)|Successfully updated dosage.|None|
+|default|Default|The request is invalid.|[Error](#schemaerror)|
+
+<aside class="warning">
+To perform this operation, you must be authenticated by means of one of the following methods:
+bearerAuth
+</aside>
+
+## Delete multiple dosages from the user's history
+
+<a id="opIdforgetDoses"></a>
+
+`DELETE /dosage/history`
+
+> Body parameter
+
+```json
+{
+  "dose_ids": [
+    0
+  ]
+}
+```
+
+<h3 id="delete-multiple-dosages-from-the-user's-history-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|body|body|object|false|none|
+|» dose_ids|body|[integer]|true|none|
+
+> Example responses
+
+> default Response
+
+```json
+{
+  "message": "string",
+  "details": null,
+  "internal": true,
+  "internalCode": "string"
+}
+```
+
+<h3 id="delete-multiple-dosages-from-the-user's-history-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|204|[No Content](https://tools.ietf.org/html/rfc7231#section-6.3.5)|Successfully deleted dosages.|None|
+|default|Default|The request is invalid.|[Error](#schemaerror)|
+
+<aside class="warning">
+To perform this operation, you must be authenticated by means of one of the following methods:
+bearerAuth
+</aside>
+
 ## Register a new account
 
 <a id="opIdregister"></a>
@@ -178,7 +488,7 @@ bearerAuth
 
 <a id="opIdsetCurrentUserAvatar"></a>
 
-`POST /me/avatar`
+`PUT /me/avatar`
 
 > Body parameter
 
@@ -357,6 +667,110 @@ bearerAuth
 |details|any|false|none|Additional details about the error|
 |internal|boolean|false|none|Whether the error is internal|
 |internalCode|string|false|none|An internal code for the error (useless for clients)|
+
+<h2 id="tocS_DeliveryMethod">DeliveryMethod</h2>
+<!-- backwards compatibility -->
+<a id="schemadeliverymethod"></a>
+<a id="schema_DeliveryMethod"></a>
+<a id="tocSdeliverymethod"></a>
+<a id="tocsdeliverymethod"></a>
+
+```json
+{
+  "id": "string",
+  "units": "string",
+  "name": "string"
+}
+
+```
+
+### Properties
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|id|string|true|none|A short string representing the delivery method. This is what goes into the DeliveryMethod fields.|
+|units|string|true|none|The units of the delivery method.|
+|name|string|true|none|The full name of the delivery method.|
+
+<h2 id="tocS_DosageSchedule">DosageSchedule</h2>
+<!-- backwards compatibility -->
+<a id="schemadosageschedule"></a>
+<a id="schema_DosageSchedule"></a>
+<a id="tocSdosageschedule"></a>
+<a id="tocsdosageschedule"></a>
+
+```json
+{
+  "deliveryMethod": "string",
+  "dose": 0.1,
+  "interval": 0.1,
+  "concurrence": 0
+}
+
+```
+
+### Properties
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|deliveryMethod|string|true|none|The delivery method to use.|
+|dose|number(float)|true|none|The dosage amount.|
+|interval|number(double)|true|none|The interval between doses in days.|
+|concurrence|integer|false|none|The number of estrogen patches on the body at once. Only relevant if delivery method is patch.|
+
+<h2 id="tocS_DosageHistory">DosageHistory</h2>
+<!-- backwards compatibility -->
+<a id="schemadosagehistory"></a>
+<a id="schema_DosageHistory"></a>
+<a id="tocSdosagehistory"></a>
+<a id="tocsdosagehistory"></a>
+
+```json
+[
+  {
+    "id": 0,
+    "deliveryMethod": "string",
+    "dose": 0.1,
+    "takenAt": "2019-08-24T14:15:22Z",
+    "takenOffAt": "2019-08-24T14:15:22Z"
+  }
+]
+
+```
+
+### Properties
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|*anonymous*|[[DosageObservation](#schemadosageobservation)]|false|none|none|
+
+<h2 id="tocS_DosageObservation">DosageObservation</h2>
+<!-- backwards compatibility -->
+<a id="schemadosageobservation"></a>
+<a id="schema_DosageObservation"></a>
+<a id="tocSdosageobservation"></a>
+<a id="tocsdosageobservation"></a>
+
+```json
+{
+  "id": 0,
+  "deliveryMethod": "string",
+  "dose": 0.1,
+  "takenAt": "2019-08-24T14:15:22Z",
+  "takenOffAt": "2019-08-24T14:15:22Z"
+}
+
+```
+
+### Properties
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|id|integer(int64)|true|none|The unique identifier for the observation.|
+|deliveryMethod|string|true|none|The delivery method used.|
+|dose|number(float)|true|none|The dosage amount.|
+|takenAt|string(date-time)|true|none|The time the dosage was taken.|
+|takenOffAt|string(date-time)|false|none|The time the dosage was taken off. This is only relevant for patch delivery methods.|
 
 <h2 id="tocS_UserSecret">UserSecret</h2>
 <!-- backwards compatibility -->

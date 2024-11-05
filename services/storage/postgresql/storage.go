@@ -166,3 +166,18 @@ func isErrorCode(err error, code string) bool {
 	// https://www.postgresql.org/docs/current/errcodes-appendix.html
 	return pgErr.Code == code
 }
+
+func maybePtr[T any](v T, valid bool) *T {
+	if !valid {
+		return nil
+	}
+	return &v
+}
+
+func deref[T any](v *T) T {
+	if v == nil {
+		var zero T
+		return zero
+	}
+	return *v
+}

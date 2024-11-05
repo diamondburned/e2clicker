@@ -14,8 +14,11 @@ let
     "--wrap-comment"
     "--extra-function=${
       pkgs.writeText "extra-sql-functions.txt" (
-        builtins.concatStringsSep " " [
+        builtins.concatStringsSep "\n" [
           "sqlc.embed"
+          "sqlc.slice"
+          "sqlc.arg"
+          "sqlc.narg"
         ]
       )
     }"

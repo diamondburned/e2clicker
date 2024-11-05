@@ -11,6 +11,9 @@
           "out": "postgresqlc/",
           "sql_package": "pgx/v5",
           "initialisms": ["id", "mime"],
+          "rename": {
+            "dose_ids": "DoseIDs"
+          },
           "overrides": [
             {
               "db_type": "xid_",

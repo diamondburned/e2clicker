@@ -19,10 +19,9 @@ type DeliveryMethod struct {
 
 type DosageHistory struct {
 	DoseID         int64
-	LastDose       pgtype.Int8
 	UserSecret     sqlc.XID
 	DeliveryMethod pgtype.Text
-	Dose           pgtype.Numeric
+	Dose           float32
 	TakenAt        pgtype.Timestamptz
 	TakenOffAt     pgtype.Timestamptz
 }
@@ -30,9 +29,9 @@ type DosageHistory struct {
 type DosageSchedule struct {
 	UserSecret     sqlc.XID
 	DeliveryMethod pgtype.Text
-	Dose           pgtype.Numeric
+	Dose           float32
 	Interval       pgtype.Interval
-	Concurrence    pgtype.Numeric
+	Concurrence    pgtype.Int2
 }
 
 type Meta struct {
