@@ -210,7 +210,7 @@ func (h *OpenAPIHandler) EditDose(ctx context.Context, request openapi.EditDoseR
 func (h *OpenAPIHandler) ForgetDoses(ctx context.Context, request openapi.ForgetDosesRequestObject) (openapi.ForgetDosesResponseObject, error) {
 	session := sessionFromCtx(ctx)
 
-	if err := h.dosage.ForgetDoses(ctx, session.UserSecret, request.Body.DoseIDs); err != nil {
+	if err := h.dosage.ForgetDoses(ctx, session.UserSecret, request.Body.DoseIds); err != nil {
 		return nil, err
 	}
 

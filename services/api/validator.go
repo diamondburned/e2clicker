@@ -26,7 +26,7 @@ func init() {
 	)
 }
 
-func newRequestValidator(spec *openapi3.T, options *openapi3filter.Options) func(next http.Handler) http.Handler {
+func newRequestValidator(spec *openapi3.T, options openapi3filter.Options) func(next http.Handler) http.Handler {
 	router, err := legacyrouter.NewRouter(spec)
 	if err != nil {
 		panic(fmt.Errorf("cannot build openapi3 router from spec: %w", err))
@@ -73,10 +73,15 @@ func (e *securityRequirementsError) Error() string {
 
 // validateRequest is called from the middleware above and actually does the work
 // of validating a request.
-func validateRequest(r *http.Request, router routers.Router, options *openapi3filter.Options) (int, error) {
+func validateRequest(r *http.Request, router routers.Router, options openapi3filter.Options) (int, error) {
 	route, pathParams, err := router.FindRoute(r)
 	if err != nil {
 		return http.StatusNotFound, err
+	}
+
+	if !routeBodyContainsApplication(route) {
+		// Disable body validation
+		options.ExcludeRequestBody = true
 	}
 
 	// Validate request
@@ -84,7 +89,7 @@ func validateRequest(r *http.Request, router routers.Router, options *openapi3fi
 		Request:    r,
 		PathParams: pathParams,
 		Route:      route,
-		Options:    options,
+		Options:    &options,
 	}
 
 	if err := openapi3filter.ValidateRequest(r.Context(), requestValidationInput); err != nil {
@@ -120,4 +125,22 @@ func validateRequest(r *http.Request, router routers.Router, options *openapi3fi
 	}
 
 	return http.StatusOK, nil
+}
+
+func routeBodyContainsApplication(route *routers.Route) bool {
+	if false ||
+		route.Operation == nil ||
+		route.Operation.RequestBody == nil ||
+		route.Operation.RequestBody.Value == nil ||
+		route.Operation.RequestBody.Value.Content == nil {
+		return false
+	}
+
+	for t := range route.Operation.RequestBody.Value.Content {
+		if strings.HasPrefix(t, "application/") {
+			return true
+		}
+	}
+
+	return false
 }

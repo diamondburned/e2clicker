@@ -12,7 +12,7 @@ Base URLs:
 
 - HTTP Authentication, scheme: bearer 
 
-<h1 id="e2clicker-service-default">Default</h1>
+<h1 id="e2clicker-service-dosage">dosage</h1>
 
 ## List all available delivery methods
 
@@ -323,6 +323,8 @@ bearerAuth
 To perform this operation, you must be authenticated by means of one of the following methods:
 bearerAuth
 </aside>
+
+<h1 id="e2clicker-service-user">user</h1>
 
 ## Register a new account
 

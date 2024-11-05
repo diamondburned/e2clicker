@@ -41,7 +41,7 @@ func NewServer(
 		return nil, fmt.Errorf("cannot get swagger schema: %w", err)
 	}
 
-	requestValidator := newRequestValidator(swaggerAPI, &openapi3filter.Options{
+	requestValidator := newRequestValidator(swaggerAPI, openapi3filter.Options{
 		ExcludeResponseBody: true,
 		AuthenticationFunc:  inputs.Authenticator,
 	})
@@ -71,11 +71,15 @@ func NewServer(
 		},
 	)
 
+	mux := http.NewServeMux()
+	mountDocs(mux, swaggerAPI)
+	mux.Handle("/api/", handler)
+
 	lx.Append(fxhooking.WrapRun(func(ctx context.Context) error {
 		logger.Info("listening to HTTP server")
 		defer logger.Warn("HTTP server stopped")
 
-		if err := hserve.ListenAndServe(ctx, config.ListenAddress, handler); err != nil {
+		if err := hserve.ListenAndServe(ctx, config.ListenAddress, mux); err != nil {
 			return fmt.Errorf("HTTP server error: %w", err)
 		}
 
@@ -83,10 +87,6 @@ func NewServer(
 	}))
 
 	return &Server{}, nil
-}
-
-func respond200(w http.ResponseWriter, _ *http.Request) {
-	w.WriteHeader(200)
 }
 
 func logRequest(slog *slog.Logger) func(next http.Handler) http.Handler {

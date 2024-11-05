@@ -239,7 +239,6 @@
       "bearerAuth": []
     }
   ],
-  "openapi": "3.0.0",
   "paths": {
     "/delivery-methods": {
       "get": {
@@ -263,7 +262,10 @@
           "default": {
             "$ref": "#/components/responses/ErrorResponse"
           }
-        }
+        },
+        "tags": [
+          "dosage"
+        ]
       }
     },
     "/dosage/schedule": {
@@ -281,7 +283,10 @@
               }
             }
           }
-        }
+        },
+        "tags": [
+          "dosage"
+        ]
       },
       "put": {
         "summary": "Set the user's dosage schedule",
@@ -302,7 +307,10 @@
           "default": {
             "$ref": "#/components/responses/ErrorResponse"
           }
-        }
+        },
+        "tags": [
+          "dosage"
+        ]
       }
     },
     "/dosage/history": {
@@ -348,7 +356,10 @@
           "default": {
             "$ref": "#/components/responses/ErrorResponse"
           }
-        }
+        },
+        "tags": [
+          "dosage"
+        ]
       },
       "post": {
         "summary": "Record a new dosage to the user's history",
@@ -383,7 +394,10 @@
               }
             }
           }
-        }
+        },
+        "tags": [
+          "dosage"
+        ]
       },
       "put": {
         "summary": "Update a dosage in the user's history",
@@ -404,7 +418,10 @@
           "default": {
             "$ref": "#/components/responses/ErrorResponse"
           }
-        }
+        },
+        "tags": [
+          "dosage"
+        ]
       },
       "delete": {
         "summary": "Delete multiple dosages from the user's history",
@@ -438,7 +455,10 @@
           "default": {
             "$ref": "#/components/responses/ErrorResponse"
           }
-        }
+        },
+        "tags": [
+          "dosage"
+        ]
       }
     },
     "/register": {
@@ -493,7 +513,10 @@
           "default": {
             "$ref": "#/components/responses/ErrorResponse"
           }
-        }
+        },
+        "tags": [
+          "user"
+        ]
       }
     },
     "/auth": {
@@ -552,7 +575,10 @@
           "default": {
             "$ref": "#/components/responses/ErrorResponse"
           }
-        }
+        },
+        "tags": [
+          "user"
+        ]
       }
     },
     "/me": {
@@ -573,7 +599,10 @@
           "default": {
             "$ref": "#/components/responses/ErrorResponse"
           }
-        }
+        },
+        "tags": [
+          "user"
+        ]
       }
     },
     "/me/avatar": {
@@ -595,7 +624,10 @@
           "default": {
             "$ref": "#/components/responses/ErrorResponse"
           }
-        }
+        },
+        "tags": [
+          "user"
+        ]
       },
       "put": {
         "summary": "Set the current user's avatar",
@@ -617,7 +649,10 @@
           "default": {
             "$ref": "#/components/responses/ErrorResponse"
           }
-        }
+        },
+        "tags": [
+          "user"
+        ]
       }
     },
     "/me/secret": {
@@ -646,7 +681,10 @@
           "default": {
             "$ref": "#/components/responses/ErrorResponse"
           }
-        }
+        },
+        "tags": [
+          "user"
+        ]
       }
     },
     "/me/sessions": {
@@ -670,7 +708,10 @@
           "default": {
             "$ref": "#/components/responses/ErrorResponse"
           }
-        }
+        },
+        "tags": [
+          "user"
+        ]
       },
       "delete": {
         "summary": "Delete one of the current user's sessions",
@@ -701,8 +742,12 @@
           "default": {
             "$ref": "#/components/responses/ErrorResponse"
           }
-        }
+        },
+        "tags": [
+          "user"
+        ]
       }
     }
-  }
+  },
+  "openapi": "3.0.0"
 }

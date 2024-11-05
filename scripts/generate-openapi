@@ -19,16 +19,30 @@ openapi::schema() {
 }
 
 mergeSchema() {
-	yq -pauto -ojson eval-all '. as $item ireduce ({}; . *n+ $item )' "$@"
+	schemas=()
+	for path in "$@"; do
+		name="$(basename "$path" .yml)"
+		if [[ $name == _* ]]; then
+			name=${name/_/}
+			schema="$(yq e "(.paths // (.paths = {}))[].[].tags = [\"$name\"]" "$path")"
+		else
+			schema="$(cat "$path")"
+		fi
+		schemas+=( "$schema" )
+	done
+
+	printf '%s\n---\n' "${schemas[@]}" | \
+		yq -pauto -ojson ea '. as $item ireduce ({}; . *n+ $item )' -
+}
+
+log() {
+	echo "$@" >&2
 }
 
 openapi::backend() {
 	oapi-codegen --config \
 		./services/api/openapi/openapi-config.yml \
 		./openapi/openapi.gen.json
-	sed -i \
-		-e 's/Id/ID/g' \
-		"./services/api/openapi/openapi.gen.go"
 }
 
 openapi::frontend() {

@@ -4,7 +4,7 @@ import { sveltekit } from "@sveltejs/kit/vite";
 // import * as path from "path";
 // const root = new URL(".", import.meta.url).pathname;
 
-const backendHTTPAddress = process.env.BACKEND_HTTP_ADDRESS;
+const devVMAddress = process.env.BACKEND_HTTP_ADDRESS;
 
 export default defineConfig({
   // Why the FUCK is clearScreen true by default? That is fucking stupid.
@@ -16,11 +16,11 @@ export default defineConfig({
       ignored: [".direnv/**", ".svelte-kit/**", "dist/**"],
     },
     proxy: (() => {
-      if (backendHTTPAddress) {
+      if (devVMAddress) {
         console.log("Enabling backend reverse proxy in Vite.");
-        console.log("  /api ->", backendHTTPAddress);
+        console.log("  /api ->", devVMAddress);
         return {
-          "/api": backendHTTPAddress,
+          "/api": devVMAddress,
         };
       }
     })(),
