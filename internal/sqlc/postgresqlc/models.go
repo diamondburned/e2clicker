@@ -42,7 +42,7 @@ type Meta struct {
 
 type NotificationHistory struct {
 	NotificationID int64
-	UserSecret     pgtype.Uint32
+	UserSecret     sqlc.XID
 	DosageID       pgtype.Int8
 	SentAt         pgtype.Timestamptz
 	ErrorReason    pgtype.Text

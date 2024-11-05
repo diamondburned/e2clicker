@@ -34,7 +34,7 @@ func (a *Authenticator) AuthenticationFunc() openapi3filter.AuthenticationFunc {
 }
 
 func (a *Authenticator) authenticate(ctx context.Context, auth *openapi3filter.AuthenticationInput) error {
-	if auth.SecuritySchemeName == "BearerAuth" {
+	if auth.SecuritySchemeName == "bearerAuth" {
 		return a.authenticateBearerAuth(ctx, auth)
 	}
 	return auth.NewError(ErrNotBearerAuth)

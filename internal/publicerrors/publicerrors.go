@@ -134,12 +134,12 @@ func MarshalError(ctx context.Context, err error, hiddenMessage string) Marshale
 
 	for err != nil {
 		// Check for value.
-		public, ok := publicErrorValues[err]
-		if !ok {
-			public, ok = publicErrorTypes[reflect.TypeOf(err)]
+		public, isPublic := publicErrorValues[err]
+		if !isPublic {
+			public, isPublic = publicErrorTypes[reflect.TypeOf(err)]
 		}
 
-		if ok {
+		if isPublic {
 			marshaled.Internal = false
 
 			if public.stringer != nil {
@@ -151,6 +151,10 @@ func MarshalError(ctx context.Context, err error, hiddenMessage string) Marshale
 					marshaled.Message = err.Error()
 				}
 			}
+
+			if isValidErrorDetails(err) {
+				marshaled.Details = err
+			}
 		}
 
 		// If there is no custom stringer, then keep looking for a deeper error.
@@ -159,16 +163,16 @@ func MarshalError(ctx context.Context, err error, hiddenMessage string) Marshale
 		err = errors.Unwrap(err)
 	}
 
-	if marshaled.Internal && marshaled.Message == "" {
-		if hiddenMessage == "" {
-			marshaled.Message = HiddenMessage
-		} else {
-			marshaled.Message = hiddenMessage
-		}
-	}
-
 	if marshaled.Internal {
 		marshaled.InternalCode = generateInternalCode(initialError)
+		if marshaled.Message == "" {
+			if hiddenMessage == "" {
+				marshaled.Message = HiddenMessage
+			} else {
+				marshaled.Message = hiddenMessage
+			}
+		}
+
 		slog.ErrorContext(ctx,
 			"internal error occured",
 			"internal", true,
@@ -191,7 +195,7 @@ func isValidErrorDetails(err error) bool {
 	for i := 0; i < nfields; i++ {
 		fieldv := rv.Field(i)
 		fieldt := rt.Field(i)
-		if !fieldv.IsZero() && fieldt.IsExported() {
+		if !fieldv.IsZero() && fieldt.IsExported() && fieldt.Tag.Get("json") != "" {
 			return true
 		}
 	}

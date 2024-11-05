@@ -13,7 +13,7 @@
           "initialisms": ["id", "mime"],
           "overrides": [
             {
-              "db_type": "xid",
+              "db_type": "xid_",
               "go_type": {
                 "import": "libdb.so/e2clicker/internal/sqlc",
                 "package": "sqlc",

@@ -6,13 +6,12 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/go-chi/chi/v5/middleware"
 	"libdb.so/e2clicker/internal/publicerrors"
 	"libdb.so/e2clicker/services/api/openapi"
 )
-
-var errInternal = fmt.Errorf("internal server error")
 
 func init() {
 	publicerrors.MarkTypePublic[*openapi3filter.RequestError]()
@@ -20,12 +19,12 @@ func init() {
 	publicerrors.MarkTypePublic[*openapi3filter.ParseError]()
 	publicerrors.MarkTypePublic[*openapi3filter.ValidationError]()
 	publicerrors.MarkTypePublic[*openapi3filter.SecurityRequirementsError]()
+	publicerrors.MarkTypePublic[*openapi3.SchemaError]()
 
 	publicerrors.MarkValuesPublic(
 		openapi3filter.ErrInvalidRequired,
 		openapi3filter.ErrInvalidEmptyValue,
 		openapi3filter.ErrAuthenticationServiceMissing,
-		errInternal,
 	)
 }
 
@@ -60,44 +59,25 @@ func convertErrorWithMessage[T ~errorResponse](ctx context.Context, err error, h
 	}
 }
 
-func errorWriterForCode(statusCode int) func(w http.ResponseWriter, r *http.Request, err error) {
-	return func(w http.ResponseWriter, r *http.Request, err error) {
-		writeError(w, r, err, statusCode)
-	}
-}
-
 func writeError(w http.ResponseWriter, r *http.Request, err error, statusCode int) {
 	errResponse := convertError[errorResponse](r.Context(), err)
-	if errResponse.StatusCode < 500 {
+	if statusCode != 0 && !optPtr(errResponse.Body.Internal) {
 		// Error is revealed, so use the suggested status code.
 		errResponse.StatusCode = statusCode
 	}
 
 	b, err := json.Marshal(errResponse.Body)
 	if err != nil {
-		panic(fmt.Errorf("cannot marshal error message: %w", err))
+		errResponse = convertError[errorResponse](r.Context(), err)
+
+		b, err = json.Marshal(errResponse.Body)
+		if err != nil {
+			panic(fmt.Errorf("cannot marshal fallback error: %w", err))
+		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(errResponse.StatusCode)
-	w.Write(b)
-}
-
-func writeValidationError(w http.ResponseWriter, message string, statusCode int) {
-	errMsg := openapi.Error{
-		Message: message,
-		Details: anyPtr(map[string]any{
-			"validationError": true,
-		}),
-	}
-
-	b, err := json.Marshal(errMsg)
-	if err != nil {
-		panic(fmt.Errorf("cannot marshal error message: %w", err))
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
 	w.Write(b)
 }
 

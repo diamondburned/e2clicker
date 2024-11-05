@@ -7,14 +7,11 @@ import (
 	"net/http"
 
 	"github.com/getkin/kin-openapi/openapi3filter"
-	"github.com/go-chi/chi/v5"
 	"go.uber.org/fx"
 	"libdb.so/e2clicker/internal/fxhooking"
 	"libdb.so/e2clicker/services/api/openapi"
 	"libdb.so/hserve"
 
-	nethttpmiddleware "github.com/oapi-codegen/nethttp-middleware"
-	strictnethttp "github.com/oapi-codegen/runtime/strictmiddleware/nethttp"
 	e2clickermodule "libdb.so/e2clicker/nix/modules/e2clicker"
 )
 
@@ -44,41 +41,33 @@ func NewServer(
 		return nil, fmt.Errorf("cannot get swagger schema: %w", err)
 	}
 
-	validator := nethttpmiddleware.OapiRequestValidatorWithOptions(swaggerAPI, &nethttpmiddleware.Options{
-		ErrorHandler: writeValidationError,
-		Options: openapi3filter.Options{
-			MultiError:         false,
-			AuthenticationFunc: inputs.Authenticator,
-		},
+	requestValidator := newRequestValidator(swaggerAPI, &openapi3filter.Options{
+		ExcludeResponseBody: true,
+		AuthenticationFunc:  inputs.Authenticator,
 	})
 
-	router := chi.NewRouter()
-	router.Use(logRequest(logger))
-	router.Use(recovererMiddleware)
-
-	openapi.HandlerWithOptions(
+	handler := openapi.HandlerWithOptions(
 		openapi.NewStrictHandlerWithOptions(
-			inputs.Handler,
-			[]strictnethttp.StrictHTTPMiddlewareFunc{
-				func(f strictnethttp.StrictHTTPHandlerFunc, operationID string) strictnethttp.StrictHTTPHandlerFunc {
-					return func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (response interface{}, err error) {
-						h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-							response, err = f(ctx, w, r, request)
-						})
-						validator(h).ServeHTTP(w, r)
-						return
-					}
-				},
-			},
+			inputs.Handler, nil,
 			openapi.StrictHTTPServerOptions{
-				RequestErrorHandlerFunc:  errorWriterForCode(http.StatusBadRequest),
-				ResponseErrorHandlerFunc: errorWriterForCode(http.StatusInternalServerError),
+				RequestErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {
+					writeError(w, r, err, http.StatusBadRequest)
+				},
+				ResponseErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {
+					writeError(w, r, err, 0)
+				},
 			},
 		),
 		openapi.ChiServerOptions{
-			BaseURL:          "/api",
-			BaseRouter:       router,
-			ErrorHandlerFunc: errorWriterForCode(http.StatusBadRequest),
+			BaseURL: "/api",
+			Middlewares: []openapi.MiddlewareFunc{
+				logRequest(logger),
+				recovererMiddleware,
+				requestValidator,
+			},
+			ErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {
+				writeError(w, r, err, http.StatusBadRequest)
+			},
 		},
 	)
 
@@ -86,7 +75,7 @@ func NewServer(
 		logger.Info("listening to HTTP server")
 		defer logger.Warn("HTTP server stopped")
 
-		if err := hserve.ListenAndServe(ctx, config.ListenAddress, router); err != nil {
+		if err := hserve.ListenAndServe(ctx, config.ListenAddress, handler); err != nil {
 			return fmt.Errorf("HTTP server error: %w", err)
 		}
 

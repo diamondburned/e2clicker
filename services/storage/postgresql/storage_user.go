@@ -3,9 +3,11 @@ package postgresql
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"libdb.so/e2clicker/internal/asset"
 	"libdb.so/e2clicker/internal/sqlc"
@@ -61,6 +63,9 @@ func (s *Storage) UpdateUserLocale(ctx context.Context, userSecret user.Secret, 
 func (s *Storage) UserAvatar(ctx context.Context, userSecret user.Secret) (asset.ReadCloser, error) {
 	a, err := s.q.UserAvatar(ctx, sqlc.XID(userSecret))
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			err = user.ErrNoAvatar
+		}
 		return asset.ReadCloser{}, err
 	}
 	return asset.NewAssetReader(

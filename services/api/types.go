@@ -12,6 +12,14 @@ func optstr(s *string) string {
 	return *s
 }
 
+func optPtr[T any](s *T) T {
+	if s != nil {
+		return *s
+	}
+	var v T
+	return v
+}
+
 func anyPtr[T any](value T) *any {
 	v := any(value)
 	return &v

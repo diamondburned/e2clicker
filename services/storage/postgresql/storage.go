@@ -27,7 +27,7 @@ const (
 // Storage is the PostgreSQL-backed storage.
 type Storage struct {
 	q       *postgresqlc.Queries // nil until start
-	conn    *pgxpool.Pool        // nil until start
+	pool    *pgxpool.Pool        // nil until start
 	conncfg *pgxpool.Config
 	logger  *slog.Logger
 }
@@ -51,29 +51,48 @@ func NewStorage(lc fx.Lifecycle, config e2clickermodule.PostgreSQL, logger *slog
 
 	s := &Storage{
 		q:       nil,
-		conn:    nil,
+		pool:    nil,
 		conncfg: conncfg,
 		logger:  logger,
 	}
 
+	poolStatLogs := func() slog.Attr {
+		if s.pool == nil {
+			return slog.Attr{}
+		}
+		poolStat := s.pool.Stat()
+		return slog.Group("pool_stat",
+			"total_conns", poolStat.TotalConns(),
+			"idle_conns", poolStat.IdleConns())
+	}
+
+	conncfg.AfterConnect = func(ctx context.Context, conn *pgx.Conn) error {
+		logger.DebugContext(ctx, "adding new PostgreSQL connection to pool", poolStatLogs())
+		return nil
+	}
+
+	conncfg.BeforeClose = func(conn *pgx.Conn) {
+		logger.Debug("closing PostgreSQL connection in pool", poolStatLogs())
+	}
+
 	lc.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
-			conn, err := pgxpool.NewWithConfig(ctx, conncfg)
+			pool, err := pgxpool.NewWithConfig(ctx, conncfg)
 			if err != nil {
 				return fmt.Errorf("cannot create pool: %w", err)
 			}
 
-			if err := migrate(ctx, conn); err != nil {
+			if err := migrate(ctx, pool); err != nil {
 				return fmt.Errorf("cannot migrate: %w", err)
 			}
 
-			s.q = postgresqlc.New(conn)
-			s.conn = conn
+			s.q = postgresqlc.New(pool)
+			s.pool = pool
 
 			return nil
 		},
 		OnStop: func(ctx context.Context) error {
-			s.conn.Close()
+			s.pool.Close()
 			return nil
 		},
 	})
