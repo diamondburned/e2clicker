@@ -58,6 +58,22 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 	return i, err
 }
 
+const deleteSession = `-- name: DeleteSession :exec
+DELETE FROM user_sessions
+WHERE user_secret = $1
+  AND id = $2
+`
+
+type DeleteSessionParams struct {
+	UserSecret sqlc.XID
+	ID         int64
+}
+
+func (q *Queries) DeleteSession(ctx context.Context, arg DeleteSessionParams) error {
+	_, err := q.db.Exec(ctx, deleteSession, arg.UserSecret, arg.ID)
+	return err
+}
+
 const deliveryMethod = `-- name: DeliveryMethod :one
 SELECT id, units, name
 FROM delivery_methods
@@ -89,6 +105,39 @@ func (q *Queries) DeliveryMethods(ctx context.Context) ([]DeliveryMethod, error)
 	for rows.Next() {
 		var i DeliveryMethod
 		if err := rows.Scan(&i.ID, &i.Units, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listSessions = `-- name: ListSessions :many
+SELECT id, user_secret, token, created_at, last_used, user_agent
+FROM user_sessions
+WHERE user_secret = $1
+`
+
+func (q *Queries) ListSessions(ctx context.Context, userSecret sqlc.XID) ([]UserSession, error) {
+	rows, err := q.db.Query(ctx, listSessions, userSecret)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []UserSession
+	for rows.Next() {
+		var i UserSession
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserSecret,
+			&i.Token,
+			&i.CreatedAt,
+			&i.LastUsed,
+			&i.UserAgent,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -332,8 +381,7 @@ UPDATE
   user_sessions
 SET last_used = now()
 WHERE token = $1
-  AND now() < expires_at
-RETURNING id, user_secret, token, created_at, last_used, expires_at, user_agent
+RETURNING id, user_secret, token, created_at, last_used, user_agent
 `
 
 func (q *Queries) ValidateSession(ctx context.Context, token []byte) (UserSession, error) {
@@ -345,7 +393,6 @@ func (q *Queries) ValidateSession(ctx context.Context, token []byte) (UserSessio
 		&i.Token,
 		&i.CreatedAt,
 		&i.LastUsed,
-		&i.ExpiresAt,
 		&i.UserAgent,
 	)
 	return i, err

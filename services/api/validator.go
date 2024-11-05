@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -9,6 +10,7 @@ import (
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/getkin/kin-openapi/routers"
 	"libdb.so/e2clicker/internal/publicerrors"
+	"libdb.so/e2clicker/services/user"
 
 	legacyrouter "github.com/getkin/kin-openapi/routers/legacy"
 )
@@ -107,7 +109,11 @@ func validateRequest(r *http.Request, router routers.Router, options *openapi3fi
 				SecurityRequirements: e.SecurityRequirements,
 				Errors:               errorStrings,
 			}
-			return http.StatusForbidden, err
+			status := http.StatusForbidden
+			if len(e.Errors) == 1 && errors.Is(e.Errors[0], user.ErrInvalidSession) {
+				status = http.StatusUnauthorized
+			}
+			return status, err
 		default:
 			return http.StatusBadRequest, publicerrors.ForcePublic(err)
 		}

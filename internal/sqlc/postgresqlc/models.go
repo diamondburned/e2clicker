@@ -68,7 +68,6 @@ type UserSession struct {
 	Token      []byte
 	CreatedAt  pgtype.Timestamp
 	LastUsed   pgtype.Timestamp
-	ExpiresAt  pgtype.Timestamp
 	UserAgent  pgtype.Text
 }
 

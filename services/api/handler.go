@@ -119,3 +119,29 @@ func (h *OpenAPIHandler) CurrentUserSecret(ctx context.Context, request openapi.
 		Secret: session.UserSecret,
 	}, nil
 }
+
+// List the current user's sessions
+// (GET /me/sessions)
+func (h *OpenAPIHandler) CurrentUserSessions(ctx context.Context, request openapi.CurrentUserSessionsRequestObject) (openapi.CurrentUserSessionsResponseObject, error) {
+	session := sessionFromCtx(ctx)
+
+	s, err := h.users.ListSessions(ctx, session.UserSecret)
+	if err != nil {
+		return nil, err
+	}
+
+	return openapi.CurrentUserSessions200JSONResponse(convertList(s, convertSession)), nil
+}
+
+// Delete one of the current user's sessions
+// (DELETE /me/sessions)
+func (h *OpenAPIHandler) DeleteUserSession(ctx context.Context, request openapi.DeleteUserSessionRequestObject) (openapi.DeleteUserSessionResponseObject, error) {
+	session := sessionFromCtx(ctx)
+
+	err := h.users.DeleteSession(ctx, session.UserSecret, request.Body.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return openapi.DeleteUserSession204Response{}, nil
+}

@@ -73,8 +73,6 @@ CREATE TABLE user_sessions (
   created_at timestamp NOT NULL DEFAULT now(),
   -- The time the session was last used.
   last_used timestamp NOT NULL DEFAULT now(),
-  -- The time the session expires.
-  expires_at timestamp GENERATED ALWAYS AS (last_used + '30 days'::interval) STORED,
   -- The user agent string, if any. Collected for management purposes.
   user_agent text
 );

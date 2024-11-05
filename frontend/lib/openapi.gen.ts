@@ -33,6 +33,16 @@ export type Error = {
     /** An internal code for the error (useless for clients) */
     internalCode?: string;
 };
+export type Session = {
+    /** The session identifier */
+    id: number;
+    /** The time the session was created */
+    created_at: string;
+    /** The last time the session was used */
+    last_used: string;
+    /** The time the session expires, or null if it never expires */
+    expires_at?: string;
+};
 /**
  * Register a new account
  */
@@ -138,4 +148,36 @@ export function currentUserSecret(opts?: Oazapfts.RequestOpts) {
     }>("/me/secret", {
         ...opts
     }));
+}
+/**
+ * List the current user's sessions
+ */
+export function currentUserSessions(opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 200;
+        data: Session[];
+    } | {
+        status: number;
+        data: Error;
+    }>("/me/sessions", {
+        ...opts
+    }));
+}
+/**
+ * Delete one of the current user's sessions
+ */
+export function deleteUserSession(body?: {
+    /** The session identifier to delete */
+    id: number;
+}, opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 204;
+    } | {
+        status: number;
+        data: Error;
+    }>("/me/sessions", oazapfts.json({
+        ...opts,
+        method: "DELETE",
+        body
+    })));
 }

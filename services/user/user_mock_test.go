@@ -409,6 +409,12 @@ var _ UserSessionStorage = &UserSessionStorageMock{}
 //
 //		// make and configure a mocked UserSessionStorage
 //		mockedUserSessionStorage := &UserSessionStorageMock{
+//			DeleteSessionFunc: func(ctx context.Context, userSecret Secret, sessionID int64) error {
+//				panic("mock out the DeleteSession method")
+//			},
+//			ListSessionsFunc: func(ctx context.Context, userSecret Secret) ([]Session, error) {
+//				panic("mock out the ListSessions method")
+//			},
 //			RegisterSessionFunc: func(ctx context.Context, token []byte, userSecret Secret, userAgent string) error {
 //				panic("mock out the RegisterSession method")
 //			},
@@ -422,6 +428,12 @@ var _ UserSessionStorage = &UserSessionStorageMock{}
 //
 //	}
 type UserSessionStorageMock struct {
+	// DeleteSessionFunc mocks the DeleteSession method.
+	DeleteSessionFunc func(ctx context.Context, userSecret Secret, sessionID int64) error
+
+	// ListSessionsFunc mocks the ListSessions method.
+	ListSessionsFunc func(ctx context.Context, userSecret Secret) ([]Session, error)
+
 	// RegisterSessionFunc mocks the RegisterSession method.
 	RegisterSessionFunc func(ctx context.Context, token []byte, userSecret Secret, userAgent string) error
 
@@ -430,6 +442,22 @@ type UserSessionStorageMock struct {
 
 	// calls tracks calls to the methods.
 	calls struct {
+		// DeleteSession holds details about calls to the DeleteSession method.
+		DeleteSession []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// UserSecret is the userSecret argument value.
+			UserSecret Secret
+			// SessionID is the sessionID argument value.
+			SessionID int64
+		}
+		// ListSessions holds details about calls to the ListSessions method.
+		ListSessions []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// UserSecret is the userSecret argument value.
+			UserSecret Secret
+		}
 		// RegisterSession holds details about calls to the RegisterSession method.
 		RegisterSession []struct {
 			// Ctx is the ctx argument value.
@@ -449,8 +477,93 @@ type UserSessionStorageMock struct {
 			Token []byte
 		}
 	}
+	lockDeleteSession   sync.RWMutex
+	lockListSessions    sync.RWMutex
 	lockRegisterSession sync.RWMutex
 	lockValidateSession sync.RWMutex
+}
+
+// DeleteSession calls DeleteSessionFunc.
+func (mock *UserSessionStorageMock) DeleteSession(ctx context.Context, userSecret Secret, sessionID int64) error {
+	callInfo := struct {
+		Ctx        context.Context
+		UserSecret Secret
+		SessionID  int64
+	}{
+		Ctx:        ctx,
+		UserSecret: userSecret,
+		SessionID:  sessionID,
+	}
+	mock.lockDeleteSession.Lock()
+	mock.calls.DeleteSession = append(mock.calls.DeleteSession, callInfo)
+	mock.lockDeleteSession.Unlock()
+	if mock.DeleteSessionFunc == nil {
+		var (
+			errOut error
+		)
+		return errOut
+	}
+	return mock.DeleteSessionFunc(ctx, userSecret, sessionID)
+}
+
+// DeleteSessionCalls gets all the calls that were made to DeleteSession.
+// Check the length with:
+//
+//	len(mockedUserSessionStorage.DeleteSessionCalls())
+func (mock *UserSessionStorageMock) DeleteSessionCalls() []struct {
+	Ctx        context.Context
+	UserSecret Secret
+	SessionID  int64
+} {
+	var calls []struct {
+		Ctx        context.Context
+		UserSecret Secret
+		SessionID  int64
+	}
+	mock.lockDeleteSession.RLock()
+	calls = mock.calls.DeleteSession
+	mock.lockDeleteSession.RUnlock()
+	return calls
+}
+
+// ListSessions calls ListSessionsFunc.
+func (mock *UserSessionStorageMock) ListSessions(ctx context.Context, userSecret Secret) ([]Session, error) {
+	callInfo := struct {
+		Ctx        context.Context
+		UserSecret Secret
+	}{
+		Ctx:        ctx,
+		UserSecret: userSecret,
+	}
+	mock.lockListSessions.Lock()
+	mock.calls.ListSessions = append(mock.calls.ListSessions, callInfo)
+	mock.lockListSessions.Unlock()
+	if mock.ListSessionsFunc == nil {
+		var (
+			sessionsOut []Session
+			errOut      error
+		)
+		return sessionsOut, errOut
+	}
+	return mock.ListSessionsFunc(ctx, userSecret)
+}
+
+// ListSessionsCalls gets all the calls that were made to ListSessions.
+// Check the length with:
+//
+//	len(mockedUserSessionStorage.ListSessionsCalls())
+func (mock *UserSessionStorageMock) ListSessionsCalls() []struct {
+	Ctx        context.Context
+	UserSecret Secret
+} {
+	var calls []struct {
+		Ctx        context.Context
+		UserSecret Secret
+	}
+	mock.lockListSessions.RLock()
+	calls = mock.calls.ListSessions
+	mock.lockListSessions.RUnlock()
+	return calls
 }
 
 // RegisterSession calls RegisterSessionFunc.

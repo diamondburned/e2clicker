@@ -88,8 +88,17 @@ UPDATE
   user_sessions
 SET last_used = now()
 WHERE token = $1
-  AND now() < expires_at
 RETURNING *;
+
+-- name: ListSessions :many
+SELECT *
+FROM user_sessions
+WHERE user_secret = $1;
+
+-- name: DeleteSession :exec
+DELETE FROM user_sessions
+WHERE user_secret = $1
+  AND id = $2;
 
 
 /*

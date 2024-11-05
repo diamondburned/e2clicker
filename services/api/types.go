@@ -25,6 +25,30 @@ func anyPtr[T any](value T) *any {
 	return &v
 }
 
+func maybeNil[T any](value T, valid bool) *T {
+	if valid {
+		return &value
+	}
+	return nil
+}
+
 func convertUser(u user.User) openapi.User {
 	return openapi.User(u)
+}
+
+func convertSession(s user.Session) openapi.Session {
+	return openapi.Session{
+		ID:        s.ID,
+		CreatedAt: s.CreatedAt,
+		LastUsed:  s.LastUsed,
+		ExpiresAt: maybeNil(s.ExpiresAt, !s.ExpiresAt.IsZero()),
+	}
+}
+
+func convertList[T any, U any](list []T, convert func(T) U) []U {
+	result := make([]U, len(list))
+	for i, item := range list {
+		result[i] = convert(item)
+	}
+	return result
 }

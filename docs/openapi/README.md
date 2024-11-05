@@ -243,6 +243,93 @@ To perform this operation, you must be authenticated by means of one of the foll
 bearerAuth
 </aside>
 
+## List the current user's sessions
+
+<a id="opIdcurrentUserSessions"></a>
+
+`GET /me/sessions`
+
+> Example responses
+
+> 200 Response
+
+```json
+[
+  {
+    "id": 0,
+    "created_at": "2019-08-24T14:15:22Z",
+    "last_used": "2019-08-24T14:15:22Z",
+    "expires_at": "2019-08-24T14:15:22Z"
+  }
+]
+```
+
+<h3 id="list-the-current-user's-sessions-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Successfully retrieved the user's sessions.|Inline|
+|default|Default|The request is invalid.|[Error](#schemaerror)|
+
+<h3 id="list-the-current-user's-sessions-responseschema">Response Schema</h3>
+
+Status Code **200**
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|*anonymous*|[[Session](#schemasession)]|false|none|[A session for a user.]|
+
+<aside class="warning">
+To perform this operation, you must be authenticated by means of one of the following methods:
+bearerAuth
+</aside>
+
+## Delete one of the current user's sessions
+
+<a id="opIddeleteUserSession"></a>
+
+`DELETE /me/sessions`
+
+> Body parameter
+
+```json
+{
+  "id": 0
+}
+```
+
+<h3 id="delete-one-of-the-current-user's-sessions-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|body|body|object|false|none|
+|» id|body|integer(int64)|true|The session identifier to delete|
+
+> Example responses
+
+> default Response
+
+```json
+{
+  "message": "string",
+  "details": null,
+  "internal": true,
+  "internalCode": "string"
+}
+```
+
+<h3 id="delete-one-of-the-current-user's-sessions-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|204|[No Content](https://tools.ietf.org/html/rfc7231#section-6.3.5)|Successfully deleted the user's sessions.|None|
+|default|Default|The request is invalid.|[Error](#schemaerror)|
+
+<aside class="warning">
+To perform this operation, you must be authenticated by means of one of the following methods:
+bearerAuth
+</aside>
+
 # Schemas
 
 <h2 id="tocS_Error">Error</h2>
@@ -358,8 +445,8 @@ A session for a user.
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|id|integer|true|none|The session identifier|
+|id|integer(int64)|true|none|The session identifier|
 |created_at|string(date-time)|true|none|The time the session was created|
-|last_used|string(date-time)|false|none|The last time the session was used|
-|expires_at|string(date-time)|true|none|The time the session expires|
+|last_used|string(date-time)|true|none|The last time the session was used|
+|expires_at|string(date-time)|false|none|The time the session expires, or null if it never expires|
 

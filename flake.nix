@@ -23,7 +23,7 @@
     };
 
     oapi-codegen = {
-      url = "github:diamondburned/oapi-codegen?ref=migrate-to-libopenapi-ordered-fix";
+      url = "github:oapi-codegen/oapi-codegen/v2.4.1";
       flake = false;
     };
 
@@ -63,7 +63,7 @@
                 subPackages = [ "cmd/oapi-codegen" ];
                 doCheck = false;
 
-                vendorHash = "sha256-aqjk+iAsO6rFqoqXJTMxeD2ZFR4FDrg+VbxGIE7XQzw=";
+                vendorHash = "sha256-bp5sFZNJFQonwfF1RjCnOMKZQkofHuqG0bXdG5Hf3jU=";
               };
 
               # Downgrade yaml-language-server to 1.15.0 to fix an issue with OpenAPI's v3.0.0 schema.

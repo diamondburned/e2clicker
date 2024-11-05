@@ -16,6 +16,10 @@ type UserSessionStorage interface {
 	// ValidateSession validates a session for a user. The user that the session
 	// belongs to is returned.
 	ValidateSession(ctx context.Context, token []byte) (Session, error)
+	// ListSessions lists all sessions for a user.
+	ListSessions(ctx context.Context, userSecret Secret) ([]Session, error)
+	// DeleteSession deletes a session for a user.
+	DeleteSession(ctx context.Context, userSecret Secret, sessionID int64) error
 }
 
 // Session is a user session.
@@ -31,6 +35,7 @@ type Session struct {
 	// LastUsed is the time that the session was last used.
 	LastUsed time.Time
 	// ExpiresAt is the time that the session will expire.
+	// If zero, the session does not expire.
 	ExpiresAt time.Time
 }
 

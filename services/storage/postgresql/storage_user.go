@@ -98,15 +98,47 @@ func (s *Storage) RegisterSession(ctx context.Context, token []byte, userSecret 
 func (s *Storage) ValidateSession(ctx context.Context, token []byte) (user.Session, error) {
 	r, err := s.q.ValidateSession(ctx, token)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return user.Session{}, user.ErrInvalidSession
+		}
 		return user.Session{}, err
 	}
+	return convertSession(r), nil
+}
 
+func (s *Storage) ListSessions(ctx context.Context, userSecret user.Secret) ([]user.Session, error) {
+	l, err := s.q.ListSessions(ctx, sqlc.XID(userSecret))
+	if err != nil {
+		return nil, err
+	}
+	return convertList(l, convertSession), nil
+}
+
+func convertSession(r postgresqlc.UserSession) user.Session {
 	return user.Session{
 		ID:         r.ID,
 		UserSecret: user.Secret(r.UserSecret),
 		UserAgent:  r.UserAgent.String,
 		CreatedAt:  r.CreatedAt.Time,
 		LastUsed:   r.LastUsed.Time,
-		ExpiresAt:  r.ExpiresAt.Time,
-	}, nil
+	}
+}
+
+func (s *Storage) DeleteSession(ctx context.Context, userSecret user.Secret, sessionID int64) error {
+	err := s.q.DeleteSession(ctx, postgresqlc.DeleteSessionParams{
+		UserSecret: sqlc.XID(userSecret),
+		ID:         sessionID,
+	})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return user.ErrInvalidSession
+	}
+	return err
+}
+
+func convertList[T1, T2 any](vs []T1, c func(T1) T2) []T2 {
+	v2 := make([]T2, len(vs))
+	for i, v := range vs {
+		v2[i] = c(v)
+	}
+	return v2
 }

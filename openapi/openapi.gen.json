@@ -68,14 +68,17 @@
         "properties": {
           "name": {
             "type": "string",
-            "description": "The user's name"
+            "description": "The user's name",
+            "x-order": 1
           },
           "locale": {
-            "$ref": "#/components/schemas/Locale"
+            "$ref": "#/components/schemas/Locale",
+            "x-order": 2
           },
           "has_avatar": {
             "type": "boolean",
-            "description": "Whether the user has an avatar."
+            "description": "Whether the user has an avatar.",
+            "x-order": 3
           }
         }
       },
@@ -85,27 +88,32 @@
         "required": [
           "id",
           "created_at",
-          "expires_at"
+          "last_used"
         ],
         "properties": {
           "id": {
             "type": "integer",
-            "description": "The session identifier"
+            "format": "int64",
+            "description": "The session identifier",
+            "x-order": 1
           },
           "created_at": {
             "type": "string",
             "format": "date-time",
-            "description": "The time the session was created"
+            "description": "The time the session was created",
+            "x-order": 2
           },
           "last_used": {
             "type": "string",
             "format": "date-time",
-            "description": "The last time the session was used"
+            "description": "The last time the session was used",
+            "x-order": 3
           },
           "expires_at": {
             "type": "string",
             "format": "date-time",
-            "description": "The time the session expires"
+            "description": "The time the session expires, or null if it never expires",
+            "x-order": 4
           }
         }
       }
@@ -331,6 +339,61 @@
                 }
               }
             }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/me/sessions": {
+      "get": {
+        "summary": "List the current user's sessions",
+        "operationId": "currentUserSessions",
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved the user's sessions.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Session"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete one of the current user's sessions",
+        "operationId": "deleteUserSession",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "id"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "The session identifier to delete"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Successfully deleted the user's sessions."
           },
           "default": {
             "$ref": "#/components/responses/ErrorResponse"

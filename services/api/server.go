@@ -58,7 +58,7 @@ func NewServer(
 				},
 			},
 		),
-		openapi.ChiServerOptions{
+		openapi.StdHTTPServerOptions{
 			BaseURL: "/api",
 			Middlewares: []openapi.MiddlewareFunc{
 				logRequest(logger),

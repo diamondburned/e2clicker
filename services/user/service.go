@@ -96,3 +96,11 @@ func (s UserService) ValidateSession(ctx context.Context, token SessionToken) (S
 
 	return session, nil
 }
+
+func (s UserService) ListSessions(ctx context.Context, userSecret Secret) ([]Session, error) {
+	return s.userSessions.ListSessions(ctx, userSecret)
+}
+
+func (s UserService) DeleteSession(ctx context.Context, userSecret Secret, sessionID int64) error {
+	return s.userSessions.DeleteSession(ctx, userSecret, sessionID)
+}

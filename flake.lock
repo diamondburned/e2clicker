@@ -134,16 +134,16 @@
     "oapi-codegen": {
       "flake": false,
       "locked": {
-        "lastModified": 1723455893,
-        "narHash": "sha256-QpCumNSkR9bG0nhVN57nTXqocpgTSUll7gJu9BuH9II=",
-        "owner": "diamondburned",
+        "lastModified": 1727519860,
+        "narHash": "sha256-21VhHSyfF+NHkXlr2svjwBNZmfS1O448POBP9XUQxak=",
+        "owner": "oapi-codegen",
         "repo": "oapi-codegen",
-        "rev": "c3b1648c7a8c59a1fb8ffd729098e05d7f3fc49c",
+        "rev": "9c09ef9e9d4be639bd3feff31ff2c06961421272",
         "type": "github"
       },
       "original": {
-        "owner": "diamondburned",
-        "ref": "migrate-to-libopenapi-ordered-fix",
+        "owner": "oapi-codegen",
+        "ref": "v2.4.1",
         "repo": "oapi-codegen",
         "type": "github"
       }

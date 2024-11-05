@@ -82,13 +82,11 @@ openapi-backend: openapi-schema
     generate-openapi backend
 
 [private]
-openapi-frontend: openapi-schema
-    pnpm i --prefer-offline --prefer-frozen-lockfile --use-stderr
+openapi-frontend: openapi-schema pnpm
     generate-openapi frontend
 
 [private]
-openapi-docs: openapi-schema
-    pnpm i --prefer-offline --prefer-frozen-lockfile --use-stderr
+openapi-docs: openapi-schema pnpm
     generate-openapi docs &> /dev/null
 
 ###
@@ -110,3 +108,9 @@ format:
     @prettier --log-level warn -w .
     @goimports -w $(go list -f '{{{{.Dir}}' ./...)
     @just --unstable --fmt 2> /dev/null
+
+###
+
+[private]
+pnpm:
+	pnpm i --prefer-offline --prefer-frozen-lockfile --use-stderr
