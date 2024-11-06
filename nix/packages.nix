@@ -88,6 +88,4 @@ rec {
     cd ${dist}/frontend
     exec ${lib.getExe pkgs.nodejs} .
   '';
-
-  e2clicker-dev = import ./dev args;
 }
