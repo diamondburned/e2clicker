@@ -16,6 +16,8 @@
   }
 
   label.main-input {
+    margin-bottom: var(--pico-spacing);
+
     input {
       margin-bottom: 0;
     }
@@ -34,7 +36,7 @@
 }
 
 @mixin spacings {
-  --pico-block-spacing-vertical: clamp(var(--pico-spacing), 5vh, calc(var(--pico-spacing) * 3));
-  --pico-block-spacing-horizontal: clamp(var(--pico-spacing), 5vw, calc(var(--pico-spacing) * 3));
+  --pico-block-spacing-vertical: clamp(var(--pico-spacing), 5vw, calc(var(--pico-spacing) * 2));
+  --pico-block-spacing-horizontal: clamp(var(--pico-spacing), 5vw, calc(var(--pico-spacing) * 2));
   --pico-block-spacing: var(--pico-block-spacing-vertical) var(--pico-block-spacing-horizontal);
 }

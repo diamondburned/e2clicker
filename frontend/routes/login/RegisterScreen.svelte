@@ -29,25 +29,16 @@
   }
 </script>
 
-<article id="register" class="spaced" in:fade={{ duration: 200 }}>
+<article id="register" in:fade={{ duration: 200 }}>
   <h2>Create an Account</h2>
 
   <div class="content">
+    <p>
+      We only need a preferred name to address you. This name could be anything you want!
+      <b>It will never be publicly visible.</b>
+    </p>
     <label class="main-input">
       <span>Your preferred name:</span>
-      <span style="float: right">
-        <Tooltip tooltip={preferredNameTooltip}>
-          <Icon name="info" />
-        </Tooltip>
-        {#snippet preferredNameTooltip()}
-          <div class="spaced">
-            <p class="preferred-name-tooltip">
-              This will only be used to address you in the app.
-              <b>It will not be shown to anyone else.</b>
-            </p>
-          </div>
-        {/snippet}
-      </span>
       <input type="text" name="name" placeholder="Alice" bind:value={registerName} />
     </label>
 

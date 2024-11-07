@@ -7,10 +7,23 @@
   import RegisterScreen from "./RegisterScreen.svelte";
 
   import { slide } from "svelte/transition";
+  import { page } from "$app/stores";
+  import { isLoggedIn } from "$lib/api";
+  import { goto } from "$app/navigation";
 
-  let screen = $state<"login" | "register">("login");
+  let screen = $state<"login" | "register">(
+    $page.url.hash == "#register" // set by homepage
+      ? "register"
+      : "login",
+  );
   let promise = $state(Promise.resolve());
   let hideEstrannaise = $state(false);
+
+  $effect(() => {
+    if ($isLoggedIn) {
+      goto("/dashboard");
+    }
+  });
 </script>
 
 <LoadingScreen {promise} />

@@ -19,6 +19,10 @@ html {
 body {
   min-height: 100%;
   overflow-x: hidden;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 * {
@@ -41,12 +45,17 @@ a:hover {
   }
 }
 
+.brand {
+  color: var(--pico-primary);
+  text-shadow: 0 0 0.25em color-mix(in srgb, var(--pico-primary), transparent 65%);
+}
+
 .small-heading {
   font-size: inherit;
 }
 
 .spaced > * {
-  margin-bottom: var(--pico-typography-spacing-vertical);
+  margin-bottom: var(--pico-block-spacing-vertical);
 
   &:last-child {
     margin-bottom: 0;
@@ -66,4 +75,13 @@ article {
   > header {
     border-bottom: var(--pico-border-width) solid var(--pico-card-sectioning-background-color);
   }
+}
+
+button,
+[type="submit"],
+[type="reset"],
+[type="button"],
+[type="file"]::file-selector-button,
+[role="button"] {
+  font-size: 1em;
 }

@@ -17,12 +17,12 @@
   --pico-line-height: 1.5;
   --pico-font-weight: 400;
   --pico-font-size: clamp(0.95rem, 0.8167rem + 0.5333vw, 1.15rem);
-  --pico-text-underline-offset: 0.1rem;
+  --pico-text-underline-offset: 0.1em;
 
   // Borders
-  --pico-border-radius: 0.5rem;
-  --pico-border-width: 0.1rem;
-  --pico-outline-width: 0.125rem;
+  --pico-border-radius: 0.5em;
+  --pico-border-width: 0.1em;
+  --pico-outline-width: 0.125em;
 
   // Transitions
   --pico-transition: 0.2s var(--pico-transition-easing);
@@ -37,7 +37,7 @@
   --pico-spacing: 1rem;
 
   // Spacings for typography elements
-  --pico-typography-spacing-vertical: 1rem;
+  --pico-typography-spacing-vertical: var(--pico-spacing);
 
   // Spacings for body > header, body > main, body > footer, section, article
   --pico-block-spacing-vertical: var(--pico-spacing);
@@ -47,8 +47,8 @@
   --pico-grid-row-gap: var(--pico-spacing);
 
   // Spacings for form elements and button
-  --pico-form-element-spacing-vertical: 0.5rem;
-  --pico-form-element-spacing-horizontal: 0.75rem;
+  --pico-form-element-spacing-vertical: 0.5em;
+  --pico-form-element-spacing-horizontal: 0.75em;
 
   // Font weight for form labels & fieldsets legend
   --pico-form-label-font-weight: var(--pico-font-weight);
@@ -63,10 +63,10 @@
   --pico-modal-overlay-backdrop-filter: blur(0.375rem);
 
   // Spacings for nav component
-  --pico-nav-element-spacing-vertical: 1rem;
-  --pico-nav-element-spacing-horizontal: 0.5rem;
-  --pico-nav-link-spacing-vertical: 0.5rem;
-  --pico-nav-link-spacing-horizontal: 0.5rem;
+  --pico-nav-element-spacing-vertical: 1em;
+  --pico-nav-element-spacing-horizontal: 0.5em;
+  --pico-nav-link-spacing-vertical: 0.5em;
+  --pico-nav-link-spacing-horizontal: 0.5em;
   --pico-nav-breadcrumb-divider: ">";
 
   // Checkboxes icons
@@ -124,39 +124,39 @@ h6 {
 }
 
 h1 {
-  --pico-font-size: 2rem;
+  --pico-font-size: 2em;
   --pico-line-height: 1.125;
-  --pico-typography-spacing-top: 3rem;
+  --pico-typography-spacing-top: 3em;
 }
 
 h2 {
-  --pico-font-size: 1.75rem;
+  --pico-font-size: 1.75em;
   --pico-line-height: 1.15;
-  --pico-typography-spacing-top: 2.625rem;
+  --pico-typography-spacing-top: 2.625em;
 }
 
 h3 {
-  --pico-font-size: 1.5rem;
+  --pico-font-size: 1.5em;
   --pico-line-height: 1.175;
-  --pico-typography-spacing-top: 2.25rem;
+  --pico-typography-spacing-top: 2.25em;
 }
 
 h4 {
-  --pico-font-size: 1.25rem;
+  --pico-font-size: 1.25em;
   --pico-line-height: 1.2;
-  --pico-typography-spacing-top: 1.874rem;
+  --pico-typography-spacing-top: 1.874em;
 }
 
 h5 {
-  --pico-font-size: 1.125rem;
+  --pico-font-size: 1.125em;
   --pico-line-height: 1.225;
-  --pico-typography-spacing-top: 1.6875rem;
+  --pico-typography-spacing-top: 1.6875em;
 }
 
 h6 {
-  --pico-font-size: 1rem;
+  --pico-font-size: 1em;
   --pico-line-height: 1.25;
-  --pico-typography-spacing-top: 1.5rem;
+  --pico-typography-spacing-top: 1.5em;
 }
 
 // Table
@@ -165,7 +165,7 @@ tfoot {
   th,
   td {
     --pico-font-weight: 600;
-    --pico-border-width: 0.1875rem;
+    --pico-border-width: 0.1875em;
   }
 }
 
@@ -191,41 +191,41 @@ input:not(
     [type="file"]
   ),
 :where(select, textarea) {
-  --pico-outline-width: 0.0625rem;
+  --pico-outline-width: 0.0625em;
 }
 
 [type="search"] {
-  --pico-border-radius: 5rem;
+  --pico-border-radius: 5em;
 }
 
 // Checkboxes, Radios and Switches
 [type="checkbox"],
 [type="radio"] {
-  --pico-border-width: 0.125rem;
+  --pico-border-width: 0.125em;
 }
 
 [type="checkbox"][role="switch"] {
-  --pico-border-width: 0.1875rem;
+  --pico-border-width: 0.1875em;
 }
 
 // Dropdown (details.dropdown)
 details.dropdown {
   summary:not([role="button"]) {
-    --pico-outline-width: 0.0625rem;
+    --pico-outline-width: 0.0625em;
   }
 }
 
 nav {
   details.dropdown {
     summary:focus-visible {
-      --pico-outline-width: 0.125rem;
+      --pico-outline-width: 0.125em;
     }
   }
 }
 
 // Group (role="group")
 [role="search"] {
-  --pico-border-radius: 5rem;
+  --pico-border-radius: 5em;
 }
 
 [role="search"],
@@ -254,7 +254,7 @@ nav {
   [type="submit"],
   [type="button"],
   [role="button"] {
-    --pico-form-element-spacing-horizontal: 2rem;
+    --pico-form-element-spacing-horizontal: 2em;
   }
 }
 

@@ -10,7 +10,7 @@ const config = {
       precompress: false,
     }),
     files: {
-      assets: "frontend/public",
+      assets: "assets",
       lib: "frontend/lib",
       params: "frontend/params",
       routes: "frontend/routes",

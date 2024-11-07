@@ -33,10 +33,10 @@
   }
 </script>
 
-<article id="login" class="spaced" in:fade={{ duration: 200 }}>
+<article id="login" in:fade={{ duration: 200 }}>
   <h2>Login</h2>
 
-  <div class="content spaced">
+  <div class="content">
     <p>
       Scan the secret QR code:
       <span style="float: right">

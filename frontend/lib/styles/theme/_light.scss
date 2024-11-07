@@ -1,4 +1,5 @@
 @use "sass:map";
+@use "shadows";
 @use "@picocss/pico/scss/colors" as *;
 @use "@picocss/pico/scss/settings" as *;
 @use "@picocss/pico/scss/helpers/functions";
@@ -55,8 +56,8 @@
   --pico-contrast-inverse: #{$white};
 
   // Box shadow
-  --pico-shadow-color: #{$grey-700};
-  --pico-box-shadow: #{functions.shadow($grey-700)};
+  --pico-shadow-color: #{$grey-600};
+  --pico-box-shadow: #{shadows.shadow(mix($grey-600, $pink-600))};
 
   // Typography
   // Headings colors
