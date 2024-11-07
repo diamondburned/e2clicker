@@ -1,119 +1,123 @@
 <script lang="ts">
+  import Icon from "$lib/components/Icon.svelte";
   import Header from "$lib/components/Header.svelte";
+  import Tooltip from "$lib/components/popovers/Tooltip.svelte";
+  import ResizeContainer from "$lib/components/ResizeContainer.svelte";
+  import TextHorizontalRule from "$lib/components/TextHorizontalRule.svelte";
 
-  import PasswordIcon from "svelte-google-materialdesign-icons/Password.svelte";
-  import KeyIcon from "svelte-google-materialdesign-icons/Key.svelte";
-  import PersonAddIcon from "svelte-google-materialdesign-icons/Person_add.svelte";
-  import ArrowBackIcon from "svelte-google-materialdesign-icons/Arrow_back_ios.svelte";
-  import { fly } from "svelte/transition";
+  import { fade, slide } from "svelte/transition";
 
-  function submitForm(event: SubmitEvent) {
-    event.preventDefault();
-    const formData = new FormData(event.target! as HTMLFormElement);
-    const body = Object.fromEntries(formData);
-    console.log(body);
-  }
+  // function submitForm(event: SubmitEvent) {
+  //   event.preventDefault();
+  //   const formData = new FormData(event.target! as HTMLFormElement);
+  //   const body = Object.fromEntries(formData);
+  //   console.log(body);
+  // }
 
-  let loginMethod = $state<"password" | "passkeys" | "signup" | null>(null);
-  let flyDirection = $derived(loginMethod ? 1 : -1);
-
-  let flyIn = $derived({ delay: 300, duration: 200, x: 10 * flyDirection });
-  let flyOut = $derived({ duration: 200, x: -10 * flyDirection });
+  let signUp = $state(false);
+  let hideEstrannaise = $state(false);
 </script>
 
 <div class="outer-container">
-  <Header fixed />
+  <Header />
 
-  <div class="main-wrapper">
-    <main id="login" class="container">
-      {#snippet backHeader(method: string)}
-        <header>
-          <button class="back" onclick={() => (loginMethod = null)}>
-            <div class="icon"><ArrowBackIcon size="24" /></div>
-            Login Methods
-          </button>
-          <span class="method">{method}</span>
-        </header>
-      {/snippet}
+  <div class="main-wrapper container">
+    <main id="login">
+      <ResizeContainer>
+        {#if !signUp}
+          <article id="login" class="spaced" in:fade={{ duration: 200 }}>
+            <h2>Login</h2>
 
-      {#if loginMethod === null}
-        <article in:fly={flyIn} out:fly={flyOut}>
-          <header>
-            <h2>Choose a login method</h2>
-          </header>
-          <section id="login-methods" class="buttons">
-            <button class="outline" onclick={() => (loginMethod = "password")}>
-              <div class="icon"><PasswordIcon size="48" /></div>
-              <div>
-                <h4>Password</h4>
-                <p>Log in with your email and password</p>
-              </div>
-            </button>
-            <button class="outline" title="Currently unsupported!" disabled>
-              <div class="icon"><KeyIcon size="48" /></div>
-              <div>
-                <h4>Passkeys</h4>
-                <p>Log in with your passkeys</p>
-              </div>
-            </button>
-            <button class="outline contrast" onclick={() => (loginMethod = "signup")}>
-              <div class="icon"><PersonAddIcon size="48" /></div>
-              <div>
-                <h4>Sign Up</h4>
-                <p>Create a new account</p>
-              </div>
-            </button>
-          </section>
-        </article>
-      {/if}
+            <div class="content">
+              <p>
+                Scan the secret QR code:
+                <span style="float: right">
+                  <Tooltip tooltip={loginTooltip}>
+                    <Icon name="info" />
+                  </Tooltip>
+                  {#snippet loginTooltip()}
+                    <div class="login-tooltip">
+                      <p>On the device that you're already logged in:</p>
+                      <ul>
+                        <li>Go to your Settings</li>
+                        <li>Choose "Show secret QR code"</li>
+                        <li>Scan the with this device.</li>
+                      </ul>
+                    </div>
+                  {/snippet}
+                </span>
+              </p>
+              <button class="secondary outline">
+                Log in with QR <Icon name="qr-code-scanner" />
+              </button>
 
-      {#if loginMethod === "password"}
-        <article in:fly={flyIn} out:fly={flyOut}>
-          {@render backHeader("Password")}
-          <section>
-            <form onsubmit={submitForm}>
-              <fieldset>
-                <label>
-                  Email
-                  <input type="email" name="email" required />
-                </label>
-                <label>
-                  Password
-                  <input type="password" name="password" required />
-                </label>
-              </fieldset>
+              <TextHorizontalRule>or</TextHorizontalRule>
 
-              <input type="submit" value="Log in" />
-            </form>
-          </section>
-        </article>
-      {/if}
+              <label class="main-input">
+                <span>Input the secret manually:</span>
+                <input type="password" name="secret" placeholder="xxxxxxxxxxxxxxxxxxxx" />
+              </label>
+            </div>
 
-      {#if loginMethod === "passkeys"}{/if}
+            <div class="buttons">
+              <button class="secondary" onclick={() => (signUp = true)}> Sign up </button>
+              <button>
+                Login <Icon name="arrow-forward" />
+              </button>
+            </div>
+          </article>
+        {:else}
+          <article id="signup" class="spaced" in:fade={{ duration: 200 }}>
+            <h2>Sign up</h2>
 
-      {#if loginMethod === "signup"}
-        <article in:fly={flyIn} out:fly={flyOut}>
-          {@render backHeader("Sign up")}
-          <section>
-            <form onsubmit={submitForm}>
-              <fieldset>
-                <label>
-                  Email
-                  <input type="email" name="email" required />
-                </label>
-                <label>
-                  Password
-                  <input type="password" name="password" required />
-                </label>
-                <label>
-                  Confirm Password
-                  <input type="password" name="passwordConfirm" required />
-                </label>
-              </fieldset>
-              <input type="submit" value="Sign up" />
-            </form>
-          </section>
-        </article>
+            <div class="content">
+              <label class="main-input">
+                <span>Your preferred name:</span>
+                <span style="float: right">
+                  <Tooltip tooltip={preferredNameTooltip}>
+                    <Icon name="info" />
+                  </Tooltip>
+                  {#snippet preferredNameTooltip()}
+                    <div class="spaced">
+                      <p class="preferred-name-tooltip">
+                        This will only be used to address you in the app.
+                        <b>It will not be shown to anyone else.</b>
+                      </p>
+                    </div>
+                  {/snippet}
+                </span>
+                <input type="text" name="name" placeholder="Alice" />
+              </label>
+            </div>
+
+            <div class="buttons">
+              <button class="secondary" onclick={() => (signUp = false)}>Back</button>
+              <button>
+                Sign up <Icon name="arrow-forward" />
+              </button>
+            </div>
+          </article>
+        {/if}
+      </ResizeContainer>
+
+      {#if !hideEstrannaise}
+        <footer class="estrannaise spaced" out:slide={{ duration: 200, axis: "y" }}>
+          <h2>Need to calculate your dosage?</h2>
+          <p>
+            <a href="https://estrannai.se/">estrannai.se</a> lets you simulate estrogen dosages
+            instantly. This is a free and open-source tool that
+            <span class="brand">e2clicker</span> relies on, so please consider supporting them!
+          </p>
+          <a
+            href="#hide-estrannaise"
+            class="hide-estrannaise"
+            onclick={() => {
+              hideEstrannaise = true;
+            }}
+          >
+            <small>Hide this message</small>
+          </a>
+        </footer>
       {/if}
     </main>
   </div>
@@ -135,106 +139,72 @@
     justify-content: center;
   }
 
+  .login-tooltip {
+    --pico-typography-spacing-vertical: 0.35em;
+    ul {
+      margin-bottom: 0;
+      padding-left: var(--pico-spacing);
+      li {
+        list-style-type: disc;
+      }
+    }
+  }
+
   h2 {
     font-size: 1.2em;
   }
 
   main {
+    --pico-block-spacing-vertical: clamp(var(--pico-spacing), 5vh, calc(var(--pico-spacing) * 3));
+    --pico-block-spacing-horizontal: clamp(var(--pico-spacing), 5%, calc(var(--pico-spacing) * 3));
+    --pico-block-spacing: var(--pico-block-spacing-vertical) var(--pico-block-spacing-horizontal);
+
     border-radius: var(--pico-border-radius);
     background: var(--pico-card-background-color);
     box-shadow: var(--pico-card-box-shadow);
 
-    height: min(100%, 500px);
-    padding: max(var(--pico-spacing), calc(5%));
-
-    width: calc(100% - 2 * var(--pico-spacing));
-    margin: var(--pico-spacing) auto;
+    width: 100%;
+    height: auto;
 
     article {
-      min-height: 100%;
       box-shadow: none;
-
-      display: flex;
-      flex-direction: column;
-    }
-
-    header,
-    footer {
-      height: 2em;
+      margin: 0;
+      padding: var(--pico-block-spacing-vertical) var(--pico-block-spacing-horizontal);
+      padding-bottom: var(--pico-block-spacing-horizontal);
       background: none;
 
-      * {
-        margin: 0;
-      }
-    }
-
-    header {
-      display: flex;
-      flex-direction: row;
-      align-items: baseline;
-
-      button.back {
-        --pico-color: var(--pico-contrast);
-
-        background: none;
-        border: none;
-        padding: 0;
-
-        &:hover {
-          --pico-color: var(--pico-primary-hover);
-        }
-
-        .icon {
-          display: inline-block;
-          vertical-align: bottom;
-        }
-      }
-
-      .method {
-        color: var(--pico-primary);
-        font-weight: 600;
-
-        border-left: 1px solid var(--pico-muted-color);
-        margin-left: 0.5em;
-        padding-left: 0.5em;
-      }
-    }
-
-    section {
-      flex: 1;
-
       display: flex;
       flex-direction: column;
-      justify-content: center;
     }
-  }
 
-  #login-methods {
-    display: flex;
-    flex-direction: column;
-    gap: var(--pico-spacing);
+    footer {
+      padding: var(--pico-block-spacing);
+      border-top: var(--pico-border-width) solid var(--pico-card-sectioning-background-color);
+    }
 
-    button {
+    .content {
+      width: 100%;
+
+      & > button {
+        width: 100%;
+      }
+    }
+
+    .buttons {
       display: flex;
-      flex-direction: row;
-      gap: var(--pico-spacing);
-      text-align: left;
+      justify-content: flex-end;
+      gap: calc(var(--pico-spacing) / 2);
 
-      div:nth-child(2) {
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
+      button:last-child {
+        justify-self: end;
+        width: 7em;
+      }
+    }
 
-        h4,
-        p {
-          --pico-color: inherit;
-          --pico-font-size: 1em;
-          margin: 0;
-        }
-
-        p {
-          --pico-line-height: 1;
-        }
+    label.main-input {
+      &,
+      input {
+        margin-bottom: 0;
       }
     }
   }

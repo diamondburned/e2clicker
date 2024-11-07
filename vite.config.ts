@@ -11,6 +11,7 @@ export default defineConfig({
   clearScreen: false,
   plugins: [sveltekit()],
   server: {
+    host: "0.0.0.0",
     port: 8000,
     watch: {
       ignored: [".direnv/**", ".svelte-kit/**", "dist/**"],

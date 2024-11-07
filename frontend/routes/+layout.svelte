@@ -1,12 +1,11 @@
 <script lang="ts">
   import "$lib/styles/styles.scss";
-  import { setContext } from "svelte";
+  import { onMount } from "svelte";
+  import * as api from "$lib/api.svelte.js";
 
   let { children } = $props();
 
-  setContext("iconCtx", {
-    variation: "round",
-  });
+  onMount(api.init);
 </script>
 
 {@render children()}

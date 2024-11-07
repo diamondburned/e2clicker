@@ -10,14 +10,14 @@
   --pico-background-color: #201b1f;
 
   // Text color
-  --pico-color: #{$pink-200};
+  --pico-color: #{$pink-50};
 
   // Text selection color
   --pico-text-selection-color: #{theme-colors.get("text-selection-color", "dark")};
 
   // Muted colors
-  --pico-muted-color: #{mix($pink-200, $grey-800, 40%)};
-  --pico-muted-border-color: #{$grey-850};
+  --pico-muted-color: #{mix($pink-200, $grey-400, 40%)};
+  --pico-muted-border-color: #{mix($pink-200, $grey-600, 40%)};
 
   // Primary colors
   --pico-primary: #{theme-colors.get("primary", "dark")};
@@ -61,12 +61,12 @@
 
   // Typography
   // Headings colors
-  --pico-h1-color: #{$pink-50};
-  --pico-h2-color: #{$pink-100};
+  --pico-h1-color: #{$pink-200};
+  --pico-h2-color: #{$pink-200};
   --pico-h3-color: #{$pink-200};
   --pico-h4-color: #{$pink-250};
-  --pico-h5-color: #{$pink-300};
-  --pico-h6-color: #{$pink-400};
+  --pico-h5-color: #{$pink-250};
+  --pico-h6-color: #{$pink-250};
 
   // Highlighted text (<mark>)
   --pico-mark-background-color: #{$azure-750};
@@ -97,12 +97,12 @@
   --pico-code-kbd-color: var(--pico-background-color);
 
   // Form elements
-  --pico-form-element-background-color: #{mix($grey-900, $pink-850, 85%)};
-  --pico-form-element-selected-background-color: #{mix($grey-900, $pink-850, 75%)};
-  --pico-form-element-border-color: #{$grey-800};
-  --pico-form-element-color: #{$zinc-100};
-  --pico-form-element-placeholder-color: #{$zinc-400};
-  --pico-form-element-active-background-color: #{mix($grey-900, $grey-850, 75%)};
+  --pico-form-element-background-color: #{mix(transparent, $pink-900, 80%)};
+  --pico-form-element-selected-background-color: #{mix($grey-800, $pink-700, 35%)};
+  --pico-form-element-border-color: #{mix($grey-700, $pink-300, 35%)};
+  --pico-form-element-color: #{$pink-100};
+  --pico-form-element-placeholder-color: #{mix($zinc-400, $pink-400, 80%)};
+  --pico-form-element-active-background-color: #{mix($grey-800, $pink-800, 55%)};
   --pico-form-element-active-border-color: var(--pico-primary-border);
   --pico-form-element-focus-color: var(--pico-primary-border);
   --pico-form-element-disabled-opacity: 0.5;
@@ -126,14 +126,14 @@
   }
 
   // Switch (input[type="checkbox"][role="switch"])
-  --pico-switch-background-color: #{$slate-750};
+  --pico-switch-background-color: #{$grey-750};
   --pico-switch-checked-background-color: var(--pico-primary-background);
   --pico-switch-color: #{$white};
   --pico-switch-thumb-box-shadow: #{theme-colors.get("switch-thumb-box-shadow", "dark")};
 
   // Range (input[type="range"])
-  --pico-range-border-color: #{$slate-850};
-  --pico-range-active-border-color: #{$slate-800};
+  --pico-range-border-color: #{$grey-850};
+  --pico-range-active-border-color: #{$grey-800};
   --pico-range-thumb-border-color: var(--pico-background-color);
   --pico-range-thumb-color: var(--pico-secondary-background);
   --pico-range-thumb-active-color: var(--pico-primary-background);
@@ -148,14 +148,14 @@
   --pico-card-background-color: #{mix($pink-300, $grey-950, 15%)};
   --pico-card-border-color: var(--pico-card-background-color);
   --pico-card-box-shadow: var(--pico-box-shadow);
-  --pico-card-sectioning-background-color: #{mix($slate-900, $slate-850, 75%)};
+  --pico-card-sectioning-background-color: #{mix($pink-500, $grey-950, 10%)};
 
   // Dropdown (details.dropdown)
-  --pico-dropdown-background-color: #{$slate-900};
-  --pico-dropdown-border-color: #{$slate-850};
+  --pico-dropdown-background-color: #{mix($grey-900, $pink-500, 70%)};
+  --pico-dropdown-border-color: #{mix($grey-850, $pink-500, 50%)};
   --pico-dropdown-box-shadow: var(--pico-box-shadow);
   --pico-dropdown-color: var(--pico-color);
-  --pico-dropdown-hover-background-color: #{$slate-850};
+  --pico-dropdown-hover-background-color: #{mix($grey-850, $pink-500, 50%)};
 
   // Loading ([aria-busy=true])
   --pico-loading-spinner-opacity: 0.5;
@@ -164,7 +164,7 @@
   --pico-modal-overlay-background-color: #{rgba(mix($black, $zinc-950), 0.75)};
 
   // Progress
-  --pico-progress-background-color: #{$slate-850};
+  --pico-progress-background-color: #{$grey-850};
   --pico-progress-color: var(--pico-primary-background);
 
   // Tooltip ([data-tooltip])

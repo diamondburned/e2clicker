@@ -41,6 +41,10 @@
     &.fixed {
       position: fixed;
     }
+
+    a:hover {
+      text-decoration: none;
+    }
   }
 
   img.logo {

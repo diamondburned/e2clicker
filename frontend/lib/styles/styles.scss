@@ -18,10 +18,16 @@ html {
 
 body {
   min-height: 100%;
+  overflow-x: hidden;
 }
 
 * {
   box-sizing: border-box;
+}
+
+a,
+a:hover {
+  text-decoration: none;
 }
 
 .primary {
@@ -33,4 +39,20 @@ body {
     --pico-color: var(--pico-primary-inverse);
     background-color: var(--pico-primary-background);
   }
+}
+
+.small-heading {
+  font-size: inherit;
+}
+
+.spaced > * {
+  margin-bottom: var(--pico-typography-spacing-vertical);
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.muted {
+  color: var(--pico-muted-color);
 }

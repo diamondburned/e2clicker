@@ -13,7 +13,7 @@
   --pico-font-family-monospace: "Inconsolata", ui-monospace, monospace,
     var(--pico-font-family-emoji);
   --pico-font-family: var(--pico-font-family-sans-serif);
-  --pico-font-family-headings: "Inter", var(--pico-font-family-sans-serif);
+  --pico-font-family-headings: var(--pico-font-family-sans-serif);
   --pico-line-height: 1.5;
   --pico-font-weight: 400;
   --pico-font-size: clamp(0.95rem, 0.8167rem + 0.5333vw, 1.15rem);
@@ -21,7 +21,7 @@
 
   // Borders
   --pico-border-radius: 0.5rem;
-  --pico-border-width: 0.0625rem;
+  --pico-border-width: 0.1rem;
   --pico-outline-width: 0.125rem;
 
   // Transitions
@@ -47,8 +47,8 @@
   --pico-grid-row-gap: var(--pico-spacing);
 
   // Spacings for form elements and button
-  --pico-form-element-spacing-vertical: 0.75rem;
-  --pico-form-element-spacing-horizontal: 1rem;
+  --pico-form-element-spacing-vertical: 0.5rem;
+  --pico-form-element-spacing-horizontal: 0.75rem;
 
   // Font weight for form labels & fieldsets legend
   --pico-form-label-font-weight: var(--pico-font-weight);
@@ -92,58 +92,6 @@
 }
 
 // Responsives spacings
-
-// Landmarks and section
-#{$semantic-root-element} > header,
-#{$semantic-root-element} > main,
-#{$semantic-root-element} > footer,
-section {
-  @each $key, $values in $breakpoints {
-    @if $values {
-      @media (min-width: map.get($values, "breakpoint")) {
-        $multiplier: 1;
-        @if $key == "sm" {
-          $multiplier: 1.25;
-        } @else if $key == "md" {
-          $multiplier: 1.5;
-        } @else if $key == "lg" {
-          $multiplier: 1.75;
-        } @else if $key == "xl" {
-          $multiplier: 2;
-        } @else if $key == "xxl" {
-          $multiplier: 2.25;
-        }
-
-        --pico-block-spacing-vertical: calc(var(--pico-spacing) * $multiplier);
-      }
-    }
-  }
-}
-
-// Card (<article>)
-article {
-  @each $key, $values in $breakpoints {
-    @if $values {
-      @media (min-width: map.get($values, "breakpoint")) {
-        $multiplier: 1;
-        @if $key == "sm" {
-          $multiplier: 1.25;
-        } @else if $key == "md" {
-          $multiplier: 1.5;
-        } @else if $key == "lg" {
-          $multiplier: 1.75;
-        } @else if $key == "xl" {
-          $multiplier: 2;
-        } @else if $key == "xxl" {
-          $multiplier: 2.25;
-        }
-
-        --pico-block-spacing-vertical: calc(var(--pico-spacing) * $multiplier);
-        --pico-block-spacing-horizontal: calc(var(--pico-spacing) * $multiplier);
-      }
-    }
-  }
-}
 
 // Link
 a {
@@ -337,5 +285,23 @@ details {
         filter: brightness(0) invert(0);
       }
     }
+  }
+}
+
+article {
+  > header,
+  > footer {
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+
+  > header {
+    margin-top: 0;
+    margin-bottom: var(--pico-block-spacing-vertical);
+  }
+
+  > footer {
+    margin-top: var(--pico-block-spacing-vertical);
+    margin-bottom: 0;
   }
 }
