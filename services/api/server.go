@@ -9,6 +9,7 @@ import (
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"go.uber.org/fx"
 	"libdb.so/e2clicker/internal/fxhooking"
+	"libdb.so/e2clicker/internal/publicerrors"
 	"libdb.so/e2clicker/services/api/openapi"
 	"libdb.so/hserve"
 
@@ -51,6 +52,7 @@ func NewServer(
 			inputs.Handler, nil,
 			openapi.StrictHTTPServerOptions{
 				RequestErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {
+					err = publicerrors.ForcePublic(err) // only validation errors
 					writeError(w, r, err, http.StatusBadRequest)
 				},
 				ResponseErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {

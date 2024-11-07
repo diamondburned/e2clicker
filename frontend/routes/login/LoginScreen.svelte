@@ -1,11 +1,14 @@
 <script lang="ts">
   import Icon from "$lib/components/Icon.svelte";
+  import Dialog from "$lib/components/Dialog.svelte";
   import Tooltip from "$lib/components/popovers/Tooltip.svelte";
+  import ErrorBox from "$lib/components/ErrorBox.svelte";
   import QRScanner from "$lib/components/QRScanner.svelte";
   import TextHorizontalRule from "$lib/components/TextHorizontalRule.svelte";
 
   import { fade } from "svelte/transition";
-  import Dialog from "$lib/components/Dialog.svelte";
+  import { auth } from "$lib/openapi.gen";
+  import { setToken } from "$lib/api";
 
   let {
     screen = $bindable(),
@@ -15,19 +18,25 @@
     promise: Promise<unknown>;
   } = $props();
 
+  let error = $state<any>();
   let loginSecret = $state("");
   let showQRDialog = $state(false);
 
   async function submitLogin() {
     console.log("Submitting login with secret", loginSecret);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    try {
+      const r = await auth({ secret: loginSecret });
+      setToken(r.token);
+    } catch (err) {
+      error = err;
+    }
   }
 </script>
 
 <article id="login" class="spaced" in:fade={{ duration: 200 }}>
   <h2>Login</h2>
 
-  <div class="content">
+  <div class="content spaced">
     <p>
       Scan the secret QR code:
       <span style="float: right">
@@ -51,6 +60,8 @@
         bind:value={loginSecret}
       />
     </label>
+
+    <ErrorBox {error} prefix="cannot log in" />
   </div>
 
   <div class="buttons">

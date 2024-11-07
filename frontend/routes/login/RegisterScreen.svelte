@@ -1,8 +1,11 @@
 <script lang="ts">
   import Icon from "$lib/components/Icon.svelte";
   import Tooltip from "$lib/components/popovers/Tooltip.svelte";
+  import { auth, register } from "$lib/openapi.gen";
+  import { setToken } from "$lib/api";
 
   import { fade } from "svelte/transition";
+  import ErrorBox from "$lib/components/ErrorBox.svelte";
 
   let {
     screen = $bindable(),
@@ -13,8 +16,17 @@
   } = $props();
 
   let registerName = $state("");
+  let error = $state<any>();
 
-  async function submitRegister() {}
+  async function submitRegister() {
+    try {
+      const { secret } = await register({ name: registerName });
+      const { token } = await auth({ secret });
+      setToken(token);
+    } catch (err) {
+      error = err;
+    }
+  }
 </script>
 
 <article id="register" class="spaced" in:fade={{ duration: 200 }}>
@@ -38,6 +50,8 @@
       </span>
       <input type="text" name="name" placeholder="Alice" bind:value={registerName} />
     </label>
+
+    <ErrorBox {error} prefix="cannot register" />
   </div>
 
   <div class="buttons">
