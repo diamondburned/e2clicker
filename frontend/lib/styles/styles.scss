@@ -56,3 +56,14 @@ a:hover {
 .muted {
   color: var(--pico-muted-color);
 }
+
+article {
+  > header,
+  > footer {
+    background: none;
+  }
+
+  > header {
+    border-bottom: var(--pico-border-width) solid var(--pico-card-sectioning-background-color);
+  }
+}

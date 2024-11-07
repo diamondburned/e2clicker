@@ -1,39 +1,58 @@
 <script lang="ts">
-  import { Snippet } from "svelte";
-  import { fade } from "svelte/transition";
+  import { type Snippet } from "svelte";
+  import { fade, fly } from "svelte/transition";
 
   let {
     open = $bindable(false),
     wide = false,
     dismissible = true,
-    ondismiss = () => {
-      open = false;
-    },
-    header,
-    footer,
-    content,
+    children,
   }: {
     open: boolean;
-    wide: boolean;
-    dismissible: boolean;
-    ondismiss: () => void;
-    header?: Snippet;
-    footer?: Snippet;
-    content: Snippet;
+    wide?: boolean;
+    dismissible?: boolean;
+    children: Snippet;
   } = $props();
 </script>
 
+<svelte:window />
+
 {#if open}
-  <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
-  <div
+  <dialog
+    role="presentation"
+    open
     class="dialog-overlay"
-    transition:fade
-    onclick={() => {
+    transition:fade={{ duration: 200 }}
+    onmousedown={(ev) => {
+      ev.stopPropagation();
       if (dismissible) {
-        ondismiss();
+        open = false;
       }
     }}
   >
-    <dialog open class:wide></dialog>
-  </div>
+    <article
+      role="presentation"
+      class="dialog"
+      class:wide
+      class:dismissible
+      transition:fly={{ duration: 250, y: 50 }}
+      onmousedown={(ev) => {
+        ev.stopPropagation();
+      }}
+    >
+      {@render children()}
+    </article>
+  </dialog>
 {/if}
+
+<style lang="scss">
+  .dialog {
+    position: relative;
+
+    & > :global(header) {
+      --pico-block-spacing-vertical: var(--pico-spacing);
+
+      padding-bottom: var(--pico-block-spacing-vertical);
+    }
+  }
+</style>

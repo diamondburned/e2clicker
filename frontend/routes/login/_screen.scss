@@ -1,0 +1,41 @@
+@mixin article {
+  @include spacings;
+
+  box-shadow: none;
+  margin: 0;
+  padding: var(--pico-block-spacing-vertical) var(--pico-block-spacing-horizontal);
+  padding-bottom: var(--pico-block-spacing-horizontal);
+  background: none;
+
+  display: flex;
+  flex-direction: column;
+
+  .content,
+  .content > * {
+    width: 100%;
+  }
+
+  label.main-input {
+    &,
+    input {
+      margin-bottom: 0;
+    }
+  }
+
+  .buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: calc(var(--pico-spacing) / 2);
+
+    button:last-child {
+      justify-self: end;
+      width: 7em;
+    }
+  }
+}
+
+@mixin spacings {
+  --pico-block-spacing-vertical: clamp(var(--pico-spacing), 5vh, calc(var(--pico-spacing) * 3));
+  --pico-block-spacing-horizontal: clamp(var(--pico-spacing), 5vw, calc(var(--pico-spacing) * 3));
+  --pico-block-spacing: var(--pico-block-spacing-vertical) var(--pico-block-spacing-horizontal);
+}

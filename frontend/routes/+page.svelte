@@ -1,10 +1,10 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
-  import { isLoggedIn } from "$lib/api.svelte.js";
   import { onMount } from "svelte";
+  import { isLoggedIn } from "$lib/api.js";
 
   onMount(() => {
-    if (!isLoggedIn()) {
+    if (!$isLoggedIn) {
       goto("/login");
     }
   });
