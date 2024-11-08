@@ -1,13 +1,31 @@
 <script lang="ts">
+  import Icon from "$lib/components/Icon.svelte";
+
+  import { fly } from "svelte/transition";
   import { goto } from "$app/navigation";
   import { onMount } from "svelte";
   import { isLoggedIn } from "$lib/api.js";
-  import Icon from "$lib/components/Icon.svelte";
+  import type { FlyProps } from "$lib/components/popovers/Popover.svelte";
 
   onMount(() => {
     if ($isLoggedIn) {
       // goto("/dashboard");
     }
+  });
+
+  let footerIndex = $state(0);
+  let pauseFooter = $state(false);
+
+  const footerIn: FlyProps = { duration: 200, x: 50 };
+  const footerOut: FlyProps = { duration: 200, x: -50 };
+
+  onMount(() => {
+    const v = setInterval(() => {
+      if (!pauseFooter) {
+        footerIndex = (footerIndex + 1) % 4;
+      }
+    }, 5000);
+    return () => clearInterval(v);
   });
 </script>
 
@@ -28,12 +46,55 @@
     <span class="avoid-wrap">free and open-source forever for everyone!</span>
   </p>
 
-  <footer>
-    <a href="/login#register" role="button">
-      Get Started <Icon name="arrow-forward" />
-    </a>
-  </footer>
+  <section>
+    {#if $isLoggedIn}
+      <a href="/dashboard" role="button">
+        Go to Dashboard <Icon name="arrow-forward" />
+      </a>
+    {:else}
+      <a href="/login#register" role="button">
+        Get Started <Icon name="arrow-forward" />
+      </a>
+    {/if}
+  </section>
 </main>
+
+<footer
+  class="container secondary"
+  class:focus={pauseFooter}
+  onfocus={() => (pauseFooter = true)}
+  onblur={() => (pauseFooter = false)}
+  onmouseover={() => (pauseFooter = true)}
+  onmouseleave={() => (pauseFooter = false)}
+>
+  <div class="grid">
+    {#if footerIndex == 0}
+      <p in:fly={footerIn} out:fly={footerOut}>
+        <a href="https://github.com/diamondburned/e2clicker">
+          Source code on <b>GitHub</b>.
+        </a>
+      </p>
+    {/if}
+    {#if footerIndex == 1}
+      <p in:fly={footerIn} out:fly={footerOut}>
+        <a href="https://estrannai.se">
+          Calculations sourced from
+          <b>estrannai.se</b>.
+        </a>
+      </p>
+    {/if}
+    {#if footerIndex == 2}
+      <p in:fly={footerIn} out:fly={footerOut}>
+        <a href="https://www.gnu.org/licenses/gpl-3.0.en.html">
+          Licensed under the <b>GNU GPL v3</b>, free and open-source forever.
+        </a>
+      </p>
+    {/if}
+    {#if footerIndex == 3}
+      <p in:fly={footerIn} out:fly={footerOut}>🏳️‍⚧️ Trans rights are human rights.</p>
+    {/if}
+  </div>
+</footer>
 
 <style lang="scss">
   main {
@@ -89,6 +150,43 @@
       .avoid-wrap {
         display: inline-block;
       }
+    }
+  }
+
+  footer {
+    width: 100%;
+    opacity: 0.75;
+    font-size: 0.8em;
+
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+
+    padding-bottom: var(--pico-block-spacing-vertical);
+
+    &.focus {
+      opacity: 1;
+    }
+
+    & > * {
+      text-align: center;
+      user-select: none;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-rows: 1fr;
+      grid-template-columns: 1fr;
+
+      & > * {
+        // Make them all overlap
+        grid-row: 1;
+        grid-column: 1;
+      }
+    }
+
+    p {
+      margin: 0;
     }
   }
 </style>

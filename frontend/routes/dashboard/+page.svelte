@@ -8,49 +8,12 @@
 
 <Header />
 
-<p>Hello, world!</p>
-<p>Hello, world!</p>
-<p>Hello, world!</p>
-<p>Hello, world!</p>
-<p>Hello, world!</p>
-<p>Hello, world!</p>
-<p>Hello, world!</p>
-<p>Hello, world!</p>
-<p>Hello, world!</p>
-<p>Hello, world!</p>
-<p>Hello, world!</p>
-<p>Hello, world!</p>
-<p>Hello, world!</p>
-<p>Hello, world!</p>
-<p>Hello, world!</p>
-<p>Hello, world!</p>
-<p>Hello, world!</p>
-<p>Hello, world!</p>
-<p>Hello, world!</p>
-<p>Hello, world!</p>
-<p>Hello, world!</p>
-<p>Hello, world!</p>
-<p>Hello, world!</p>
-<p>Hello, world!</p>
-<p>Hello, world!</p>
-<p>Hello, world!</p>
-<p>Hello, world!</p>
-<p>Hello, world!</p>
-<p>Hello, world!</p>
-<p>Hello, world!</p>
-<p>Hello, world!</p>
-<p>Hello, world!</p>
-<p>Hello, world!</p>
-<p>Hello, world!</p>
-<p>Hello, world!</p>
-<p>Hello, world!</p>
-<p>Hello, world!</p>
-<p>Hello, world!</p>
-<p>Hello, world!</p>
-<p>Hello, world!</p>
-<p>Hello, world!</p>
-<p>Hello, world!</p>
-<p>Hello, world!</p>
-<p>Hello, world!</p>
-<p>Hello, world!</p>
-<p>Hello, world!</p>
+<main>
+  <h1>Dashboard</h1>
+</main>
+
+<style lang="scss">
+  main {
+    flex: 1;
+  }
+</style>

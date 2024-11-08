@@ -21,6 +21,7 @@ body {
   overflow-x: hidden;
 
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
 }
@@ -42,6 +43,28 @@ a:hover {
   &.inverted {
     --pico-color: var(--pico-primary-inverse);
     background-color: var(--pico-primary-background);
+  }
+}
+
+.secondary {
+  &:not(.inverted) {
+    --pico-color: var(--pico-secondary);
+  }
+
+  &.inverted {
+    --pico-color: var(--pico-secondary-inverse);
+    background-color: var(--pico-secondary-background);
+  }
+
+  a {
+    color: var(--pico-secondary);
+
+    &:hover {
+      color: var(--pico-secondary-hover);
+    }
+    &:focus {
+      color: var(--pico-secondary-focus);
+    }
   }
 }
 
