@@ -97,9 +97,16 @@
         }
       },
       "DosageHistory": {
-        "type": "array",
-        "items": {
-          "$ref": "#/components/schemas/DosageObservation"
+        "required": [
+          "history"
+        ],
+        "properties": {
+          "history": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DosageObservation"
+            }
+          }
         }
       },
       "DosageObservation": {
@@ -166,7 +173,7 @@
         "required": [
           "name",
           "locale",
-          "has_avatar"
+          "hasAvatar"
         ],
         "properties": {
           "name": {
@@ -178,7 +185,7 @@
             "$ref": "#/components/schemas/Locale",
             "x-order": 2
           },
-          "has_avatar": {
+          "hasAvatar": {
             "type": "boolean",
             "description": "Whether the user has an avatar.",
             "x-order": 3
@@ -190,8 +197,8 @@
         "type": "object",
         "required": [
           "id",
-          "created_at",
-          "last_used"
+          "createdAt",
+          "lastUsed"
         ],
         "properties": {
           "id": {
@@ -200,19 +207,19 @@
             "description": "The session identifier",
             "x-order": 1
           },
-          "created_at": {
+          "createdAt": {
             "type": "string",
             "format": "date-time",
             "description": "The time the session was created",
             "x-order": 2
           },
-          "last_used": {
+          "lastUsed": {
             "type": "string",
             "format": "date-time",
             "description": "The last time the session was used",
             "x-order": 3
           },
-          "expires_at": {
+          "expiresAt": {
             "type": "string",
             "format": "date-time",
             "description": "The time the session expires, or null if it never expires",
@@ -278,7 +285,12 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DosageSchedule"
+                  "properties": {
+                    "schedule": {
+                      "$ref": "#/components/schemas/DosageSchedule"
+                    }
+                  },
+                  "description": "The user's dosage schedule. If the user has no schedule set, this will be null."
                 }
               }
             }
@@ -311,37 +323,49 @@
         "tags": [
           "dosage"
         ]
+      },
+      "delete": {
+        "summary": "Clear the user's dosage schedule",
+        "operationId": "clearDosageSchedule",
+        "responses": {
+          "204": {
+            "description": "Successfully cleared dosage schedule."
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        },
+        "tags": [
+          "dosage"
+        ]
       }
     },
     "/dosage/history": {
       "get": {
         "summary": "Get the user's dosage history within a time range",
         "operationId": "doseHistory",
-        "requestBody": {
-          "content": {
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "start",
-                  "end"
-                ],
-                "properties": {
-                  "start": {
-                    "type": "string",
-                    "format": "date-time",
-                    "description": "The start date of the history to retrieve."
-                  },
-                  "end": {
-                    "type": "string",
-                    "format": "date-time",
-                    "description": "The end date of the history to retrieve."
-                  }
-                }
-              }
+        "parameters": [
+          {
+            "name": "start",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "description": "The start date of the history to retrieve."
+            }
+          },
+          {
+            "name": "end",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "description": "The end date of the history to retrieve."
             }
           }
-        },
+        ],
         "responses": {
           "200": {
             "description": "Successfully retrieved dosage history.",

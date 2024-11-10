@@ -42,7 +42,9 @@ type DeliveryMethod struct {
 }
 
 // DosageHistory defines model for DosageHistory.
-type DosageHistory = []DosageObservation
+type DosageHistory struct {
+	History []DosageObservation `json:"history"`
+}
 
 // DosageObservation defines model for DosageObservation.
 type DosageObservation struct {
@@ -101,13 +103,13 @@ type Session struct {
 	ID int64 `json:"id"`
 
 	// CreatedAt The time the session was created
-	CreatedAt time.Time `json:"created_at"`
+	CreatedAt time.Time `json:"createdAt"`
 
 	// LastUsed The last time the session was used
-	LastUsed time.Time `json:"last_used"`
+	LastUsed time.Time `json:"lastUsed"`
 
 	// ExpiresAt The time the session expires, or null if it never expires
-	ExpiresAt *time.Time `json:"expires_at,omitempty"`
+	ExpiresAt *time.Time `json:"expiresAt,omitempty"`
 }
 
 // User A user of the system.
@@ -119,7 +121,7 @@ type User struct {
 	Locale Locale `json:"locale"`
 
 	// HasAvatar Whether the user has an avatar.
-	HasAvatar bool `json:"has_avatar"`
+	HasAvatar bool `json:"hasAvatar"`
 }
 
 // UserSecret A secret and unique user identifier. This secret is generated once and never changes. It is used to both authenticate and identify a user, so it should be kept secret.
@@ -145,13 +147,10 @@ type ForgetDosesJSONBody struct {
 	DoseIds []int64 `json:"dose_ids"`
 }
 
-// DoseHistoryFormdataBody defines parameters for DoseHistory.
-type DoseHistoryFormdataBody struct {
-	// End The end date of the history to retrieve.
-	End time.Time `form:"end" json:"end"`
-
-	// Start The start date of the history to retrieve.
+// DoseHistoryParams defines parameters for DoseHistory.
+type DoseHistoryParams struct {
 	Start time.Time `form:"start" json:"start"`
+	End   time.Time `form:"end" json:"end"`
 }
 
 // RecordDoseJSONBody defines parameters for RecordDose.
@@ -177,9 +176,6 @@ type AuthJSONRequestBody AuthJSONBody
 
 // ForgetDosesJSONRequestBody defines body for ForgetDoses for application/json ContentType.
 type ForgetDosesJSONRequestBody ForgetDosesJSONBody
-
-// DoseHistoryFormdataRequestBody defines body for DoseHistory for application/x-www-form-urlencoded ContentType.
-type DoseHistoryFormdataRequestBody DoseHistoryFormdataBody
 
 // RecordDoseJSONRequestBody defines body for RecordDose for application/json ContentType.
 type RecordDoseJSONRequestBody RecordDoseJSONBody
@@ -209,13 +205,16 @@ type ServerInterface interface {
 	ForgetDoses(w http.ResponseWriter, r *http.Request)
 	// Get the user's dosage history within a time range
 	// (GET /dosage/history)
-	DoseHistory(w http.ResponseWriter, r *http.Request)
+	DoseHistory(w http.ResponseWriter, r *http.Request, params DoseHistoryParams)
 	// Record a new dosage to the user's history
 	// (POST /dosage/history)
 	RecordDose(w http.ResponseWriter, r *http.Request)
 	// Update a dosage in the user's history
 	// (PUT /dosage/history)
 	EditDose(w http.ResponseWriter, r *http.Request)
+	// Clear the user's dosage schedule
+	// (DELETE /dosage/schedule)
+	ClearDosageSchedule(w http.ResponseWriter, r *http.Request)
 	// Get the user's dosage schedule
 	// (GET /dosage/schedule)
 	DosageSchedule(w http.ResponseWriter, r *http.Request)
@@ -331,14 +330,49 @@ func (siw *ServerInterfaceWrapper) ForgetDoses(w http.ResponseWriter, r *http.Re
 // DoseHistory operation middleware
 func (siw *ServerInterfaceWrapper) DoseHistory(w http.ResponseWriter, r *http.Request) {
 
+	var err error
+
 	ctx := r.Context()
 
 	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
 
 	r = r.WithContext(ctx)
 
+	// Parameter object where we will unmarshal all parameters from the context
+	var params DoseHistoryParams
+
+	// ------------- Required query parameter "start" -------------
+
+	if paramValue := r.URL.Query().Get("start"); paramValue != "" {
+
+	} else {
+		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "start"})
+		return
+	}
+
+	err = runtime.BindQueryParameter("form", true, true, "start", r.URL.Query(), &params.Start)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "start", Err: err})
+		return
+	}
+
+	// ------------- Required query parameter "end" -------------
+
+	if paramValue := r.URL.Query().Get("end"); paramValue != "" {
+
+	} else {
+		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "end"})
+		return
+	}
+
+	err = runtime.BindQueryParameter("form", true, true, "end", r.URL.Query(), &params.End)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "end", Err: err})
+		return
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.DoseHistory(w, r)
+		siw.Handler.DoseHistory(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -379,6 +413,26 @@ func (siw *ServerInterfaceWrapper) EditDose(w http.ResponseWriter, r *http.Reque
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.EditDose(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ClearDosageSchedule operation middleware
+func (siw *ServerInterfaceWrapper) ClearDosageSchedule(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ClearDosageSchedule(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -688,6 +742,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc("GET "+options.BaseURL+"/dosage/history", wrapper.DoseHistory)
 	m.HandleFunc("POST "+options.BaseURL+"/dosage/history", wrapper.RecordDose)
 	m.HandleFunc("PUT "+options.BaseURL+"/dosage/history", wrapper.EditDose)
+	m.HandleFunc("DELETE "+options.BaseURL+"/dosage/schedule", wrapper.ClearDosageSchedule)
 	m.HandleFunc("GET "+options.BaseURL+"/dosage/schedule", wrapper.DosageSchedule)
 	m.HandleFunc("PUT "+options.BaseURL+"/dosage/schedule", wrapper.SetDosageSchedule)
 	m.HandleFunc("GET "+options.BaseURL+"/me", wrapper.CurrentUser)
@@ -793,7 +848,7 @@ func (response ForgetDosesdefaultJSONResponse) VisitForgetDosesResponse(w http.R
 }
 
 type DoseHistoryRequestObject struct {
-	Body *DoseHistoryFormdataRequestBody
+	Params DoseHistoryParams
 }
 
 type DoseHistoryResponseObject interface {
@@ -866,6 +921,33 @@ func (response EditDosedefaultJSONResponse) VisitEditDoseResponse(w http.Respons
 	return json.NewEncoder(w).Encode(response.Body)
 }
 
+type ClearDosageScheduleRequestObject struct {
+}
+
+type ClearDosageScheduleResponseObject interface {
+	VisitClearDosageScheduleResponse(w http.ResponseWriter) error
+}
+
+type ClearDosageSchedule204Response struct {
+}
+
+func (response ClearDosageSchedule204Response) VisitClearDosageScheduleResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type ClearDosageScheduledefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response ClearDosageScheduledefaultJSONResponse) VisitClearDosageScheduleResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+
+	return json.NewEncoder(w).Encode(response.Body)
+}
+
 type DosageScheduleRequestObject struct {
 }
 
@@ -873,7 +955,9 @@ type DosageScheduleResponseObject interface {
 	VisitDosageScheduleResponse(w http.ResponseWriter) error
 }
 
-type DosageSchedule200JSONResponse DosageSchedule
+type DosageSchedule200JSONResponse struct {
+	Schedule *DosageSchedule `json:"schedule,omitempty"`
+}
 
 func (response DosageSchedule200JSONResponse) VisitDosageScheduleResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
@@ -1109,7 +1193,7 @@ type Register200JSONResponse struct {
 	Locale Locale `json:"locale"`
 
 	// HasAvatar Whether the user has an avatar.
-	HasAvatar bool `json:"has_avatar"`
+	HasAvatar bool `json:"hasAvatar"`
 
 	// Secret A secret and unique user identifier. This secret is generated once and never changes. It is used to both authenticate and identify a user, so it should be kept secret.
 	Secret UserSecret `json:"secret"`
@@ -1154,6 +1238,9 @@ type StrictServerInterface interface {
 	// Update a dosage in the user's history
 	// (PUT /dosage/history)
 	EditDose(ctx context.Context, request EditDoseRequestObject) (EditDoseResponseObject, error)
+	// Clear the user's dosage schedule
+	// (DELETE /dosage/schedule)
+	ClearDosageSchedule(ctx context.Context, request ClearDosageScheduleRequestObject) (ClearDosageScheduleResponseObject, error)
 	// Get the user's dosage schedule
 	// (GET /dosage/schedule)
 	DosageSchedule(ctx context.Context, request DosageScheduleRequestObject) (DosageScheduleResponseObject, error)
@@ -1301,19 +1388,10 @@ func (sh *strictHandler) ForgetDoses(w http.ResponseWriter, r *http.Request) {
 }
 
 // DoseHistory operation middleware
-func (sh *strictHandler) DoseHistory(w http.ResponseWriter, r *http.Request) {
+func (sh *strictHandler) DoseHistory(w http.ResponseWriter, r *http.Request, params DoseHistoryParams) {
 	var request DoseHistoryRequestObject
 
-	if err := r.ParseForm(); err != nil {
-		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode formdata: %w", err))
-		return
-	}
-	var body DoseHistoryFormdataRequestBody
-	if err := runtime.BindForm(&body, r.Form, nil, nil); err != nil {
-		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't bind formdata: %w", err))
-		return
-	}
-	request.Body = &body
+	request.Params = params
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
 		return sh.ssi.DoseHistory(ctx, request.(DoseHistoryRequestObject))
@@ -1390,6 +1468,30 @@ func (sh *strictHandler) EditDose(w http.ResponseWriter, r *http.Request) {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(EditDoseResponseObject); ok {
 		if err := validResponse.VisitEditDoseResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ClearDosageSchedule operation middleware
+func (sh *strictHandler) ClearDosageSchedule(w http.ResponseWriter, r *http.Request) {
+	var request ClearDosageScheduleRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ClearDosageSchedule(ctx, request.(ClearDosageScheduleRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ClearDosageSchedule")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ClearDosageScheduleResponseObject); ok {
+		if err := validResponse.VisitClearDosageScheduleResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -1641,40 +1743,41 @@ func (sh *strictHandler) Register(w http.ResponseWriter, r *http.Request) {
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

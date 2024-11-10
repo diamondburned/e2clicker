@@ -206,7 +206,7 @@ components:
       description: >-
         A user of the system.
       type: object
-      required: [name, locale, has_avatar]
+      required: [name, locale, hasAvatar]
       properties:
         name:
           type: string
@@ -215,7 +215,7 @@ components:
         locale:
           $ref: "#/components/schemas/Locale"
           x-order: 2
-        has_avatar:
+        hasAvatar:
           type: boolean
           description: >-
             Whether the user has an avatar.
@@ -225,26 +225,26 @@ components:
       description: >-
         A session for a user.
       type: object
-      required: [id, created_at, last_used]
+      required: [id, createdAt, lastUsed]
       properties:
         id:
           type: integer
           format: int64
           description: The session identifier
           x-order: 1
-        created_at:
+        createdAt:
           type: string
           format: date-time
           description: >-
             The time the session was created
           x-order: 2
-        last_used:
+        lastUsed:
           type: string
           format: date-time
           description: >-
             The last time the session was used
           x-order: 3
-        expires_at:
+        expiresAt:
           type: string
           format: date-time
           description: >-

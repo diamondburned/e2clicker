@@ -22,8 +22,10 @@ body {
 
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
+}
+
+main {
+  margin-top: var(--pico-block-spacing-vertical);
 }
 
 * {
@@ -77,10 +79,20 @@ a:hover {
   font-size: inherit;
 }
 
-.spaced > * {
-  margin-bottom: var(--pico-block-spacing-vertical);
+.spaced {
+  & > * {
+    margin-bottom: var(--pico-block-spacing-vertical);
+  }
 
-  &:last-child {
+  &-2 > * {
+    margin-bottom: calc(2 * var(--pico-block-spacing-vertical));
+  }
+
+  &-0 > * {
+    margin-bottom: calc(var(--pico-block-spacing-vertical) / 2);
+  }
+
+  & > *:last-child {
     margin-bottom: 0;
   }
 }

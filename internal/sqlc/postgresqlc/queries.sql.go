@@ -41,6 +41,16 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 	return i, err
 }
 
+const deleteDosageSchedule = `-- name: DeleteDosageSchedule :exec
+DELETE FROM dosage_schedule
+WHERE user_secret = $1
+`
+
+func (q *Queries) DeleteDosageSchedule(ctx context.Context, userSecret sqlc.XID) error {
+	_, err := q.db.Exec(ctx, deleteDosageSchedule, userSecret)
+	return err
+}
+
 const deleteSession = `-- name: DeleteSession :exec
 DELETE FROM user_sessions
 WHERE user_secret = $1

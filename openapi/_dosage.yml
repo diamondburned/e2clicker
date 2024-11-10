@@ -35,7 +35,12 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/DosageSchedule"
+                properties:
+                  schedule:
+                    $ref: "#/components/schemas/DosageSchedule"
+                description: >-
+                  The user's dosage schedule. If the user has no schedule set,
+                  this will be null.
     put:
       summary: Set the user's dosage schedule
       operationId: setDosageSchedule
@@ -50,28 +55,37 @@ paths:
             Successfully set dosage schedule.
         default:
           $ref: "#/components/responses/ErrorResponse"
+    delete:
+      summary: Clear the user's dosage schedule
+      operationId: clearDosageSchedule
+      responses:
+        "204":
+          description: >-
+            Successfully cleared dosage schedule.
+        default:
+          $ref: "#/components/responses/ErrorResponse"
 
   /dosage/history:
     get:
       summary: Get the user's dosage history within a time range
       operationId: doseHistory
-      requestBody:
-        content:
-          application/x-www-form-urlencoded:
-            schema:
-              type: object
-              required: [start, end]
-              properties:
-                start:
-                  type: string
-                  format: date-time
-                  description: >-
-                    The start date of the history to retrieve.
-                end:
-                  type: string
-                  format: date-time
-                  description: >-
-                    The end date of the history to retrieve.
+      parameters:
+        - name: start
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+            description: >-
+              The start date of the history to retrieve.
+        - name: end
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+            description: >-
+              The end date of the history to retrieve.
       responses:
         "200":
           description: >-
@@ -195,9 +209,12 @@ components:
           x-order: 4
 
     DosageHistory:
-      type: array
-      items:
-        $ref: "#/components/schemas/DosageObservation"
+      required: [history]
+      properties:
+        history:
+          type: array
+          items:
+            $ref: "#/components/schemas/DosageObservation"
 
     DosageObservation:
       type: object

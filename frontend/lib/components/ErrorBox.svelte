@@ -1,34 +1,69 @@
 <script lang="ts">
   import { slide } from "svelte/transition";
+  import Tooltip from "./popovers/Tooltip.svelte";
+  import Icon from "./Icon.svelte";
 
-  let { error, prefix }: { error: any; prefix?: string } = $props();
+  let {
+    error,
+    prefix,
+    tiny = false,
+  }: {
+    error: any;
+    prefix?: string;
+    tiny?: boolean;
+  } = $props();
 
   let message = $derived(
-    typeof error == "object" && !!error.data?.message ? error.data.message : `${error}`,
+    typeof error == "object"
+      ? !!error.data?.message //
+        ? error.data.message
+        : error.message
+      : `${error}`,
   );
+
+  let errorPrefix = $derived(prefix ? `Error: ${prefix}: ` : "Error: ");
 </script>
 
 {#if error}
-  <blockquote
-    class="error"
-    transition:slide={{ duration: 200 }}
-    data-error-prefix={prefix ? `Error: ${prefix}: ` : "Error: "}
-  >
-    {message}
-  </blockquote>
+  {#if tiny}
+    <span class="error-span" transition:slide={{ duration: 200 }}>
+      <Tooltip>
+        <span class="error-text">
+          {prefix || "Error occured"}
+        </span>
+        {#snippet tooltip()}
+          <b>{errorPrefix}</b>{message}
+        {/snippet}
+      </Tooltip>
+      <span class="error-icon">
+        <Icon name="error" />
+      </span>
+    </span>
+  {:else}
+    <blockquote
+      class="error-box"
+      class:tiny
+      transition:slide={{ duration: 200 }}
+      data-error-prefix={errorPrefix}
+    >
+      <span class="error-icon">
+        <Icon name="error" />
+      </span>
+      <b class="error-text error-prefix">{errorPrefix}</b>
+      <span class="error-text">{message}</span>
+    </blockquote>
+  {/if}
 {/if}
 
-<style lang="scss">
-  .error {
+<style lang="scss" global>
+  .error-box {
     border: var(--pico-border-width) solid var(--pico-color-red);
     border-radius: var(--pico-border-radius);
-
-    color: var(--pico-del-color);
     background-color: color-mix(in srgb, var(--pico-color-red), transparent 90%);
+  }
 
-    &::before {
-      content: attr(data-error-prefix);
-      font-weight: bold;
-    }
+  .error-text,
+  .error-icon {
+    color: var(--pico-del-color);
   }
 </style>

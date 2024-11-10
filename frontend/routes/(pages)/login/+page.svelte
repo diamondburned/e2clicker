@@ -1,5 +1,4 @@
 <script lang="ts">
-  import Header from "$lib/components/Header.svelte";
   import LoadingScreen from "$lib/components/LoadingScreen.svelte";
   import ResizeContainer from "$lib/components/ResizeContainer.svelte";
 
@@ -29,8 +28,6 @@
 <LoadingScreen {promise} />
 
 <div class="outer-container">
-  <Header />
-
   <div class="main-wrapper container">
     <main id="login">
       <ResizeContainer>

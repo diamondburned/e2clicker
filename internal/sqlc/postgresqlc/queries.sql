@@ -116,6 +116,10 @@ ON CONFLICT (user_secret)
   DO UPDATE SET
     delivery_method = $2, dose = $3, interval = $4, concurrence = $5;
 
+-- name: DeleteDosageSchedule :exec
+DELETE FROM dosage_schedule
+WHERE user_secret = $1;
+
 -- name: RecordDose :one
 INSERT INTO dosage_history (user_secret, taken_at, delivery_method, dose) (
   SELECT $1, $2, delivery_method, dose

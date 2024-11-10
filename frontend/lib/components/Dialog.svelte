@@ -5,11 +5,13 @@
   let {
     open = $bindable(false),
     wide = false,
-    dismissible = true,
+    class: className,
+    dismissible = false,
     children,
   }: {
     open: boolean;
     wide?: boolean;
+    class?: string;
     dismissible?: boolean;
     children: Snippet;
   } = $props();
@@ -19,8 +21,8 @@
 
 {#if open}
   <dialog
-    role="presentation"
     open
+    role="presentation"
     class="dialog-overlay"
     transition:fade={{ duration: 200 }}
     onmousedown={(ev) => {
@@ -32,7 +34,7 @@
   >
     <article
       role="presentation"
-      class="dialog"
+      class="dialog {className}"
       class:wide
       class:dismissible
       transition:fly={{ duration: 250, y: 50 }}
@@ -46,8 +48,9 @@
 {/if}
 
 <style lang="scss">
-  .dialog {
+  article.dialog {
     position: relative;
+    max-width: var(--max-width, initial);
 
     & > :global(header) {
       --pico-block-spacing-vertical: var(--pico-spacing);

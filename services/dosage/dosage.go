@@ -11,14 +11,12 @@ import (
 
 func init() {
 	publicerrors.MarkValuesPublic(
-		ErrNoDosageSchedule,
 		ErrNoDoseMatched,
 	)
 }
 
 var (
-	ErrNoDosageSchedule = errors.New("no dosage schedule found")
-	ErrNoDoseMatched    = errors.New("no dose matched")
+	ErrNoDoseMatched = errors.New("no dose matched")
 )
 
 // DosageStorage is a storage for dosage data.
@@ -26,9 +24,13 @@ type DosageStorage interface {
 	// DeliveryMethods returns the available delivery methods.
 	DeliveryMethods(ctx context.Context) ([]DeliveryMethod, error)
 	// DosageSchedule returns the dosage schedule for a user.
-	DosageSchedule(ctx context.Context, secret user.Secret) (Schedule, error)
+	// If the user has no schedule yet, this returns nil.
+	DosageSchedule(ctx context.Context, secret user.Secret) (*Schedule, error)
 	// SetDosageSchedule sets the dosage schedule for a user.
+	// The user secret is taken from the Schedule.
 	SetDosageSchedule(ctx context.Context, s Schedule) error
+	// ClearDosageSchedule clears the dosage schedule for a user.
+	ClearDosageSchedule(ctx context.Context, secret user.Secret) error
 	// RecordDose records a dose.
 	RecordDose(ctx context.Context, secret user.Secret, takenAt time.Time) (Observation, error)
 	// EditDose edits a dose.

@@ -65,10 +65,12 @@ This operation does not require authentication
 
 ```json
 {
-  "deliveryMethod": "string",
-  "dose": 0.1,
-  "interval": 0.1,
-  "concurrence": 0
+  "schedule": {
+    "deliveryMethod": "string",
+    "dose": 0.1,
+    "interval": 0.1,
+    "concurrence": 0
+  }
 }
 ```
 
@@ -76,7 +78,16 @@ This operation does not require authentication
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Successfully retrieved dosage schedule.|[DosageSchedule](#schemadosageschedule)|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Successfully retrieved dosage schedule.|Inline|
+
+<h3 id="get-the-user's-dosage-schedule-responseschema">Response Schema</h3>
+
+Status Code **200**
+
+*The user's dosage schedule. If the user has no schedule set, this will be null.*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
 
 <aside class="warning">
 To perform this operation, you must be authenticated by means of one of the following methods:
@@ -131,42 +142,66 @@ To perform this operation, you must be authenticated by means of one of the foll
 bearerAuth
 </aside>
 
+## Clear the user's dosage schedule
+
+<a id="opIdclearDosageSchedule"></a>
+
+`DELETE /dosage/schedule`
+
+> Example responses
+
+> default Response
+
+```json
+{
+  "message": "string",
+  "details": null,
+  "internal": true,
+  "internalCode": "string"
+}
+```
+
+<h3 id="clear-the-user's-dosage-schedule-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|204|[No Content](https://tools.ietf.org/html/rfc7231#section-6.3.5)|Successfully cleared dosage schedule.|None|
+|default|Default|The request is invalid.|[Error](#schemaerror)|
+
+<aside class="warning">
+To perform this operation, you must be authenticated by means of one of the following methods:
+bearerAuth
+</aside>
+
 ## Get the user's dosage history within a time range
 
 <a id="opIddoseHistory"></a>
 
 `GET /dosage/history`
 
-> Body parameter
-
-```yaml
-start: 2019-08-24T14:15:22Z
-end: 2019-08-24T14:15:22Z
-
-```
-
 <h3 id="get-the-user's-dosage-history-within-a-time-range-parameters">Parameters</h3>
 
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
-|body|body|object|false|none|
-|» start|body|string(date-time)|true|The start date of the history to retrieve.|
-|» end|body|string(date-time)|true|The end date of the history to retrieve.|
+|start|query|string(date-time)|true|none|
+|end|query|string(date-time)|true|none|
 
 > Example responses
 
 > 200 Response
 
 ```json
-[
-  {
-    "id": 0,
-    "deliveryMethod": "string",
-    "dose": 0.1,
-    "takenAt": "2019-08-24T14:15:22Z",
-    "takenOffAt": "2019-08-24T14:15:22Z"
-  }
-]
+{
+  "history": [
+    {
+      "id": 0,
+      "deliveryMethod": "string",
+      "dose": 0.1,
+      "takenAt": "2019-08-24T14:15:22Z",
+      "takenOffAt": "2019-08-24T14:15:22Z"
+    }
+  ]
+}
 ```
 
 <h3 id="get-the-user's-dosage-history-within-a-time-range-responses">Responses</h3>
@@ -355,7 +390,7 @@ bearerAuth
 {
   "name": "string",
   "locale": "string",
-  "has_avatar": true,
+  "hasAvatar": true,
   "secret": "string"
 }
 ```
@@ -437,7 +472,7 @@ This operation does not require authentication
 {
   "name": "string",
   "locale": "string",
-  "has_avatar": true
+  "hasAvatar": true
 }
 ```
 
@@ -569,9 +604,9 @@ bearerAuth
 [
   {
     "id": 0,
-    "created_at": "2019-08-24T14:15:22Z",
-    "last_used": "2019-08-24T14:15:22Z",
-    "expires_at": "2019-08-24T14:15:22Z"
+    "createdAt": "2019-08-24T14:15:22Z",
+    "lastUsed": "2019-08-24T14:15:22Z",
+    "expiresAt": "2019-08-24T14:15:22Z"
   }
 ]
 ```
@@ -728,15 +763,17 @@ bearerAuth
 <a id="tocsdosagehistory"></a>
 
 ```json
-[
-  {
-    "id": 0,
-    "deliveryMethod": "string",
-    "dose": 0.1,
-    "takenAt": "2019-08-24T14:15:22Z",
-    "takenOffAt": "2019-08-24T14:15:22Z"
-  }
-]
+{
+  "history": [
+    {
+      "id": 0,
+      "deliveryMethod": "string",
+      "dose": 0.1,
+      "takenAt": "2019-08-24T14:15:22Z",
+      "takenOffAt": "2019-08-24T14:15:22Z"
+    }
+  ]
+}
 
 ```
 
@@ -744,7 +781,7 @@ bearerAuth
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|*anonymous*|[[DosageObservation](#schemadosageobservation)]|false|none|none|
+|history|[[DosageObservation](#schemadosageobservation)]|true|none|none|
 
 <h2 id="tocS_DosageObservation">DosageObservation</h2>
 <!-- backwards compatibility -->
@@ -825,7 +862,7 @@ A locale identifier.
 {
   "name": "string",
   "locale": "string",
-  "has_avatar": true
+  "hasAvatar": true
 }
 
 ```
@@ -848,9 +885,9 @@ A user of the system.
 ```json
 {
   "id": 0,
-  "created_at": "2019-08-24T14:15:22Z",
-  "last_used": "2019-08-24T14:15:22Z",
-  "expires_at": "2019-08-24T14:15:22Z"
+  "createdAt": "2019-08-24T14:15:22Z",
+  "lastUsed": "2019-08-24T14:15:22Z",
+  "expiresAt": "2019-08-24T14:15:22Z"
 }
 
 ```
@@ -862,7 +899,7 @@ A session for a user.
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
 |id|integer(int64)|true|none|The session identifier|
-|created_at|string(date-time)|true|none|The time the session was created|
-|last_used|string(date-time)|true|none|The last time the session was used|
-|expires_at|string(date-time)|false|none|The time the session expires, or null if it never expires|
+|createdAt|string(date-time)|true|none|The time the session was created|
+|lastUsed|string(date-time)|true|none|The last time the session was used|
+|expiresAt|string(date-time)|false|none|The time the session expires, or null if it never expires|
 

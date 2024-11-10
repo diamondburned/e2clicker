@@ -1,9 +1,10 @@
 import adapter from "@sveltejs/adapter-node";
+import unoCSS from "@unocss/svelte-scoped/preprocess";
 import { sveltePreprocess } from "svelte-preprocess";
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
-  preprocess: [sveltePreprocess()],
+  preprocess: [sveltePreprocess(), unoCSS({ combine: "prod" })],
   kit: {
     adapter: adapter({
       out: "dist/frontend",

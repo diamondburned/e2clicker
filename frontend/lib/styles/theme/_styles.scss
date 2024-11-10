@@ -14,7 +14,7 @@
     var(--pico-font-family-emoji);
   --pico-font-family: var(--pico-font-family-sans-serif);
   --pico-font-family-headings: var(--pico-font-family-sans-serif);
-  --pico-line-height: 1.5;
+  --pico-line-height: 1.35;
   --pico-font-weight: 400;
   --pico-font-size: clamp(0.95rem, 0.8167rem + 0.5333vw, 1.15rem);
   --pico-text-underline-offset: 0.1em;
@@ -130,25 +130,25 @@ h1 {
 }
 
 h2 {
-  --pico-font-size: 1.75em;
+  --pico-font-size: 1.5em;
   --pico-line-height: 1.15;
   --pico-typography-spacing-top: 2.625em;
 }
 
 h3 {
-  --pico-font-size: 1.5em;
+  --pico-font-size: 1em;
   --pico-line-height: 1.175;
   --pico-typography-spacing-top: 2.25em;
 }
 
 h4 {
-  --pico-font-size: 1.25em;
+  --pico-font-size: 1em;
   --pico-line-height: 1.2;
   --pico-typography-spacing-top: 1.874em;
 }
 
 h5 {
-  --pico-font-size: 1.125em;
+  --pico-font-size: 1em;
   --pico-line-height: 1.225;
   --pico-typography-spacing-top: 1.6875em;
 }
@@ -192,6 +192,18 @@ input:not(
   ),
 :where(select, textarea) {
   --pico-outline-width: 0.0625em;
+
+  &:invalid {
+    border-color: var(--pico-form-element-invalid-border-color);
+
+    &:focus {
+      border-color: var(--pico-form-element-invalid-focus-color);
+    }
+
+    &:active {
+      border-color: var(--pico-form-element-invalid-active-border-color);
+    }
+  }
 }
 
 [type="search"] {

@@ -29,13 +29,13 @@ func (s *dosageStorage) DeliveryMethods(ctx context.Context) ([]dosage.DeliveryM
 	}), nil
 }
 
-func (s *dosageStorage) DosageSchedule(ctx context.Context, secret user.Secret) (dosage.Schedule, error) {
+func (s *dosageStorage) DosageSchedule(ctx context.Context, secret user.Secret) (*dosage.Schedule, error) {
 	d, err := s.q.DosageSchedule(ctx, sqlc.XID(secret))
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return dosage.Schedule{}, dosage.ErrNoDosageSchedule
+			return nil, nil
 		}
-		return dosage.Schedule{}, err
+		return nil, err
 	}
 
 	var interval dosage.Days = 0 +
@@ -43,7 +43,7 @@ func (s *dosageStorage) DosageSchedule(ctx context.Context, secret user.Secret) 
 		(dosage.Days(d.Interval.Microseconds) / 1e6 / (60 * 60 * 24)) +
 		(dosage.Days(d.Interval.Months) * 30)
 
-	return dosage.Schedule{
+	return &dosage.Schedule{
 		UserSecret:     secret,
 		DeliveryMethod: d.DeliveryMethod.String,
 		Dose:           d.Dose,
@@ -54,20 +54,24 @@ func (s *dosageStorage) DosageSchedule(ctx context.Context, secret user.Secret) 
 
 func (s *dosageStorage) SetDosageSchedule(ctx context.Context, d dosage.Schedule) error {
 	int, frac := math.Modf(float64(d.Interval))
-
 	return s.q.SetDosageSchedule(ctx, postgresqlc.SetDosageScheduleParams{
 		UserSecret:     sqlc.XID(d.UserSecret),
 		DeliveryMethod: pgtype.Text{String: d.DeliveryMethod, Valid: true},
 		Dose:           d.Dose,
 		Interval: pgtype.Interval{
 			Days:         int32(int),
-			Microseconds: int64(frac) * 24 * 60 * 60 * 1e6,
+			Microseconds: int64(frac * 24 * 60 * 60 * 1e6),
+			Valid:        true,
 		},
 		Concurrence: pgtype.Int2{
 			Int16: int16(min(deref(d.Concurrence), math.MaxInt16)),
 			Valid: d.Concurrence != nil && *d.Concurrence > 0,
 		},
 	})
+}
+
+func (s *dosageStorage) ClearDosageSchedule(ctx context.Context, secret user.Secret) error {
+	return s.q.DeleteDosageSchedule(ctx, sqlc.XID(secret))
 }
 
 func (s *dosageStorage) RecordDose(ctx context.Context, userSecret user.Secret, takenAt time.Time) (dosage.Observation, error) {

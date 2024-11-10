@@ -1,11 +1,15 @@
-<script lang="ts">
+<script lang="ts" generics="T">
   import { cubicInOut as easeFade } from "svelte/easing";
   import { fade } from "svelte/transition";
+  import ErrorBox from "./ErrorBox.svelte";
+  import type { Snippet } from "svelte";
 
   let {
-    promise = Promise.resolve(),
+    promise = new Promise<T>(() => {}),
+    children,
   }: {
-    promise?: Promise<unknown>;
+    promise?: Promise<T>;
+    children?: Snippet<[T]> | Snippet;
   } = $props();
 </script>
 
@@ -17,11 +21,13 @@
   >
     Loading...
   </div>
+{:then value}
+  {@render children?.(value)}
 {:catch error}
   <div class="loading-screen error" transition:fade={{ duration: 350, easing: easeFade }}>
     <article class="loading-error spaced">
       <h3>ou nyow :(</h3>
-      <pre>{error.message}</pre>
+      <ErrorBox {error} />
     </article>
   </div>
 {/await}
@@ -57,17 +63,12 @@
     cursor: initial;
 
     width: 100%;
-    max-width: 400px;
+    max-width: 600px;
 
     padding: var(--pico-block-spacing-vertical) var(--pico-block-spacing-horizontal);
 
     h3 {
       user-select: none;
-    }
-
-    pre {
-      background: none;
-      border-radius: 0;
     }
   }
 </style>

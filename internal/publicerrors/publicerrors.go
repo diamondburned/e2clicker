@@ -75,6 +75,17 @@ type forcedPublicError struct {
 func (e forcedPublicError) Error() string { return e.err.Error() }
 func (e forcedPublicError) Unwrap() error { return e.err }
 
+// New creates a new public error with the given text.
+func New(text string) error {
+	return forcedPublicError{errors.New(text)}
+}
+
+// Errorf formats the error message with the given format and arguments.
+// The returned error is public.
+func Errorf(format string, args ...any) error {
+	return forcedPublicError{fmt.Errorf(format, args...)}
+}
+
 // ForcePublic forces the given error to be public.
 // The returned error will pass all check functions as if it was public.
 func ForcePublic(err error) error {

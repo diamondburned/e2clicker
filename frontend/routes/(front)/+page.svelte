@@ -146,6 +146,7 @@
 
     .yap {
       text-align: center;
+      line-height: 1.5;
 
       .avoid-wrap {
         display: inline-block;

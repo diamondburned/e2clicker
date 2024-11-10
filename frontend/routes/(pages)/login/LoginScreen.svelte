@@ -8,7 +8,7 @@
 
   import { fade } from "svelte/transition";
   import { auth } from "$lib/openapi.gen";
-  import { setToken } from "$lib/api";
+  import { setToken, secretQRRegex } from "$lib/api";
 
   let {
     screen = $bindable(),
@@ -94,7 +94,7 @@
 
   <QRScanner
     onscan={(result) => {
-      const match = result.match(/^e2clicker:token-v1:(.*)$/);
+      const match = result.match(secretQRRegex);
       if (!match) {
         console.log("Discarding non-token QR", { result });
         return;
