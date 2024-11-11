@@ -6,9 +6,13 @@
   let {
     children,
     tooltip,
+    timeout = 200,
+    selectable = false,
   }: {
     children: Snippet;
-    tooltip: Snippet;
+    tooltip?: Snippet;
+    timeout?: number;
+    selectable?: boolean;
   } = $props();
 
   let parent = $state<HTMLElement | null>(null);
@@ -26,22 +30,31 @@
     closing = setTimeout(() => {
       opened = false;
       closing = null;
-    }, 500);
+    }, timeout);
   }
 </script>
 
 <div
   class="tooltip-container"
+  class:selectable
   role="presentation"
-  onfocus={() => open()}
-  onmouseover={() => open()}
-  onmouseleave={() => close()}
+  onfocus={() => selectable && open()}
+  onmouseover={() => selectable && open()}
+  onmouseleave={() => selectable && close()}
 >
-  <span class="children" bind:this={parent}>
+  <span
+    class="children"
+    class:has-tooltip={!!tooltip}
+    bind:this={parent}
+    role="presentation"
+    onfocus={() => !selectable && open()}
+    onmouseover={() => !selectable && open()}
+    onmouseleave={() => !selectable && close()}
+  >
     {@render children()}
   </span>
 
-  {#if parent}
+  {#if parent && tooltip}
     <Popover bind:open={opened} direction="top" {parent}>
       {@render tooltip()}
     </Popover>
@@ -58,12 +71,16 @@
       color: var(--pico-contrast-hover);
     }
 
-    .children {
+    .children.has-tooltip {
       cursor: help;
-      font-size: 0.85em;
 
       text-decoration: underline dashed;
       text-decoration-color: var(--pico-muted-color);
+    }
+
+    &:not(.selectable) :global .popover {
+      cursor: default;
+      pointer-events: none;
     }
   }
 </style>

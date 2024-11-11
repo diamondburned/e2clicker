@@ -71,7 +71,7 @@
       }
     }
 
-    @media (max-width: map.get(map.get($breakpoints, "sm"), "viewport")) {
+    @media (max-width: map.get(map.get($breakpoints, "sm"), "breakpoint")) {
       flex-direction: column;
       align-items: stretch;
       gap: calc(var(--pico-spacing) / 2);

@@ -40,7 +40,7 @@
     <p>
       Scan the secret QR code:
       <span style="float: right">
-        <Tooltip tooltip={loginTooltip}>
+        <Tooltip tooltip={loginTooltip} selectable>
           <Icon name="info" />
         </Tooltip>
       </span>

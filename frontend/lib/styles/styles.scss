@@ -37,35 +37,41 @@ a:hover {
   text-decoration: none;
 }
 
-.primary {
-  &:not(.inverted) {
-    --pico-color: var(--pico-primary);
-  }
+:not(button):not([role="button"]) {
+  @at-root .primary#{&} {
+    color: var(--pico-color);
 
-  &.inverted {
-    --pico-color: var(--pico-primary-inverse);
-    background-color: var(--pico-primary-background);
-  }
-}
-
-.secondary {
-  &:not(.inverted) {
-    --pico-color: var(--pico-secondary);
-  }
-
-  &.inverted {
-    --pico-color: var(--pico-secondary-inverse);
-    background-color: var(--pico-secondary-background);
-  }
-
-  a {
-    color: var(--pico-secondary);
-
-    &:hover {
-      color: var(--pico-secondary-hover);
+    &:not(.inverted) {
+      --pico-color: var(--pico-primary);
     }
-    &:focus {
-      color: var(--pico-secondary-focus);
+
+    &.inverted {
+      --pico-color: var(--pico-primary-inverse);
+      background-color: var(--pico-primary-background);
+    }
+  }
+
+  @at-root .secondary#{&} {
+    color: var(--pico-color);
+
+    &:not(.inverted) {
+      --pico-color: var(--pico-secondary);
+    }
+
+    &.inverted {
+      --pico-color: var(--pico-secondary-inverse);
+      background-color: var(--pico-secondary-background);
+    }
+
+    a {
+      color: var(--pico-secondary);
+
+      &:hover {
+        color: var(--pico-secondary-hover);
+      }
+      &:focus {
+        color: var(--pico-secondary-focus);
+      }
     }
   }
 }
@@ -119,4 +125,16 @@ button,
 [type="file"]::file-selector-button,
 [role="button"] {
   font-size: 1em;
+}
+
+table.rounded {
+  border-radius: var(--pico-border-radius);
+  overflow: hidden;
+
+  tbody tr:last-child {
+    th,
+    td {
+      border: none;
+    }
+  }
 }

@@ -23,14 +23,14 @@ var (
 type DosageStorage interface {
 	// DeliveryMethods returns the available delivery methods.
 	DeliveryMethods(ctx context.Context) ([]DeliveryMethod, error)
-	// DosageSchedule returns the dosage schedule for a user.
+	// Dosage returns the dosage for a user.
 	// If the user has no schedule yet, this returns nil.
-	DosageSchedule(ctx context.Context, secret user.Secret) (*Schedule, error)
-	// SetDosageSchedule sets the dosage schedule for a user.
+	Dosage(ctx context.Context, secret user.Secret) (*Dosage, error)
+	// SetDosage sets the dosage for a user.
 	// The user secret is taken from the Schedule.
-	SetDosageSchedule(ctx context.Context, s Schedule) error
-	// ClearDosageSchedule clears the dosage schedule for a user.
-	ClearDosageSchedule(ctx context.Context, secret user.Secret) error
+	SetDosage(ctx context.Context, s Dosage) error
+	// ClearDosage clears the dosage for a user.
+	ClearDosage(ctx context.Context, secret user.Secret) error
 	// RecordDose records a dose.
 	RecordDose(ctx context.Context, secret user.Secret, takenAt time.Time) (Observation, error)
 	// EditDose edits a dose.
@@ -52,8 +52,8 @@ type DeliveryMethod struct {
 	Name string
 }
 
-// Schedule describes a dosage schedule.
-type Schedule struct {
+// Dosage describes a dosage schedule.
+type Dosage struct {
 	// UserSecret is the secret of the user who the schedule is for.
 	UserSecret user.Secret
 	// DeliveryMethod is the method of delivery for the medication.

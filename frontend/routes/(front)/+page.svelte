@@ -67,7 +67,7 @@
   onmouseover={() => (pauseFooter = true)}
   onmouseleave={() => (pauseFooter = false)}
 >
-  <div class="grid">
+  <div class="footer-grid">
     {#if footerIndex == 0}
       <p in:fly={footerIn} out:fly={footerOut}>
         <a href="https://github.com/diamondburned/e2clicker">
@@ -140,7 +140,7 @@
       img {
         border: var(--pico-border-width) solid var(--pico-primary);
         border-radius: var(--pico-border-radius);
-        box-shadow: var(--pico-card-box-shadow);
+        box-shadow: var(--pico-box-shadow-thick);
       }
     }
 
@@ -169,17 +169,12 @@
       opacity: 1;
     }
 
-    & > * {
-      text-align: center;
-      user-select: none;
-    }
-
-    .grid {
+    .footer-grid {
       display: grid;
       grid-template-rows: 1fr;
       grid-template-columns: 1fr;
 
-      & > * {
+      > * {
         // Make them all overlap
         grid-row: 1;
         grid-column: 1;
@@ -188,6 +183,9 @@
 
     p {
       margin: 0;
+
+      text-align: center;
+      user-select: none;
     }
   }
 </style>

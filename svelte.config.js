@@ -4,7 +4,13 @@ import { sveltePreprocess } from "svelte-preprocess";
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
-  preprocess: [sveltePreprocess(), unoCSS({ combine: "prod" })],
+  preprocess: [
+    sveltePreprocess(),
+    unoCSS({
+      combine: false,
+      classPrefix: "uno-",
+    }),
+  ],
   kit: {
     adapter: adapter({
       out: "dist/frontend",

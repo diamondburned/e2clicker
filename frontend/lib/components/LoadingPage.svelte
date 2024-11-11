@@ -1,13 +1,17 @@
 <script lang="ts" generics="T">
   import { cubicInOut as easeFade } from "svelte/easing";
-  import { fade } from "svelte/transition";
+  import { fade, fly } from "svelte/transition";
   import ErrorBox from "./ErrorBox.svelte";
   import type { Snippet } from "svelte";
 
   let {
+    main = false,
+    mainClass,
     promise = new Promise<T>(() => {}),
     children,
   }: {
+    main?: boolean;
+    mainClass?: string;
     promise?: Promise<T>;
     children?: Snippet<[T]> | Snippet;
   } = $props();
@@ -22,7 +26,15 @@
     Loading...
   </div>
 {:then value}
-  {@render children?.(value)}
+  {#if children}
+    {#if main}
+      <main class="container {mainClass ?? ''}" transition:fly={{ duration: 200, y: 100 }}>
+        {@render children(value)}
+      </main>
+    {:else}
+      {@render children(value)}
+    {/if}
+  {/if}
 {:catch error}
   <div class="loading-screen error" transition:fade={{ duration: 350, easing: easeFade }}>
     <article class="loading-error spaced">

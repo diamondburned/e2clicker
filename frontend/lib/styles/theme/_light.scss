@@ -10,7 +10,7 @@
   --pico-background-color: #{$white};
 
   // Text color
-  --pico-color: #{$pink-900};
+  --pico-color: #{$pink-950};
 
   // Text selection color
   --pico-text-selection-color: #{theme-colors.get("text-selection-color", "light")};
@@ -20,16 +20,16 @@
   --pico-muted-border-color: #{mix($grey-100, $grey-50)};
 
   // Primary colors
-  --pico-primary: #{theme-colors.get("primary", "light")};
-  --pico-primary-background: #{theme-colors.get("primary-background", "light")};
+  --pico-primary: #{$pink-550};
+  --pico-primary-background: #{$pink-600};
   --pico-primary-border: var(--pico-primary-background);
-  --pico-primary-underline: #{theme-colors.get("primary-underline", "light")};
-  --pico-primary-hover: #{theme-colors.get("primary-hover", "light")};
-  --pico-primary-hover-background: #{theme-colors.get("primary-hover-background", "light")};
+  --pico-primary-underline: #{rgba($pink-550, 0.5)};
+  --pico-primary-hover: #{$pink-650};
+  --pico-primary-hover-background: #{$pink-650};
   --pico-primary-hover-border: var(--pico-primary-hover-background);
   --pico-primary-hover-underline: var(--pico-primary-hover);
-  --pico-primary-focus: #{theme-colors.get("primary-focus", "light")};
-  --pico-primary-inverse: #{theme-colors.get("primary-inverse", "light")};
+  --pico-primary-focus: #{rgba($pink-550, 0.25)};
+  --pico-primary-inverse: #{$pink-50};
 
   // Secondary colors
   --pico-secondary: #{$azure-550};
@@ -41,7 +41,7 @@
   --pico-secondary-hover-border: var(--pico-secondary-hover-background);
   --pico-secondary-hover-underline: var(--pico-secondary-hover);
   --pico-secondary-focus: #{rgba($azure-550, 0.25)};
-  --pico-secondary-inverse: #{$white};
+  --pico-secondary-inverse: #{$azure-50};
 
   // Contrast colors
   --pico-contrast: #{$pink-900};
@@ -53,11 +53,20 @@
   --pico-contrast-hover-border: var(--pico-contrast-hover-background);
   --pico-contrast-hover-underline: var(--pico-secondary-hover);
   --pico-contrast-focus: #{rgba($pink-550, 0.25)};
-  --pico-contrast-inverse: #{$white};
+  --pico-contrast-inverse: #{$pink-50};
 
   // Box shadow
-  --pico-shadow-color: #{$grey-600};
-  --pico-box-shadow: #{shadows.shadow(mix($grey-600, $pink-600))};
+  --pico-shadow-color: #{mix($grey-800, $pink-800, 40%)};
+  --pico-box-shadow: #{shadows.shadow(
+      mix($grey-800, $pink-800, 40%),
+      $blur-strength: 2rem,
+      $opacity: 0.04
+    )};
+  --pico-box-shadow-thick: #{shadows.shadow(
+      mix($grey-800, $pink-800, 20%),
+      $blur-strength: 6rem,
+      $opacity: 0.15
+    )};
 
   // Typography
   // Headings colors
@@ -69,7 +78,7 @@
   --pico-h6-color: #{$pink-550};
 
   // Highlighted text (<mark>)
-  --pico-mark-background-color: #{mix($amber-100, $amber-50)};
+  --pico-mark-background-color: #{$pink-100};
   --pico-mark-color: #{$pink-950};
 
   // Inserted (<ins>) & Deleted (<del>)

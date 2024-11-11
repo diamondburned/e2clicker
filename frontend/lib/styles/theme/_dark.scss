@@ -21,16 +21,16 @@
   --pico-muted-border-color: #{mix($pink-200, $grey-600, 40%)};
 
   // Primary colors
-  --pico-primary: #{theme-colors.get("primary", "dark")};
-  --pico-primary-background: #{theme-colors.get("primary-background", "dark")};
+  --pico-primary: #{$pink-350};
+  --pico-primary-background: #{$pink-600};
   --pico-primary-border: var(--pico-primary-background);
-  --pico-primary-underline: #{theme-colors.get("primary-underline", "dark")};
-  --pico-primary-hover: #{theme-colors.get("primary-hover", "dark")};
-  --pico-primary-hover-background: #{theme-colors.get("primary-hover-background", "dark")};
+  --pico-primary-underline: #{rgba($pink-350, 0.5)};
+  --pico-primary-hover: #{$pink-250};
+  --pico-primary-hover-background: #{$pink-550};
   --pico-primary-hover-border: var(--pico-primary-hover-background);
   --pico-primary-hover-underline: var(--pico-primary-hover);
-  --pico-primary-focus: #{theme-colors.get("primary-focus", "dark")};
-  --pico-primary-inverse: #{theme-colors.get("primary-inverse", "dark")};
+  --pico-primary-focus: #{rgba($pink-350, 0.85)};
+  --pico-primary-inverse: #{$pink-50};
 
   // Secondary colors
   --pico-secondary: #{$azure-350};
@@ -42,11 +42,11 @@
   --pico-secondary-hover-border: var(--pico-secondary-hover-background);
   --pico-secondary-hover-underline: var(--pico-secondary-hover);
   --pico-secondary-focus: #{rgba($azure-350, 0.85)};
-  --pico-secondary-inverse: #{$white};
+  --pico-secondary-inverse: #{$azure-50};
 
   // Contrast colors
-  --pico-contrast: #{$pink-100};
-  --pico-contrast-background: #{$pink-50};
+  --pico-contrast: #{$pink-150};
+  --pico-contrast-background: #{$pink-100};
   --pico-contrast-border: var(--pico-contrast-background);
   --pico-contrast-underline: #{rgba($pink-100, 0.5)};
   --pico-contrast-hover: #{$white};
@@ -54,11 +54,20 @@
   --pico-contrast-hover-border: var(--pico-contrast-hover-background);
   --pico-contrast-hover-underline: var(--pico-contrast-hover);
   --pico-contrast-focus: #{rgba($pink-150, 0.25)};
-  --pico-contrast-inverse: #{$black};
+  --pico-contrast-inverse: #{$pink-950};
 
   // Box shadow
-  --pico-shadow-color: #{mix($black, $pink-800)};
-  --pico-box-shadow: #{shadows.shadow(mix($black, $pink-800))};
+  --pico-shadow-color: #{mix($black, $pink-800, 80%)};
+  --pico-box-shadow: #{shadows.shadow(
+      mix($black, $pink-800, 80%),
+      $blur-strength: 3rem,
+      $opacity: 0.06 //
+    )};
+  --pico-box-shadow-thick: #{shadows.shadow(
+      mix($black, $pink-800, 80%),
+      $blur-strength: 6rem,
+      $opacity: 0.25
+    )};
 
   // Typography
   // Headings colors
@@ -70,7 +79,7 @@
   --pico-h6-color: #{$pink-250};
 
   // Highlighted text (<mark>)
-  --pico-mark-background-color: #{$azure-750};
+  --pico-mark-background-color: #{$pink-750};
   --pico-mark-color: #{$white};
 
   // Inserted (<ins>) & Deleted (<del>)

@@ -24,78 +24,70 @@ paths:
         default:
           $ref: "#/components/responses/ErrorResponse"
 
-  /dosage/schedule:
+  /dosage:
     get:
-      summary: Get the user's dosage schedule
-      operationId: dosageSchedule
+      summary: Get the user's dosage and optionally their history
+      operationId: dosage
+      parameters:
+        - name: historyStart
+          in: query
+          schema:
+            type: string
+            format: date-time
+            description: >-
+              The start date of the history to retrieve, if requested.
+        - name: historyEnd
+          in: query
+          schema:
+            type: string
+            format: date-time
+            description: >-
+              The end date of the history to retrieve, if requested.
       responses:
         "200":
           description: >-
-            Successfully retrieved dosage schedule.
+            Successfully retrieved the dosage, if set.
           content:
             application/json:
               schema:
                 properties:
-                  schedule:
-                    $ref: "#/components/schemas/DosageSchedule"
-                description: >-
-                  The user's dosage schedule. If the user has no schedule set,
-                  this will be null.
+                  dosage:
+                    description: >-
+                      The user's current dosage schedule.
+                      This is null if the user has no dosage set.
+                    allOf:
+                      - $ref: "#/components/schemas/Dosage"
+                  history:
+                    description: >-
+                      The user's dosage history within the requested time range.
+                      If either historyStart or historyEnd are not provided, this will be null.
+                    allOf:
+                      - $ref: "#/components/schemas/DosageHistory"
     put:
-      summary: Set the user's dosage schedule
-      operationId: setDosageSchedule
+      summary: Set the user's dosage
+      operationId: setDosage
       requestBody:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/DosageSchedule"
+              $ref: "#/components/schemas/Dosage"
       responses:
         "204":
           description: >-
-            Successfully set dosage schedule.
+            Successfully set the dosage.
         default:
           $ref: "#/components/responses/ErrorResponse"
     delete:
       summary: Clear the user's dosage schedule
-      operationId: clearDosageSchedule
+      operationId: clearDosage
       responses:
         "204":
           description: >-
-            Successfully cleared dosage schedule.
+            Successfully cleared the dosage.
         default:
           $ref: "#/components/responses/ErrorResponse"
 
-  /dosage/history:
-    get:
-      summary: Get the user's dosage history within a time range
-      operationId: doseHistory
-      parameters:
-        - name: start
-          in: query
-          required: true
-          schema:
-            type: string
-            format: date-time
-            description: >-
-              The start date of the history to retrieve.
-        - name: end
-          in: query
-          required: true
-          schema:
-            type: string
-            format: date-time
-            description: >-
-              The end date of the history to retrieve.
-      responses:
-        "200":
-          description: >-
-            Successfully retrieved dosage history.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/DosageHistory"
-        default:
-          $ref: "#/components/responses/ErrorResponse"
+  /dosage/dose:
     post:
       summary: Record a new dosage to the user's history
       operationId: recordDose
@@ -126,7 +118,11 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/DosageObservation"
+              description: >-
+                The updated dosage observation.
+                The ID must match an existing observation.
+              allOf:
+                - $ref: "#/components/schemas/DosageObservation"
       responses:
         "204":
           description: >-
@@ -136,20 +132,17 @@ paths:
     delete:
       summary: Delete multiple dosages from the user's history
       operationId: forgetDoses
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [dose_ids]
-              properties:
-                dose_ids:
-                  type: array
-                  items:
-                    type: integer
-                    format: int64
-                    description: >-
-                      The dose IDs of the observations to delete.
+      parameters:
+        - name: dose_ids
+          in: query
+          schema:
+            type: array
+            items:
+              type: integer
+              format: int64
+              description: >-
+                The dose IDs of the observations to delete.
+          required: true
       responses:
         "204":
           description: >-
@@ -180,7 +173,7 @@ components:
             The full name of the delivery method.
           x-order: 3
 
-    DosageSchedule:
+    Dosage:
       type: object
       required: [deliveryMethod, dose, interval]
       properties:
@@ -209,12 +202,9 @@ components:
           x-order: 4
 
     DosageHistory:
-      required: [history]
-      properties:
-        history:
-          type: array
-          items:
-            $ref: "#/components/schemas/DosageObservation"
+      type: array
+      items:
+        $ref: "#/components/schemas/DosageObservation"
 
     DosageObservation:
       type: object
@@ -250,3 +240,8 @@ components:
             The time the dosage was taken off.
             This is only relevant for patch delivery methods.
           x-order: 5
+        comment:
+          type: string
+          description: >-
+            A comment about the dosage, if any.
+          x-order: 6

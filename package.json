@@ -39,6 +39,7 @@
     "@unocss/svelte-scoped": "^0.64.0",
     "debounce-promise": "^3.1.2",
     "estrannaise": "github:WHSAH/estrannaise.js",
+    "lightweight-charts": "4.1.0",
     "luxon": "^3.5.0",
     "normalize.css": "^8.0.1",
     "oazapfts": "^6.1.0",

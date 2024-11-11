@@ -41,10 +41,23 @@ type DeliveryMethod struct {
 	Name string `json:"name"`
 }
 
-// DosageHistory defines model for DosageHistory.
-type DosageHistory struct {
-	History []DosageObservation `json:"history"`
+// Dosage defines model for Dosage.
+type Dosage struct {
+	// DeliveryMethod The delivery method to use.
+	DeliveryMethod string `json:"deliveryMethod"`
+
+	// Dose The dosage amount.
+	Dose float32 `json:"dose"`
+
+	// Interval The interval between doses in days.
+	Interval float64 `json:"interval"`
+
+	// Concurrence The number of estrogen patches on the body at once. Only relevant if delivery method is patch.
+	Concurrence *int `json:"concurrence,omitempty"`
 }
+
+// DosageHistory defines model for DosageHistory.
+type DosageHistory = []DosageObservation
 
 // DosageObservation defines model for DosageObservation.
 type DosageObservation struct {
@@ -62,21 +75,9 @@ type DosageObservation struct {
 
 	// TakenOffAt The time the dosage was taken off. This is only relevant for patch delivery methods.
 	TakenOffAt *time.Time `json:"takenOffAt,omitempty"`
-}
 
-// DosageSchedule defines model for DosageSchedule.
-type DosageSchedule struct {
-	// DeliveryMethod The delivery method to use.
-	DeliveryMethod string `json:"deliveryMethod"`
-
-	// Dose The dosage amount.
-	Dose float32 `json:"dose"`
-
-	// Interval The interval between doses in days.
-	Interval float64 `json:"interval"`
-
-	// Concurrence The number of estrogen patches on the body at once. Only relevant if delivery method is patch.
-	Concurrence *int `json:"concurrence,omitempty"`
+	// Comment A comment about the dosage, if any.
+	Comment *string `json:"comment,omitempty"`
 }
 
 // Error defines model for Error.
@@ -142,15 +143,15 @@ type AuthParams struct {
 	UserAgent *string `json:"User-Agent,omitempty"`
 }
 
-// ForgetDosesJSONBody defines parameters for ForgetDoses.
-type ForgetDosesJSONBody struct {
-	DoseIds []int64 `json:"dose_ids"`
+// DosageParams defines parameters for Dosage.
+type DosageParams struct {
+	HistoryStart *time.Time `form:"historyStart,omitempty" json:"historyStart,omitempty"`
+	HistoryEnd   *time.Time `form:"historyEnd,omitempty" json:"historyEnd,omitempty"`
 }
 
-// DoseHistoryParams defines parameters for DoseHistory.
-type DoseHistoryParams struct {
-	Start time.Time `form:"start" json:"start"`
-	End   time.Time `form:"end" json:"end"`
+// ForgetDosesParams defines parameters for ForgetDoses.
+type ForgetDosesParams struct {
+	DoseIds []int64 `form:"dose_ids" json:"dose_ids"`
 }
 
 // RecordDoseJSONBody defines parameters for RecordDose.
@@ -158,6 +159,9 @@ type RecordDoseJSONBody struct {
 	// TakenAt The time the dosage was taken.
 	TakenAt time.Time `json:"takenAt"`
 }
+
+// EditDoseJSONBody defines parameters for EditDose.
+type EditDoseJSONBody = DosageObservation
 
 // DeleteUserSessionJSONBody defines parameters for DeleteUserSession.
 type DeleteUserSessionJSONBody struct {
@@ -174,17 +178,14 @@ type RegisterJSONBody struct {
 // AuthJSONRequestBody defines body for Auth for application/json ContentType.
 type AuthJSONRequestBody AuthJSONBody
 
-// ForgetDosesJSONRequestBody defines body for ForgetDoses for application/json ContentType.
-type ForgetDosesJSONRequestBody ForgetDosesJSONBody
+// SetDosageJSONRequestBody defines body for SetDosage for application/json ContentType.
+type SetDosageJSONRequestBody = Dosage
 
 // RecordDoseJSONRequestBody defines body for RecordDose for application/json ContentType.
 type RecordDoseJSONRequestBody RecordDoseJSONBody
 
 // EditDoseJSONRequestBody defines body for EditDose for application/json ContentType.
-type EditDoseJSONRequestBody = DosageObservation
-
-// SetDosageScheduleJSONRequestBody defines body for SetDosageSchedule for application/json ContentType.
-type SetDosageScheduleJSONRequestBody = DosageSchedule
+type EditDoseJSONRequestBody = EditDoseJSONBody
 
 // DeleteUserSessionJSONRequestBody defines body for DeleteUserSession for application/json ContentType.
 type DeleteUserSessionJSONRequestBody DeleteUserSessionJSONBody
@@ -200,27 +201,24 @@ type ServerInterface interface {
 	// List all available delivery methods
 	// (GET /delivery-methods)
 	DeliveryMethods(w http.ResponseWriter, r *http.Request)
+	// Clear the user's dosage schedule
+	// (DELETE /dosage)
+	ClearDosage(w http.ResponseWriter, r *http.Request)
+	// Get the user's dosage and optionally their history
+	// (GET /dosage)
+	Dosage(w http.ResponseWriter, r *http.Request, params DosageParams)
+	// Set the user's dosage
+	// (PUT /dosage)
+	SetDosage(w http.ResponseWriter, r *http.Request)
 	// Delete multiple dosages from the user's history
-	// (DELETE /dosage/history)
-	ForgetDoses(w http.ResponseWriter, r *http.Request)
-	// Get the user's dosage history within a time range
-	// (GET /dosage/history)
-	DoseHistory(w http.ResponseWriter, r *http.Request, params DoseHistoryParams)
+	// (DELETE /dosage/dose)
+	ForgetDoses(w http.ResponseWriter, r *http.Request, params ForgetDosesParams)
 	// Record a new dosage to the user's history
-	// (POST /dosage/history)
+	// (POST /dosage/dose)
 	RecordDose(w http.ResponseWriter, r *http.Request)
 	// Update a dosage in the user's history
-	// (PUT /dosage/history)
+	// (PUT /dosage/dose)
 	EditDose(w http.ResponseWriter, r *http.Request)
-	// Clear the user's dosage schedule
-	// (DELETE /dosage/schedule)
-	ClearDosageSchedule(w http.ResponseWriter, r *http.Request)
-	// Get the user's dosage schedule
-	// (GET /dosage/schedule)
-	DosageSchedule(w http.ResponseWriter, r *http.Request)
-	// Set the user's dosage schedule
-	// (PUT /dosage/schedule)
-	SetDosageSchedule(w http.ResponseWriter, r *http.Request)
 	// Get the current user
 	// (GET /me)
 	CurrentUser(w http.ResponseWriter, r *http.Request)
@@ -307,8 +305,8 @@ func (siw *ServerInterfaceWrapper) DeliveryMethods(w http.ResponseWriter, r *htt
 	handler.ServeHTTP(w, r)
 }
 
-// ForgetDoses operation middleware
-func (siw *ServerInterfaceWrapper) ForgetDoses(w http.ResponseWriter, r *http.Request) {
+// ClearDosage operation middleware
+func (siw *ServerInterfaceWrapper) ClearDosage(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 
@@ -317,7 +315,7 @@ func (siw *ServerInterfaceWrapper) ForgetDoses(w http.ResponseWriter, r *http.Re
 	r = r.WithContext(ctx)
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.ForgetDoses(w, r)
+		siw.Handler.ClearDosage(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -327,8 +325,8 @@ func (siw *ServerInterfaceWrapper) ForgetDoses(w http.ResponseWriter, r *http.Re
 	handler.ServeHTTP(w, r)
 }
 
-// DoseHistory operation middleware
-func (siw *ServerInterfaceWrapper) DoseHistory(w http.ResponseWriter, r *http.Request) {
+// Dosage operation middleware
+func (siw *ServerInterfaceWrapper) Dosage(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 
@@ -339,40 +337,86 @@ func (siw *ServerInterfaceWrapper) DoseHistory(w http.ResponseWriter, r *http.Re
 	r = r.WithContext(ctx)
 
 	// Parameter object where we will unmarshal all parameters from the context
-	var params DoseHistoryParams
+	var params DosageParams
 
-	// ------------- Required query parameter "start" -------------
+	// ------------- Optional query parameter "historyStart" -------------
 
-	if paramValue := r.URL.Query().Get("start"); paramValue != "" {
-
-	} else {
-		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "start"})
-		return
-	}
-
-	err = runtime.BindQueryParameter("form", true, true, "start", r.URL.Query(), &params.Start)
+	err = runtime.BindQueryParameter("form", true, false, "historyStart", r.URL.Query(), &params.HistoryStart)
 	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "start", Err: err})
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "historyStart", Err: err})
 		return
 	}
 
-	// ------------- Required query parameter "end" -------------
+	// ------------- Optional query parameter "historyEnd" -------------
 
-	if paramValue := r.URL.Query().Get("end"); paramValue != "" {
-
-	} else {
-		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "end"})
-		return
-	}
-
-	err = runtime.BindQueryParameter("form", true, true, "end", r.URL.Query(), &params.End)
+	err = runtime.BindQueryParameter("form", true, false, "historyEnd", r.URL.Query(), &params.HistoryEnd)
 	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "end", Err: err})
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "historyEnd", Err: err})
 		return
 	}
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.DoseHistory(w, r, params)
+		siw.Handler.Dosage(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetDosage operation middleware
+func (siw *ServerInterfaceWrapper) SetDosage(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetDosage(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ForgetDoses operation middleware
+func (siw *ServerInterfaceWrapper) ForgetDoses(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ForgetDosesParams
+
+	// ------------- Required query parameter "dose_ids" -------------
+
+	if paramValue := r.URL.Query().Get("dose_ids"); paramValue != "" {
+
+	} else {
+		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "dose_ids"})
+		return
+	}
+
+	err = runtime.BindQueryParameter("form", true, true, "dose_ids", r.URL.Query(), &params.DoseIds)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "dose_ids", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ForgetDoses(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -413,66 +457,6 @@ func (siw *ServerInterfaceWrapper) EditDose(w http.ResponseWriter, r *http.Reque
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.EditDose(w, r)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
-
-// ClearDosageSchedule operation middleware
-func (siw *ServerInterfaceWrapper) ClearDosageSchedule(w http.ResponseWriter, r *http.Request) {
-
-	ctx := r.Context()
-
-	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
-
-	r = r.WithContext(ctx)
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.ClearDosageSchedule(w, r)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
-
-// DosageSchedule operation middleware
-func (siw *ServerInterfaceWrapper) DosageSchedule(w http.ResponseWriter, r *http.Request) {
-
-	ctx := r.Context()
-
-	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
-
-	r = r.WithContext(ctx)
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.DosageSchedule(w, r)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
-
-// SetDosageSchedule operation middleware
-func (siw *ServerInterfaceWrapper) SetDosageSchedule(w http.ResponseWriter, r *http.Request) {
-
-	ctx := r.Context()
-
-	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
-
-	r = r.WithContext(ctx)
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.SetDosageSchedule(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -738,13 +722,12 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 
 	m.HandleFunc("POST "+options.BaseURL+"/auth", wrapper.Auth)
 	m.HandleFunc("GET "+options.BaseURL+"/delivery-methods", wrapper.DeliveryMethods)
-	m.HandleFunc("DELETE "+options.BaseURL+"/dosage/history", wrapper.ForgetDoses)
-	m.HandleFunc("GET "+options.BaseURL+"/dosage/history", wrapper.DoseHistory)
-	m.HandleFunc("POST "+options.BaseURL+"/dosage/history", wrapper.RecordDose)
-	m.HandleFunc("PUT "+options.BaseURL+"/dosage/history", wrapper.EditDose)
-	m.HandleFunc("DELETE "+options.BaseURL+"/dosage/schedule", wrapper.ClearDosageSchedule)
-	m.HandleFunc("GET "+options.BaseURL+"/dosage/schedule", wrapper.DosageSchedule)
-	m.HandleFunc("PUT "+options.BaseURL+"/dosage/schedule", wrapper.SetDosageSchedule)
+	m.HandleFunc("DELETE "+options.BaseURL+"/dosage", wrapper.ClearDosage)
+	m.HandleFunc("GET "+options.BaseURL+"/dosage", wrapper.Dosage)
+	m.HandleFunc("PUT "+options.BaseURL+"/dosage", wrapper.SetDosage)
+	m.HandleFunc("DELETE "+options.BaseURL+"/dosage/dose", wrapper.ForgetDoses)
+	m.HandleFunc("POST "+options.BaseURL+"/dosage/dose", wrapper.RecordDose)
+	m.HandleFunc("PUT "+options.BaseURL+"/dosage/dose", wrapper.EditDose)
 	m.HandleFunc("GET "+options.BaseURL+"/me", wrapper.CurrentUser)
 	m.HandleFunc("GET "+options.BaseURL+"/me/avatar", wrapper.CurrentUserAvatar)
 	m.HandleFunc("PUT "+options.BaseURL+"/me/avatar", wrapper.SetCurrentUserAvatar)
@@ -819,8 +802,86 @@ func (response DeliveryMethodsdefaultJSONResponse) VisitDeliveryMethodsResponse(
 	return json.NewEncoder(w).Encode(response.Body)
 }
 
+type ClearDosageRequestObject struct {
+}
+
+type ClearDosageResponseObject interface {
+	VisitClearDosageResponse(w http.ResponseWriter) error
+}
+
+type ClearDosage204Response struct {
+}
+
+func (response ClearDosage204Response) VisitClearDosageResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type ClearDosagedefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response ClearDosagedefaultJSONResponse) VisitClearDosageResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+
+	return json.NewEncoder(w).Encode(response.Body)
+}
+
+type DosageRequestObject struct {
+	Params DosageParams
+}
+
+type DosageResponseObject interface {
+	VisitDosageResponse(w http.ResponseWriter) error
+}
+
+type Dosage200JSONResponse struct {
+	// Dosage The user's current dosage schedule. This is null if the user has no dosage set.
+	Dosage *Dosage `json:"dosage,omitempty"`
+
+	// History The user's dosage history within the requested time range. If either historyStart or historyEnd are not provided, this will be null.
+	History *DosageHistory `json:"history,omitempty"`
+}
+
+func (response Dosage200JSONResponse) VisitDosageResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SetDosageRequestObject struct {
+	Body *SetDosageJSONRequestBody
+}
+
+type SetDosageResponseObject interface {
+	VisitSetDosageResponse(w http.ResponseWriter) error
+}
+
+type SetDosage204Response struct {
+}
+
+func (response SetDosage204Response) VisitSetDosageResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type SetDosagedefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response SetDosagedefaultJSONResponse) VisitSetDosageResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+
+	return json.NewEncoder(w).Encode(response.Body)
+}
+
 type ForgetDosesRequestObject struct {
-	Body *ForgetDosesJSONRequestBody
+	Params ForgetDosesParams
 }
 
 type ForgetDosesResponseObject interface {
@@ -841,35 +902,6 @@ type ForgetDosesdefaultJSONResponse struct {
 }
 
 func (response ForgetDosesdefaultJSONResponse) VisitForgetDosesResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(response.StatusCode)
-
-	return json.NewEncoder(w).Encode(response.Body)
-}
-
-type DoseHistoryRequestObject struct {
-	Params DoseHistoryParams
-}
-
-type DoseHistoryResponseObject interface {
-	VisitDoseHistoryResponse(w http.ResponseWriter) error
-}
-
-type DoseHistory200JSONResponse DosageHistory
-
-func (response DoseHistory200JSONResponse) VisitDoseHistoryResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type DoseHistorydefaultJSONResponse struct {
-	Body       Error
-	StatusCode int
-}
-
-func (response DoseHistorydefaultJSONResponse) VisitDoseHistoryResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(response.StatusCode)
 
@@ -915,79 +947,6 @@ type EditDosedefaultJSONResponse struct {
 }
 
 func (response EditDosedefaultJSONResponse) VisitEditDoseResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(response.StatusCode)
-
-	return json.NewEncoder(w).Encode(response.Body)
-}
-
-type ClearDosageScheduleRequestObject struct {
-}
-
-type ClearDosageScheduleResponseObject interface {
-	VisitClearDosageScheduleResponse(w http.ResponseWriter) error
-}
-
-type ClearDosageSchedule204Response struct {
-}
-
-func (response ClearDosageSchedule204Response) VisitClearDosageScheduleResponse(w http.ResponseWriter) error {
-	w.WriteHeader(204)
-	return nil
-}
-
-type ClearDosageScheduledefaultJSONResponse struct {
-	Body       Error
-	StatusCode int
-}
-
-func (response ClearDosageScheduledefaultJSONResponse) VisitClearDosageScheduleResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(response.StatusCode)
-
-	return json.NewEncoder(w).Encode(response.Body)
-}
-
-type DosageScheduleRequestObject struct {
-}
-
-type DosageScheduleResponseObject interface {
-	VisitDosageScheduleResponse(w http.ResponseWriter) error
-}
-
-type DosageSchedule200JSONResponse struct {
-	Schedule *DosageSchedule `json:"schedule,omitempty"`
-}
-
-func (response DosageSchedule200JSONResponse) VisitDosageScheduleResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type SetDosageScheduleRequestObject struct {
-	Body *SetDosageScheduleJSONRequestBody
-}
-
-type SetDosageScheduleResponseObject interface {
-	VisitSetDosageScheduleResponse(w http.ResponseWriter) error
-}
-
-type SetDosageSchedule204Response struct {
-}
-
-func (response SetDosageSchedule204Response) VisitSetDosageScheduleResponse(w http.ResponseWriter) error {
-	w.WriteHeader(204)
-	return nil
-}
-
-type SetDosageScheduledefaultJSONResponse struct {
-	Body       Error
-	StatusCode int
-}
-
-func (response SetDosageScheduledefaultJSONResponse) VisitSetDosageScheduleResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(response.StatusCode)
 
@@ -1226,27 +1185,24 @@ type StrictServerInterface interface {
 	// List all available delivery methods
 	// (GET /delivery-methods)
 	DeliveryMethods(ctx context.Context, request DeliveryMethodsRequestObject) (DeliveryMethodsResponseObject, error)
+	// Clear the user's dosage schedule
+	// (DELETE /dosage)
+	ClearDosage(ctx context.Context, request ClearDosageRequestObject) (ClearDosageResponseObject, error)
+	// Get the user's dosage and optionally their history
+	// (GET /dosage)
+	Dosage(ctx context.Context, request DosageRequestObject) (DosageResponseObject, error)
+	// Set the user's dosage
+	// (PUT /dosage)
+	SetDosage(ctx context.Context, request SetDosageRequestObject) (SetDosageResponseObject, error)
 	// Delete multiple dosages from the user's history
-	// (DELETE /dosage/history)
+	// (DELETE /dosage/dose)
 	ForgetDoses(ctx context.Context, request ForgetDosesRequestObject) (ForgetDosesResponseObject, error)
-	// Get the user's dosage history within a time range
-	// (GET /dosage/history)
-	DoseHistory(ctx context.Context, request DoseHistoryRequestObject) (DoseHistoryResponseObject, error)
 	// Record a new dosage to the user's history
-	// (POST /dosage/history)
+	// (POST /dosage/dose)
 	RecordDose(ctx context.Context, request RecordDoseRequestObject) (RecordDoseResponseObject, error)
 	// Update a dosage in the user's history
-	// (PUT /dosage/history)
+	// (PUT /dosage/dose)
 	EditDose(ctx context.Context, request EditDoseRequestObject) (EditDoseResponseObject, error)
-	// Clear the user's dosage schedule
-	// (DELETE /dosage/schedule)
-	ClearDosageSchedule(ctx context.Context, request ClearDosageScheduleRequestObject) (ClearDosageScheduleResponseObject, error)
-	// Get the user's dosage schedule
-	// (GET /dosage/schedule)
-	DosageSchedule(ctx context.Context, request DosageScheduleRequestObject) (DosageScheduleResponseObject, error)
-	// Set the user's dosage schedule
-	// (PUT /dosage/schedule)
-	SetDosageSchedule(ctx context.Context, request SetDosageScheduleRequestObject) (SetDosageScheduleResponseObject, error)
 	// Get the current user
 	// (GET /me)
 	CurrentUser(ctx context.Context, request CurrentUserRequestObject) (CurrentUserResponseObject, error)
@@ -1356,16 +1312,92 @@ func (sh *strictHandler) DeliveryMethods(w http.ResponseWriter, r *http.Request)
 	}
 }
 
-// ForgetDoses operation middleware
-func (sh *strictHandler) ForgetDoses(w http.ResponseWriter, r *http.Request) {
-	var request ForgetDosesRequestObject
+// ClearDosage operation middleware
+func (sh *strictHandler) ClearDosage(w http.ResponseWriter, r *http.Request) {
+	var request ClearDosageRequestObject
 
-	var body ForgetDosesJSONRequestBody
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ClearDosage(ctx, request.(ClearDosageRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ClearDosage")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ClearDosageResponseObject); ok {
+		if err := validResponse.VisitClearDosageResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// Dosage operation middleware
+func (sh *strictHandler) Dosage(w http.ResponseWriter, r *http.Request, params DosageParams) {
+	var request DosageRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.Dosage(ctx, request.(DosageRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "Dosage")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DosageResponseObject); ok {
+		if err := validResponse.VisitDosageResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SetDosage operation middleware
+func (sh *strictHandler) SetDosage(w http.ResponseWriter, r *http.Request) {
+	var request SetDosageRequestObject
+
+	var body SetDosageJSONRequestBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
 		return
 	}
 	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SetDosage(ctx, request.(SetDosageRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SetDosage")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SetDosageResponseObject); ok {
+		if err := validResponse.VisitSetDosageResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ForgetDoses operation middleware
+func (sh *strictHandler) ForgetDoses(w http.ResponseWriter, r *http.Request, params ForgetDosesParams) {
+	var request ForgetDosesRequestObject
+
+	request.Params = params
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
 		return sh.ssi.ForgetDoses(ctx, request.(ForgetDosesRequestObject))
@@ -1380,32 +1412,6 @@ func (sh *strictHandler) ForgetDoses(w http.ResponseWriter, r *http.Request) {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(ForgetDosesResponseObject); ok {
 		if err := validResponse.VisitForgetDosesResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// DoseHistory operation middleware
-func (sh *strictHandler) DoseHistory(w http.ResponseWriter, r *http.Request, params DoseHistoryParams) {
-	var request DoseHistoryRequestObject
-
-	request.Params = params
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.DoseHistory(ctx, request.(DoseHistoryRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "DoseHistory")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(DoseHistoryResponseObject); ok {
-		if err := validResponse.VisitDoseHistoryResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -1468,85 +1474,6 @@ func (sh *strictHandler) EditDose(w http.ResponseWriter, r *http.Request) {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(EditDoseResponseObject); ok {
 		if err := validResponse.VisitEditDoseResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// ClearDosageSchedule operation middleware
-func (sh *strictHandler) ClearDosageSchedule(w http.ResponseWriter, r *http.Request) {
-	var request ClearDosageScheduleRequestObject
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.ClearDosageSchedule(ctx, request.(ClearDosageScheduleRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "ClearDosageSchedule")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(ClearDosageScheduleResponseObject); ok {
-		if err := validResponse.VisitClearDosageScheduleResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// DosageSchedule operation middleware
-func (sh *strictHandler) DosageSchedule(w http.ResponseWriter, r *http.Request) {
-	var request DosageScheduleRequestObject
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.DosageSchedule(ctx, request.(DosageScheduleRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "DosageSchedule")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(DosageScheduleResponseObject); ok {
-		if err := validResponse.VisitDosageScheduleResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// SetDosageSchedule operation middleware
-func (sh *strictHandler) SetDosageSchedule(w http.ResponseWriter, r *http.Request) {
-	var request SetDosageScheduleRequestObject
-
-	var body SetDosageScheduleJSONRequestBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
-		return
-	}
-	request.Body = &body
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.SetDosageSchedule(ctx, request.(SetDosageScheduleRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "SetDosageSchedule")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(SetDosageScheduleResponseObject); ok {
-		if err := validResponse.VisitSetDosageScheduleResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -1743,41 +1670,43 @@ func (sh *strictHandler) Register(w http.ResponseWriter, r *http.Request) {
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
+	"TVesEmjkfwMAAP//UTQ5WOMpAAA=",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

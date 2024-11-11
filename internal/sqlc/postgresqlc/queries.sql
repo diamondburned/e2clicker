@@ -122,10 +122,10 @@ WHERE user_secret = $1;
 
 -- name: RecordDose :one
 INSERT INTO dosage_history (user_secret, taken_at, delivery_method, dose) (
-  SELECT $1, $2, delivery_method, dose
+  SELECT @user_secret::xid_, @taken_at::timestamptz, delivery_method, dose
   FROM dosage_schedule
-  WHERE user_secret = $1)
-RETURNING *;
+  WHERE dosage_schedule.user_secret = @user_secret::xid_)
+RETURNING dosage_history.*;
 
 -- name: EditDose :execrows
 UPDATE
@@ -146,4 +146,5 @@ FROM dosage_history
 WHERE user_secret = $1
   AND taken_at >= sqlc.arg('start')
   AND taken_at < sqlc.arg('end')
-ORDER BY dose_id DESC;
+  -- order latest last
+ORDER BY taken_at ASC;

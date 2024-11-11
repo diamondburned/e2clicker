@@ -136,7 +136,8 @@ FROM dosage_history
 WHERE user_secret = $1
   AND taken_at >= $2
   AND taken_at < $3
-ORDER BY dose_id DESC
+  -- order latest last
+ORDER BY taken_at ASC
 `
 
 type DoseHistoryParams struct {
@@ -259,10 +260,10 @@ func (q *Queries) ListSessions(ctx context.Context, userSecret sqlc.XID) ([]User
 
 const recordDose = `-- name: RecordDose :one
 INSERT INTO dosage_history (user_secret, taken_at, delivery_method, dose) (
-  SELECT $1, $2, delivery_method, dose
+  SELECT $1::xid_, $2::timestamptz, delivery_method, dose
   FROM dosage_schedule
-  WHERE user_secret = $1)
-RETURNING dose_id, user_secret, delivery_method, dose, taken_at, taken_off_at
+  WHERE dosage_schedule.user_secret = $1::xid_)
+RETURNING dosage_history.dose_id, dosage_history.user_secret, dosage_history.delivery_method, dosage_history.dose, dosage_history.taken_at, dosage_history.taken_off_at
 `
 
 type RecordDoseParams struct {

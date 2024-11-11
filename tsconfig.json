@@ -10,5 +10,6 @@
     "moduleResolution": "bundler",
     "esModuleInterop": true,
     "resolveJsonModule": true
-  }
+  },
+  "files": ["./frontend/lib/e2/index.d.ts"]
 }

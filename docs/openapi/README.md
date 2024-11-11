@@ -53,11 +53,18 @@ Status Code **200**
 This operation does not require authentication
 </aside>
 
-## Get the user's dosage schedule
+## Get the user's dosage and optionally their history
 
-<a id="opIddosageSchedule"></a>
+<a id="opIddosage"></a>
 
-`GET /dosage/schedule`
+`GET /dosage`
+
+<h3 id="get-the-user's-dosage-and-optionally-their-history-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|historyStart|query|string(date-time)|false|none|
+|historyEnd|query|string(date-time)|false|none|
 
 > Example responses
 
@@ -65,40 +72,43 @@ This operation does not require authentication
 
 ```json
 {
-  "schedule": {
+  "dosage": {
     "deliveryMethod": "string",
     "dose": 0.1,
     "interval": 0.1,
     "concurrence": 0
-  }
+  },
+  "history": [
+    {
+      "id": 0,
+      "deliveryMethod": "string",
+      "dose": 0.1,
+      "takenAt": "2019-08-24T14:15:22Z",
+      "takenOffAt": "2019-08-24T14:15:22Z",
+      "comment": "string"
+    }
+  ]
 }
 ```
 
-<h3 id="get-the-user's-dosage-schedule-responses">Responses</h3>
+<h3 id="get-the-user's-dosage-and-optionally-their-history-responses">Responses</h3>
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Successfully retrieved dosage schedule.|Inline|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Successfully retrieved the dosage, if set.|Inline|
 
-<h3 id="get-the-user's-dosage-schedule-responseschema">Response Schema</h3>
-
-Status Code **200**
-
-*The user's dosage schedule. If the user has no schedule set, this will be null.*
-
-|Name|Type|Required|Restrictions|Description|
-|---|---|---|---|---|
+<h3 id="get-the-user's-dosage-and-optionally-their-history-responseschema">Response Schema</h3>
 
 <aside class="warning">
 To perform this operation, you must be authenticated by means of one of the following methods:
 bearerAuth
 </aside>
 
-## Set the user's dosage schedule
+## Set the user's dosage
 
-<a id="opIdsetDosageSchedule"></a>
+<a id="opIdsetDosage"></a>
 
-`PUT /dosage/schedule`
+`PUT /dosage`
 
 > Body parameter
 
@@ -111,11 +121,11 @@ bearerAuth
 }
 ```
 
-<h3 id="set-the-user's-dosage-schedule-parameters">Parameters</h3>
+<h3 id="set-the-user's-dosage-parameters">Parameters</h3>
 
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
-|body|body|[DosageSchedule](#schemadosageschedule)|false|none|
+|body|body|[Dosage](#schemadosage)|false|none|
 
 > Example responses
 
@@ -130,11 +140,11 @@ bearerAuth
 }
 ```
 
-<h3 id="set-the-user's-dosage-schedule-responses">Responses</h3>
+<h3 id="set-the-user's-dosage-responses">Responses</h3>
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
-|204|[No Content](https://tools.ietf.org/html/rfc7231#section-6.3.5)|Successfully set dosage schedule.|None|
+|204|[No Content](https://tools.ietf.org/html/rfc7231#section-6.3.5)|Successfully set the dosage.|None|
 |default|Default|The request is invalid.|[Error](#schemaerror)|
 
 <aside class="warning">
@@ -144,9 +154,9 @@ bearerAuth
 
 ## Clear the user's dosage schedule
 
-<a id="opIdclearDosageSchedule"></a>
+<a id="opIdclearDosage"></a>
 
-`DELETE /dosage/schedule`
+`DELETE /dosage`
 
 > Example responses
 
@@ -165,50 +175,7 @@ bearerAuth
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
-|204|[No Content](https://tools.ietf.org/html/rfc7231#section-6.3.5)|Successfully cleared dosage schedule.|None|
-|default|Default|The request is invalid.|[Error](#schemaerror)|
-
-<aside class="warning">
-To perform this operation, you must be authenticated by means of one of the following methods:
-bearerAuth
-</aside>
-
-## Get the user's dosage history within a time range
-
-<a id="opIddoseHistory"></a>
-
-`GET /dosage/history`
-
-<h3 id="get-the-user's-dosage-history-within-a-time-range-parameters">Parameters</h3>
-
-|Name|In|Type|Required|Description|
-|---|---|---|---|---|
-|start|query|string(date-time)|true|none|
-|end|query|string(date-time)|true|none|
-
-> Example responses
-
-> 200 Response
-
-```json
-{
-  "history": [
-    {
-      "id": 0,
-      "deliveryMethod": "string",
-      "dose": 0.1,
-      "takenAt": "2019-08-24T14:15:22Z",
-      "takenOffAt": "2019-08-24T14:15:22Z"
-    }
-  ]
-}
-```
-
-<h3 id="get-the-user's-dosage-history-within-a-time-range-responses">Responses</h3>
-
-|Status|Meaning|Description|Schema|
-|---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Successfully retrieved dosage history.|[DosageHistory](#schemadosagehistory)|
+|204|[No Content](https://tools.ietf.org/html/rfc7231#section-6.3.5)|Successfully cleared the dosage.|None|
 |default|Default|The request is invalid.|[Error](#schemaerror)|
 
 <aside class="warning">
@@ -220,7 +187,7 @@ bearerAuth
 
 <a id="opIdrecordDose"></a>
 
-`POST /dosage/history`
+`POST /dosage/dose`
 
 > Body parameter
 
@@ -247,7 +214,8 @@ bearerAuth
   "deliveryMethod": "string",
   "dose": 0.1,
   "takenAt": "2019-08-24T14:15:22Z",
-  "takenOffAt": "2019-08-24T14:15:22Z"
+  "takenOffAt": "2019-08-24T14:15:22Z",
+  "comment": "string"
 }
 ```
 
@@ -266,7 +234,7 @@ bearerAuth
 
 <a id="opIdeditDose"></a>
 
-`PUT /dosage/history`
+`PUT /dosage/dose`
 
 > Body parameter
 
@@ -276,7 +244,8 @@ bearerAuth
   "deliveryMethod": "string",
   "dose": 0.1,
   "takenAt": "2019-08-24T14:15:22Z",
-  "takenOffAt": "2019-08-24T14:15:22Z"
+  "takenOffAt": "2019-08-24T14:15:22Z",
+  "comment": "string"
 }
 ```
 
@@ -284,7 +253,7 @@ bearerAuth
 
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
-|body|body|[DosageObservation](#schemadosageobservation)|false|none|
+|body|body|any|false|none|
 
 > Example responses
 
@@ -315,24 +284,13 @@ bearerAuth
 
 <a id="opIdforgetDoses"></a>
 
-`DELETE /dosage/history`
-
-> Body parameter
-
-```json
-{
-  "dose_ids": [
-    0
-  ]
-}
-```
+`DELETE /dosage/dose`
 
 <h3 id="delete-multiple-dosages-from-the-user's-history-parameters">Parameters</h3>
 
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
-|body|body|object|false|none|
-|» dose_ids|body|[integer]|true|none|
+|dose_ids|query|array[integer]|true|none|
 
 > Example responses
 
@@ -729,12 +687,12 @@ bearerAuth
 |units|string|true|none|The units of the delivery method.|
 |name|string|true|none|The full name of the delivery method.|
 
-<h2 id="tocS_DosageSchedule">DosageSchedule</h2>
+<h2 id="tocS_Dosage">Dosage</h2>
 <!-- backwards compatibility -->
-<a id="schemadosageschedule"></a>
-<a id="schema_DosageSchedule"></a>
-<a id="tocSdosageschedule"></a>
-<a id="tocsdosageschedule"></a>
+<a id="schemadosage"></a>
+<a id="schema_Dosage"></a>
+<a id="tocSdosage"></a>
+<a id="tocsdosage"></a>
 
 ```json
 {
@@ -763,17 +721,16 @@ bearerAuth
 <a id="tocsdosagehistory"></a>
 
 ```json
-{
-  "history": [
-    {
-      "id": 0,
-      "deliveryMethod": "string",
-      "dose": 0.1,
-      "takenAt": "2019-08-24T14:15:22Z",
-      "takenOffAt": "2019-08-24T14:15:22Z"
-    }
-  ]
-}
+[
+  {
+    "id": 0,
+    "deliveryMethod": "string",
+    "dose": 0.1,
+    "takenAt": "2019-08-24T14:15:22Z",
+    "takenOffAt": "2019-08-24T14:15:22Z",
+    "comment": "string"
+  }
+]
 
 ```
 
@@ -781,7 +738,7 @@ bearerAuth
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|history|[[DosageObservation](#schemadosageobservation)]|true|none|none|
+|*anonymous*|[[DosageObservation](#schemadosageobservation)]|false|none|none|
 
 <h2 id="tocS_DosageObservation">DosageObservation</h2>
 <!-- backwards compatibility -->
@@ -796,7 +753,8 @@ bearerAuth
   "deliveryMethod": "string",
   "dose": 0.1,
   "takenAt": "2019-08-24T14:15:22Z",
-  "takenOffAt": "2019-08-24T14:15:22Z"
+  "takenOffAt": "2019-08-24T14:15:22Z",
+  "comment": "string"
 }
 
 ```
@@ -810,6 +768,7 @@ bearerAuth
 |dose|number(float)|true|none|The dosage amount.|
 |takenAt|string(date-time)|true|none|The time the dosage was taken.|
 |takenOffAt|string(date-time)|false|none|The time the dosage was taken off. This is only relevant for patch delivery methods.|
+|comment|string|false|none|A comment about the dosage, if any.|
 
 <h2 id="tocS_UserSecret">UserSecret</h2>
 <!-- backwards compatibility -->

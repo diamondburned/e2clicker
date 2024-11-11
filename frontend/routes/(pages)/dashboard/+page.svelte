@@ -1,97 +1,286 @@
-<script lang="ts">
-  import Estrannaise from "./Estrannaise.svelte";
+<script lang="ts" module>
+  import { DateTime, Duration } from "luxon";
 
-  import * as api from "$lib/api";
-  import { fly } from "svelte/transition";
-  import { DateTime } from "luxon";
-  import LoadingScreen from "$lib/components/LoadingScreen.svelte";
+  // The rate at which to poll the server for new data.
+  const apiUpdateRate = Duration.fromObject({ minutes: 5 });
+
+  // The rate at which to update the clock used for relative times.
+  const durationUpdateRate = Duration.fromObject({ second: 1 });
+
+  function mountTimer(duration: Duration, callback: () => void): () => void {
+    const v = setInterval(callback, duration.as("milliseconds"));
+    return () => clearInterval(v);
+  }
+</script>
+
+<script lang="ts">
+  import LoadingPage from "$lib/components/LoadingPage.svelte";
   import Dialog from "$lib/components/Dialog.svelte";
   import Icon from "$lib/components/Icon.svelte";
+  import EstrannaisePlot from "./Estrannaise.svelte";
+
+  import * as e2 from "$lib/e2.svelte";
+  import * as api from "$lib/api.svelte";
   import { onMount } from "svelte";
+  import ResizeContainer from "$lib/components/ResizeContainer.svelte";
 
-  let historyEnd = $state(DateTime.now());
-  let historyStart = $derived(historyEnd.minus({ month: 1 }));
+  // Update this every second.
+  // We'll use this just to render relative times.
+  let now = $state(DateTime.now());
+  onMount(() =>
+    mountTimer(durationUpdateRate, () => {
+      now = DateTime.now();
+    }),
+  );
 
-  let loadingPromise = $state<
-    Promise<{
-      doseHistory: api.DosageHistory["history"];
-      doseSchedule: api.DosageSchedule | null;
-    }>
-  >(new Promise(() => {}));
+  let endTime = $state(DateTime.now());
+  let startTime = $derived(endTime.minus({ month: 1 }));
+  onMount(() =>
+    mountTimer(apiUpdateRate, () => {
+      endTime = DateTime.now();
+    }),
+  );
 
-  onMount(() => {
-    loadingPromise = Promise.all([
-      api.doseHistory(historyStart.toISO(), historyEnd.toISO()),
-      api.dosageSchedule(),
-    ]).then(([doseHistory, doseSchedule]) => ({
-      doseHistory: doseHistory.history,
-      doseSchedule: doseSchedule.schedule ?? null,
-    }));
+  // Update all the information on this page
+  // by updating all the time inputs.
+  const update = () => {
+    now = DateTime.now();
+    endTime = DateTime.now();
+  };
+
+  let dosageLoader = new api.AsyncToOK(api.dosage, {
+    // Allow future update calls without triggering LoadingPage.
+    firstPromiseOnly: true,
   });
+
+  $effect(() => {
+    dosageLoader.load({
+      historyStart: startTime.toISO(),
+      historyEnd: endTime.toISO(),
+    });
+  });
+
+  let doses = $derived(dosageLoader.value);
+  let dosage = $derived(doses?.dosage);
+  let delivery = $derived(dosage && e2.deliveryMethod(dosage.deliveryMethod));
+
+  let lastDoseAt = $derived(
+    (doses?.history?.length ?? 0) > 0
+      ? DateTime.fromISO(doses!.history![doses!.history!.length - 1].takenAt)
+      : null,
+  );
+  let nextDoseAt = $derived(dosage && lastDoseAt && e2.timeUntilNextDose(dosage, lastDoseAt));
+  let untilNextDose = $derived(nextDoseAt ? nextDoseAt.diff(now) : Duration.fromMillis(0));
+  let isTimeForNextDose = $derived(untilNextDose.toMillis() <= 0);
+
+  let visiblePastDay = $state(0);
+  let visibleTotalDays = $derived.by(() => {
+    if (!doses?.history) {
+      return 0;
+    }
+    const daysList = doses.history.map((d) => DateTime.fromISO(d.takenAt).startOf("day"));
+    const days = new Set(daysList);
+    return days.size;
+  });
+
+  let visibleDoseTime = $derived(
+    (lastDoseAt ?? DateTime.now()).minus({ days: visiblePastDay }).startOf("day"),
+  );
+  let visibleDoses = $derived.by(() => {
+    const start = visibleDoseTime;
+    const end = visibleDoseTime.endOf("day");
+    return doses?.history?.filter((d) => {
+      const takenAt = DateTime.fromISO(d.takenAt);
+      return takenAt >= start && takenAt <= end;
+    });
+  });
+
+  let submittingDose = $state(false);
+  async function submitDose() {
+    submittingDose = true;
+    try {
+      await api.recordDose({ takenAt: DateTime.now().toISO() });
+      update();
+    } finally {
+      submittingDose = false;
+    }
+  }
 </script>
 
 <svelte:head>
-  <title>e2clicker</title>
+  <title>Dashboard - e2clicker</title>
 </svelte:head>
 
-{#await loadingPromise}
-  <LoadingScreen promise={loadingPromise} />
-{:then { doseHistory, doseSchedule }}
-  {#if doseSchedule}
-    <main class="container" transition:fly={{ duration: 200, y: 100 }}>
-      <h1>Dashboard</h1>
+<LoadingPage promise={dosageLoader.promise} />
 
-      <section class="dashboard-grid">
-        <article id="estrannaise-plot">
-          <h2>Estrogen Levels</h2>
-          <Estrannaise {doseHistory} />
-        </article>
+<section class="dashboard-grid">
+  <div id="next-dose" class="flex flex-col items-center spaced-2">
+    {#if nextDoseAt}
+      {#if isTimeForNextDose}
+        <p class="dose-reminder primary text-center text-3xl font-bold mb-4">
+          It's time to take your next dose!
+        </p>
+        <p class="duration-display text-2xl text-center leading-10">
+          <span>Your next dose was due</span>
+          <mark class="duration font-bold text-nowrap">
+            {e2.formatDuration(untilNextDose.negate())}
+          </mark>
+          <span>ago</span>
+        </p>
+      {:else}
+        <p class="duration-display text-2xl text-center leading-10">
+          <span>Your next dose is in</span>
+          <mark class="duration font-bold text-nowrap">
+            {e2.formatDuration(untilNextDose)}
+          </mark>
+        </p>
+      {/if}
+    {:else}
+      <p class="text-xl">You haven't taken a dose yet.</p>
+    {/if}
 
-        <article id="dose-history">
-          <h2>Dose History</h2>
-          <ul>
-            {#each doseHistory as dose}
-              <li>{dose}</li>
-            {/each}
-          </ul>
-        </article>
+    <footer class="actions min-h-12">
+      {#if dosageLoader.loading}
+        <span aria-busy="true">Loading...</span>
+      {:else}
+        <button
+          class:outline={!isTimeForNextDose}
+          onclick={() => submitDose()}
+          disabled={dosageLoader.loading || submittingDose}
+        >
+          <Icon name="medication" />
+          {#if lastDoseAt}
+            {#if isTimeForNextDose}
+              I took my dose!
+            {:else}
+              I took it early
+            {/if}
+          {:else}
+            I took my <b>first</b> dose!
+          {/if}
+        </button>
 
-        <article id="next-dose">
-          <b>Take your next dose in</b>
-        </article>
+        {#if lastDoseAt}
+          <button class="secondary ml-2" onclick={() => {}}>
+            <Icon name="edit" />
+            Edit doses
+          </button>
+        {/if}
+      {/if}
+    </footer>
+  </div>
 
-        <article id="actions">
-          <button> I took my dose! </button>
-        </article>
-      </section>
-    </main>
-  {:else}
-    <Dialog open>
-      <h3>Further setup required</h3>
-      <p>
-        You don't currently have a dose schedule set up yet.
-        <br />
-        <span class="brand">Let's get that set up now!</span>
+  <article id="estrannaise-plot">
+    <h3>Estrogen Levels</h3>
+    <EstrannaisePlot {doses} {startTime} {endTime} />
+  </article>
+
+  <article id="dose-info">
+    <h3>Your Dosage</h3>
+    {#if doses?.dosage && delivery}
+      <p class="dosage text-3xl leading-10">
+        <span class="text-nowrap">
+          {#if delivery.patch}
+            1 patch
+          {:else}
+            {doses.dosage.dose ?? ""}
+            {delivery.units ?? ""}
+          {/if}
+        </span>
+        <span class="font-thin">every</span>
+        <span class="text-nowrap">
+          {e2
+            .roundDuration(Duration.fromObject({ days: doses.dosage.interval }).rescale())
+            .toHuman()}
+        </span>
       </p>
-      <footer>
-        <a href="/settings" role="button">
-          Head to settings <Icon name="arrow-forward" />
-        </a>
-      </footer>
-    </Dialog>
-  {/if}
-{:catch}
-  <LoadingScreen promise={loadingPromise} />
-{/await}
+      <p class="medication">
+        {delivery.name}
+      </p>
+    {/if}
+  </article>
+
+  <article id="levels-info">
+    <h3>Current Levels</h3>
+  </article>
+</section>
+
+<section class="as-card">
+  <h2 class="no-fat-padding">Dose History</h2>
+  <ResizeContainer>
+    <table>
+      <thead>
+        <tr>
+          <th>When</th>
+          <th>Dose</th>
+          <th><Icon name="comment" /></th>
+        </tr>
+      </thead>
+      <tbody>
+        {#each (visibleDoses ?? []).toReversed() as dose}
+          {@const delivery = e2.deliveryMethod(dose.deliveryMethod)}
+          <tr>
+            <th>{e2.formatDoseTime(dose, now)} ago</th>
+            <th>
+              {dose.dose}
+              {delivery?.units}
+              {#if delivery && delivery.id != dosage?.deliveryMethod}
+                <small>({delivery.name})</small>
+              {/if}
+            </th>
+            <th></th>
+          </tr>
+        {/each}
+      </tbody>
+    </table>
+  </ResizeContainer>
+  <div class="paginator flex items-center justify-center">
+    <button
+      class="p-1 outline"
+      onclick={() => visiblePastDay++}
+      disabled={visiblePastDay >= visibleTotalDays}
+    >
+      <Icon name="chevron-left" />
+    </button>
+    <p class="mx-4 my-0">
+      Showing <b>{visibleDoseTime.toLocaleString({ dateStyle: "long" })}</b>
+    </p>
+    <button class="p-1 outline xx" onclick={() => visiblePastDay--} disabled={visiblePastDay <= 0}>
+      <Icon name="chevron-right" />
+    </button>
+  </div>
+</section>
+
+{#if doses && !doses.dosage}
+  <Dialog open>
+    <h3>Further setup required</h3>
+    <p>
+      You don't currently have a dose schedule set up yet.
+      <br />
+      <span class="brand">Let's get that set up now!</span>
+    </p>
+    <footer>
+      <a href="/settings" role="button">
+        Head to settings <Icon name="arrow-forward" />
+      </a>
+    </footer>
+  </Dialog>
+{/if}
 
 <style lang="scss">
-  main {
-    flex: 1;
+  @use "sass:map";
+  @use "@picocss/pico/scss/settings" as *;
 
-    h1 {
-      margin-top: var(--pico-typography-spacing-top);
-      margin-bottom: calc(2 * var(--pico-typography-spacing-vertical));
+  article {
+    margin-bottom: 0;
+
+    h3:not(.no-fat-padding) {
+      margin-bottom: calc(1.5 * var(--pico-typography-spacing-vertical));
     }
+  }
+
+  section.as-card {
+    padding: 0 var(--pico-block-spacing-horizontal);
   }
 
   .dashboard-grid {
@@ -102,31 +291,44 @@
     @mixin name-grid($id) {
       ##{$id} {
         grid-area: $id;
-
-        margin: 0;
       }
     }
 
-    @include name-grid(estrannaise-plot);
-    @include name-grid(dose-history);
     @include name-grid(next-dose);
-    @include name-grid(actions);
+    @include name-grid(estrannaise-plot);
+    @include name-grid(dose-info);
+    @include name-grid(levels-info);
 
     grid-template-areas:
+      "next-dose next-dose next-dose"
       "estrannaise-plot estrannaise-plot estrannaise-plot"
-      "next-dose dose-history dose-history"
-      "actions actions actions";
+      "dose-info levels-info levels-info"
+      "dose-history dose-history dose-history";
 
-    @media (max-width: 800px) {
+    @media (max-width: map.get(map.get($breakpoints, "md"), "breakpoint")) {
       grid-template-areas:
-        "estrannaise-plot"
         "next-dose"
-        "dose-history"
-        "actions";
+        "estrannaise-plot"
+        "levels-info"
+        "dose-info"
+        "dose-history";
     }
 
     & > * {
       grid-area: attr(data-grid);
     }
+  }
+
+  #next-dose {
+    --y-margin: clamp(
+      var(--pico-block-spacing-vertical),
+      10vh,
+      calc(6 * var(--pico-block-spacing-vertical))
+    );
+
+    margin-top: var(--y-margin);
+    margin-bottom: var(--y-margin);
+
+    font-size: clamp(1em, 5vw, 1.15em);
   }
 </style>

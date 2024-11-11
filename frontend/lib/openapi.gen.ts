@@ -32,7 +32,7 @@ export type Error = {
     /** An internal code for the error (useless for clients) */
     internalCode?: string;
 };
-export type DosageSchedule = {
+export type Dosage = {
     /** The delivery method to use. */
     deliveryMethod: string;
     /** The dosage amount. */
@@ -53,10 +53,10 @@ export type DosageObservation = {
     takenAt: string;
     /** The time the dosage was taken off. This is only relevant for patch delivery methods. */
     takenOffAt?: string;
+    /** A comment about the dosage, if any. */
+    comment?: string;
 };
-export type DosageHistory = {
-    history: DosageObservation[];
-};
+export type DosageHistory = DosageObservation[];
 export type Locale = string;
 export type User = {
     /** The user's name */
@@ -91,62 +91,54 @@ export function deliveryMethods(opts?: Oazapfts.RequestOpts) {
     }));
 }
 /**
- * Get the user's dosage schedule
+ * Get the user's dosage and optionally their history
  */
-export function dosageSchedule(opts?: Oazapfts.RequestOpts) {
+export function dosage({ historyStart, historyEnd }: {
+    historyStart?: string;
+    historyEnd?: string;
+} = {}, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
         data: {
-            schedule?: DosageSchedule;
+            /** The user's current dosage schedule. This is null if the user has no dosage set. */
+            dosage?: Dosage;
+            /** The user's dosage history within the requested time range. If either historyStart or historyEnd are not provided, this will be null. */
+            history?: DosageHistory;
         };
-    }>("/dosage/schedule", {
+    }>(`/dosage${QS.query(QS.explode({
+        historyStart,
+        historyEnd
+    }))}`, {
         ...opts
     }));
 }
 /**
- * Set the user's dosage schedule
+ * Set the user's dosage
  */
-export function setDosageSchedule(dosageSchedule?: DosageSchedule, opts?: Oazapfts.RequestOpts) {
+export function setDosage(dosage?: Dosage, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 204;
     } | {
         status: number;
         data: Error;
-    }>("/dosage/schedule", oazapfts.json({
+    }>("/dosage", oazapfts.json({
         ...opts,
         method: "PUT",
-        body: dosageSchedule
+        body: dosage
     })));
 }
 /**
  * Clear the user's dosage schedule
  */
-export function clearDosageSchedule(opts?: Oazapfts.RequestOpts) {
+export function clearDosage(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 204;
     } | {
         status: number;
         data: Error;
-    }>("/dosage/schedule", {
+    }>("/dosage", {
         ...opts,
         method: "DELETE"
-    }));
-}
-/**
- * Get the user's dosage history within a time range
- */
-export function doseHistory(start: string, end: string, opts?: Oazapfts.RequestOpts) {
-    return oazapfts.ok(oazapfts.fetchJson<{
-        status: 200;
-        data: DosageHistory;
-    } | {
-        status: number;
-        data: Error;
-    }>(`/dosage/history${QS.query(QS.explode({
-        start,
-        end
-    }))}`, {
-        ...opts
     }));
 }
 /**
@@ -159,7 +151,7 @@ export function recordDose(body?: {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
         data: DosageObservation;
-    }>("/dosage/history", oazapfts.json({
+    }>("/dosage/dose", oazapfts.json({
         ...opts,
         method: "POST",
         body
@@ -168,34 +160,33 @@ export function recordDose(body?: {
 /**
  * Update a dosage in the user's history
  */
-export function editDose(dosageObservation?: DosageObservation, opts?: Oazapfts.RequestOpts) {
+export function editDose(body?: DosageObservation, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 204;
     } | {
         status: number;
         data: Error;
-    }>("/dosage/history", oazapfts.json({
+    }>("/dosage/dose", oazapfts.json({
         ...opts,
         method: "PUT",
-        body: dosageObservation
+        body
     })));
 }
 /**
  * Delete multiple dosages from the user's history
  */
-export function forgetDoses(body?: {
-    dose_ids: number[];
-}, opts?: Oazapfts.RequestOpts) {
+export function forgetDoses(doseIds: number[], opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 204;
     } | {
         status: number;
         data: Error;
-    }>("/dosage/history", oazapfts.json({
+    }>(`/dosage/dose${QS.query(QS.explode({
+        dose_ids: doseIds
+    }))}`, {
         ...opts,
-        method: "DELETE",
-        body
-    })));
+        method: "DELETE"
+    }));
 }
 /**
  * Register a new account

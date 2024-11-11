@@ -20,7 +20,9 @@
 
 {#key $page.url.pathname}
   <div in:fly={transitionIn} out:fly={transitionOut}>
-    {@render children()}
+    <main class="container spaced-2">
+      {@render children()}
+    </main>
   </div>
 {/key}
 

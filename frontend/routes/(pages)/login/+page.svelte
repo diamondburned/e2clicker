@@ -1,5 +1,5 @@
 <script lang="ts">
-  import LoadingScreen from "$lib/components/LoadingScreen.svelte";
+  import LoadingPage from "$lib/components/LoadingPage.svelte";
   import ResizeContainer from "$lib/components/ResizeContainer.svelte";
 
   import LoginScreen from "./LoginScreen.svelte";
@@ -25,7 +25,7 @@
   });
 </script>
 
-<LoadingScreen {promise} />
+<LoadingPage {promise} />
 
 <div class="outer-container">
   <div class="main-wrapper container">

@@ -55,6 +55,7 @@
     width: 100%;
     top: 0;
 
+    z-index: 50;
     user-select: none;
 
     transition: box-shadow 100ms var(--pico-transition-easing);

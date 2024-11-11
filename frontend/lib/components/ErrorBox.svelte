@@ -27,7 +27,7 @@
 {#if error}
   {#if tiny}
     <span class="error-span" transition:slide={{ duration: 200 }}>
-      <Tooltip>
+      <Tooltip selectable>
         <span class="error-text">
           {prefix || "Error occured"}
         </span>

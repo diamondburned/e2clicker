@@ -1,6 +1,5 @@
 <script lang="ts">
   import Icon from "$lib/components/Icon.svelte";
-  import Tooltip from "$lib/components/popovers/Tooltip.svelte";
   import { auth, register } from "$lib/openapi.gen";
   import { setToken } from "$lib/api";
 

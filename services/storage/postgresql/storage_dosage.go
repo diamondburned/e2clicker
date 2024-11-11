@@ -29,7 +29,7 @@ func (s *dosageStorage) DeliveryMethods(ctx context.Context) ([]dosage.DeliveryM
 	}), nil
 }
 
-func (s *dosageStorage) DosageSchedule(ctx context.Context, secret user.Secret) (*dosage.Schedule, error) {
+func (s *dosageStorage) Dosage(ctx context.Context, secret user.Secret) (*dosage.Dosage, error) {
 	d, err := s.q.DosageSchedule(ctx, sqlc.XID(secret))
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -43,7 +43,7 @@ func (s *dosageStorage) DosageSchedule(ctx context.Context, secret user.Secret) 
 		(dosage.Days(d.Interval.Microseconds) / 1e6 / (60 * 60 * 24)) +
 		(dosage.Days(d.Interval.Months) * 30)
 
-	return &dosage.Schedule{
+	return &dosage.Dosage{
 		UserSecret:     secret,
 		DeliveryMethod: d.DeliveryMethod.String,
 		Dose:           d.Dose,
@@ -52,7 +52,7 @@ func (s *dosageStorage) DosageSchedule(ctx context.Context, secret user.Secret) 
 	}, nil
 }
 
-func (s *dosageStorage) SetDosageSchedule(ctx context.Context, d dosage.Schedule) error {
+func (s *dosageStorage) SetDosage(ctx context.Context, d dosage.Dosage) error {
 	int, frac := math.Modf(float64(d.Interval))
 	return s.q.SetDosageSchedule(ctx, postgresqlc.SetDosageScheduleParams{
 		UserSecret:     sqlc.XID(d.UserSecret),
@@ -70,7 +70,7 @@ func (s *dosageStorage) SetDosageSchedule(ctx context.Context, d dosage.Schedule
 	})
 }
 
-func (s *dosageStorage) ClearDosageSchedule(ctx context.Context, secret user.Secret) error {
+func (s *dosageStorage) ClearDosage(ctx context.Context, secret user.Secret) error {
 	return s.q.DeleteDosageSchedule(ctx, sqlc.XID(secret))
 }
 
