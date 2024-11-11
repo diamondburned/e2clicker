@@ -40,16 +40,21 @@ export const relevantUnits: (keyof DurationObjectUnits)[] = [
 // and numUnits = 2, the result will be 1 year and 2 months.
 export function durationTrimLower(duration: Duration, numUnits = 2): Duration {
   const obj = duration.toObject();
+
   for (let i = 0; i < relevantUnits.length; i++) {
     const units = relevantUnits.slice(i, Math.min(i + numUnits, relevantUnits.length));
     const values = units.map((unit) => obj[unit] ?? 0);
+
+    // This slice of units is fully not empty, so we can keep it.
     if (values[0] > 0) {
-      // This slice of units is fully not empty, so we can keep it.
-      const zipped = units.map((unit, i) => [unit, values[i]]);
-      const trimmed = Duration.fromObject(Object.fromEntries(zipped));
-      return trimmed;
+      let zipped = units
+        .map((unit, i) => [unit, values[i]] as [keyof DurationObjectUnits, number])
+        .filter(([_, value]) => value > 0); // remove empty units
+
+      return Duration.fromObject(Object.fromEntries(zipped));
     }
   }
+
   return duration;
 }
 
