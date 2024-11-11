@@ -2,7 +2,7 @@
   import { cubicInOut as easeFade } from "svelte/easing";
   import { fade, fly } from "svelte/transition";
   import ErrorBox from "./ErrorBox.svelte";
-  import type { Snippet } from "svelte";
+  import { onDestroy, type Snippet } from "svelte";
 
   let {
     main = false,
@@ -21,7 +21,7 @@
   <div
     class="loading-screen loading"
     aria-busy="true"
-    transition:fade={{ duration: 350, easing: easeFade }}
+    out:fade={{ duration: 400, easing: easeFade }}
   >
     Loading...
   </div>
@@ -36,7 +36,7 @@
     {/if}
   {/if}
 {:catch error}
-  <div class="loading-screen error" transition:fade={{ duration: 350, easing: easeFade }}>
+  <div class="loading-screen error" transition:fade={{ duration: 400, easing: easeFade }}>
     <article class="loading-error spaced">
       <h3>ou nyow :(</h3>
       <ErrorBox {error} />
@@ -61,6 +61,20 @@
     align-items: center;
 
     user-select: none;
+
+    opacity: 0;
+
+    @keyframes fadeIn {
+      0% {
+        opacity: 0;
+      }
+      100% {
+        opacity: 1;
+      }
+    }
+
+    animation: fadeIn 150ms var(--pico-transition-easing);
+    animation-delay: 500ms;
 
     &.loading {
       cursor: wait;

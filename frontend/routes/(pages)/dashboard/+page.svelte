@@ -17,7 +17,7 @@
   import LoadingPage from "$lib/components/LoadingPage.svelte";
   import Dialog from "$lib/components/Dialog.svelte";
   import Icon from "$lib/components/Icon.svelte";
-  import EstrannaisePlot from "./Estrannaise.svelte";
+  import DosagePlot from "./DosagePlot.svelte";
 
   import * as e2 from "$lib/e2.svelte";
   import * as api from "$lib/api.svelte";
@@ -172,7 +172,7 @@
 
   <article id="estrannaise-plot">
     <h3>Estrogen Levels</h3>
-    <EstrannaisePlot {doses} {startTime} {endTime} />
+    <DosagePlot {doses} {startTime} {endTime} />
   </article>
 
   <article id="dose-info">
@@ -205,30 +205,32 @@
   </article>
 </section>
 
-<section class="as-card">
+<section id="dose-history" class="as-card">
   <h2 class="no-fat-padding">Dose History</h2>
   <ResizeContainer>
-    <table>
-      <thead>
-        <tr>
-          <th>When</th>
-          <th>Dose</th>
-          <th><Icon name="comment" /></th>
-        </tr>
-      </thead>
+    <table id="dose-history-table">
       <tbody>
+        <tr>
+          <th data-column="When">When</th>
+          <th data-column="Dose">Dose</th>
+          <th data-column="Comment"></th>
+        </tr>
         {#each (visibleDoses ?? []).toReversed() as dose}
           {@const delivery = e2.deliveryMethod(dose.deliveryMethod)}
           <tr>
-            <th>{e2.formatDoseTime(dose, now)} ago</th>
-            <th>
+            <td data-column="When">{e2.formatDoseTime(dose, now)} ago</td>
+            <td data-column="Dose">
               {dose.dose}
               {delivery?.units}
               {#if delivery && delivery.id != dosage?.deliveryMethod}
-                <small>({delivery.name})</small>
+                <small class="delivery">({delivery.name})</small>
               {/if}
-            </th>
-            <th></th>
+            </td>
+            <td data-column="Comment">
+              {#if true}
+                <Icon name="comment" />
+              {/if}
+            </td>
           </tr>
         {/each}
       </tbody>
@@ -281,6 +283,9 @@
 
   section.as-card {
     padding: 0 var(--pico-block-spacing-horizontal);
+    @media (max-width: map.get(map.get($breakpoints, "sm"), "breakpoint")) {
+      padding: 0;
+    }
   }
 
   .dashboard-grid {
@@ -330,5 +335,60 @@
     margin-bottom: var(--y-margin);
 
     font-size: clamp(1em, 5vw, 1.15em);
+  }
+
+  #dose-history-table {
+    tbody {
+      display: grid;
+      grid-template-columns: 1fr 1fr auto;
+
+      tr {
+        display: contents;
+      }
+
+      @media (max-width: map.get(map.get($breakpoints, "md"), "breakpoint")) {
+        grid-template-columns: 1fr;
+
+        tr {
+          display: grid;
+
+          grid-template-columns: 1fr auto;
+          grid-template-rows: auto auto;
+          /* grid-gap: var(--pico-spacing); */
+        }
+
+        th {
+          display: none;
+        }
+
+        td[data-column="When"] {
+          grid-column: 1;
+          grid-row: 1;
+
+          border-bottom: none;
+          padding-bottom: 0;
+        }
+
+        td[data-column="Dose"] {
+          grid-column: 1;
+          grid-row: 2;
+
+          padding-top: 0;
+
+          font-weight: bold;
+          .delivery {
+            font-weight: normal;
+          }
+        }
+
+        td[data-column="Comment"] {
+          grid-column: 2;
+          grid-row: span 2;
+
+          display: flex;
+          align-items: center;
+        }
+      }
+    }
   }
 </style>

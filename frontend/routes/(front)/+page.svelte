@@ -52,7 +52,7 @@
         Go to Dashboard <Icon name="arrow-forward" />
       </a>
     {:else}
-      <a href="/login#register" role="button">
+      <a href="/login" role="button">
         Get Started <Icon name="arrow-forward" />
       </a>
     {/if}
