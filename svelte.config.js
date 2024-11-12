@@ -14,7 +14,7 @@ const config = {
   kit: {
     adapter: adapter({
       out: "dist/frontend",
-      precompress: false,
+      precompress: true,
     }),
     files: {
       assets: "assets",
