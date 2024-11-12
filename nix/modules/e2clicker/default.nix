@@ -110,6 +110,11 @@ with builtins;
       environment = {
         HOST = "${e2clicker.frontend.host}";
         PORT = "${toString e2clicker.frontend.port}";
+        HOST_HEADER = "x-forwarded-host";
+        PROTOCOL_HEADER = "x-forwarded-proto";
+        # the frontend doesn't even handle POST requests.
+        BODY_SIZE_LIMIT = "4K";
+        IDLE_TIMEOUT = toString (1 * 60 * 60); # 1 hour
       };
       serviceConfig = {
         ExecStart = "${getExe e2clicker.frontend.package}";
@@ -117,6 +122,13 @@ with builtins;
         RestartSec = "5s";
         DynamicUser = true;
       };
+    };
+
+    systemd.sockets.e2clicker-frontend = mkIf e2clicker.frontend.enable {
+      description = "e2clicker frontend socket";
+      after = [ "network.target" ];
+      wantedBy = [ "sockets.target" ];
+      listenStreams = [ "${e2clicker.frontend.host}:${toString e2clicker.frontend.port}" ];
     };
   };
 }
