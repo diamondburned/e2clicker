@@ -98,6 +98,15 @@
   --font-size-3xl: 1.953em;
   --font-size-4xl: 2.441em;
   --font-size-5xl: 3.052em;
+
+  --line-height-xs: var(--pico-line-height);
+  --line-height-sm: var(--pico-line-height);
+  --line-height-base: var(--pico-line-height);
+  --line-height-xl: 1.25;
+  --line-height-2xl: 1.15;
+  --line-height-3xl: 1.125;
+  --line-height-4xl: 1.125;
+  --line-height-5xl: 1.125;
 }
 
 // Responsives spacings
@@ -134,36 +143,37 @@ h6 {
 
 h1 {
   --pico-font-size: var(--font-size-3xl);
-  --pico-line-height: 1.125;
+  --pico-line-height: var(--line-height-3xl);
   --pico-typography-spacing-top: 3em;
 }
 
 h2 {
   --pico-font-size: var(--font-size-2xl);
-  --pico-line-height: 1.15;
+  --pico-line-height: var(--line-height-2xl);
   --pico-typography-spacing-top: 2.625em;
 }
 
 h3 {
   --pico-font-size: var(--font-size-xl) --pico-line-height: 1.175;
+  --pico-line-height: var(--line-height-xl);
   --pico-typography-spacing-top: 2.25em;
 }
 
 h4 {
   --pico-font-size: var(--font-size-base);
-  --pico-line-height: 1.2;
+  --pico-line-height: var(--line-height-base);
   --pico-typography-spacing-top: 1.874em;
 }
 
 h5 {
   --pico-font-size: var(--font-size-sm);
-  --pico-line-height: 1.225;
+  --pico-line-height: var(--line-height-sm);
   --pico-typography-spacing-top: 1.6875em;
 }
 
 h6 {
   --pico-font-size: var(--font-size-sm);
-  --pico-line-height: 1.25;
+  --pico-line-height: var(--line-height-sm);
   --pico-typography-spacing-top: 1.5em;
 }
 

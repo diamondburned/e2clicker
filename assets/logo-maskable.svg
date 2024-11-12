@@ -2,7 +2,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512px" height="512px" viewBox="0 0 512 512" xmlns:bx="https://boxy-svg.com">
   <defs>
     <bx:export>
-      <bx:file format="png" path="logo.png" width="512" height="512">
+      <bx:file format="png" path="logo-maskable.png" width="512" height="512">
         <bx:variant scale="2" suffix="@2x"/>
       </bx:file>
       <bx:file format="png" path="favicon.png" width="360" height="360" excluded="true"/>
@@ -11,7 +11,7 @@
   <rect width="512" height="512" style="fill: rgb(251, 229, 229);">
     <title>Background</title>
   </rect>
-  <g transform="matrix(1, 0, 0, 1, 0.112862, -0.54631)">
+  <g transform="matrix(0.778282, 0, 0, 0.778282, 56.847557, 56.334534)" style="">
     <title>Pill</title>
     <path style="fill:#63cdf9; stroke:none;" d="M 211 211 L 242.011 242.039 L 296 296 L 327.495 327.32 C 327.495 327.32 347.448 307.138 357.039 298.424 C 367.625 288.807 377.125 278.277 387.039 268 C 393.497 261.307 400.608 255.201 406.536 248 C 419.506 232.246 429.057 210.614 429.961 190 C 430.84 169.942 427.427 150.731 417.688 133 C 395.385 92.393 345.784 74.021 302 86.428 C 265.26 96.839 239.981 129.019 214 155 L 193.481 175.635 C 190.829 178.23 185.293 183.771 185.293 183.771 L 197.778 196.32 C 197.778 196.32 204.929 189.055 210 188.323 C 215.646 187.507 221.735 193.25 220.304 198.996 C 219.108 203.799 211 211 211 211 Z">
       <title>Blue</title>
