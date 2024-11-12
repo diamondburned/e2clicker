@@ -1,12 +1,9 @@
 <script lang="ts">
   import Icon from "$lib/components/Icon.svelte";
-  import Header from "$lib/components/Header.svelte";
   import Footer from "$lib/components/Footer.svelte";
 
   import { isLoggedIn } from "$lib/api.js";
 </script>
-
-<Header />
 
 <main class="container spaced">
   <header class="big-brand">

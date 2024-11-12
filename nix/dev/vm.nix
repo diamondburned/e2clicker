@@ -56,6 +56,14 @@
       handle /api* {
         reverse_proxy * localhost:36001
       }
+      handle /_app/immutable* {
+        header Cache-Control "public, immutable, max-age=31536000"
+        file_server {
+          root ${config.services.e2clicker.frontend.package.assets}
+          precompressed gzip br
+          pass_thru
+        }
+      }
       handle {
         reverse_proxy * localhost:36000
       }

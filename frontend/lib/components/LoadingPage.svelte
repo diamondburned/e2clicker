@@ -9,11 +9,15 @@
     mainClass,
     promise = new Promise<T>(() => {}),
     children,
+    errorHeader,
+    errorFooter,
   }: {
     main?: boolean;
     mainClass?: string;
     promise?: Promise<T>;
     children?: Snippet<[T]> | Snippet;
+    errorHeader?: Snippet;
+    errorFooter?: Snippet;
   } = $props();
 </script>
 
@@ -38,8 +42,13 @@
 {:catch error}
   <div class="loading-screen error" transition:fade={{ duration: 400, easing: easeFade }}>
     <article class="loading-error spaced">
-      <h3>ou nyow :(</h3>
+      {#if errorHeader}
+        {@render errorHeader?.()}
+      {:else}
+        <h3>ou nyow :(</h3>
+      {/if}
       <ErrorBox {error} />
+      {@render errorFooter?.()}
     </article>
   </div>
 {/await}

@@ -35,7 +35,7 @@ export BACKEND_HTTP_ADDRESS := "http://localhost:8000"
 
 dev: generate
 	zellij delete-session e2clicker || true
-	zellij --session e2clicker --layout ./nix/dev/zellij-layout.kdl
+	zellij --session e2clicker --new-session-with-layout ./nix/dev/zellij-layout.kdl
 
 [private]
 dev-vm: generate

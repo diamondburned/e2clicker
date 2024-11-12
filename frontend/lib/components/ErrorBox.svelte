@@ -2,27 +2,43 @@
   import { slide } from "svelte/transition";
   import Tooltip from "./popovers/Tooltip.svelte";
   import Icon from "./Icon.svelte";
+  import type { Snippet } from "svelte";
 
   let {
     error,
+    children,
     prefix,
     tiny = false,
   }: {
-    error: any;
+    error: any | Snippet;
+    children?: Snippet<[string]>;
     prefix?: string;
     tiny?: boolean;
   } = $props();
 
-  let message = $derived(
-    typeof error == "object"
-      ? !!error.data?.message //
-        ? error.data.message
-        : error.message
-      : `${error}`,
-  );
+  let errorString = $derived.by(() => {
+    switch (typeof error) {
+      case "function":
+        return error as Snippet;
+      case "string":
+        return error;
+      case "object":
+        return error.data?.message ?? error.message ?? `${error}`;
+      default:
+        return `${error}`;
+    }
+  });
 
   let errorPrefix = $derived(prefix ? `Error: ${prefix}: ` : "Error: ");
 </script>
+
+{#snippet message()}
+  {#if children}
+    {@render children(errorString)}
+  {:else}
+    {errorString}
+  {/if}
+{/snippet}
 
 {#if error}
   {#if tiny}
@@ -32,7 +48,8 @@
           {prefix || "Error occured"}
         </span>
         {#snippet tooltip()}
-          <b>{errorPrefix}</b>{message}
+          <b>{errorPrefix}</b>
+          {@render message()}
         {/snippet}
       </Tooltip>
       <span class="error-icon">
@@ -50,7 +67,7 @@
         <Icon name="error" />
       </span>
       <b class="error-text error-prefix">{errorPrefix}</b>
-      <span class="error-text">{message}</span>
+      <span class="error-text">{@render message()}</span>
     </blockquote>
   {/if}
 {/if}

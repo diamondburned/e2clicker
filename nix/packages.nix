@@ -84,8 +84,16 @@ rec {
         ln -s ${dist}/backend $out/bin
       '';
 
-  e2clicker-frontend = pkgs.writeShellScriptBin "e2clicker-frontend" ''
-    cd ${dist}/frontend
-    exec ${lib.getExe pkgs.nodejs} .
-  '';
+  e2clicker-frontend = pkgs.writeShellApplication {
+    name = "e2clicker-frontend";
+    text = ''
+      cd ${dist}/frontend
+      exec ${lib.getExe pkgs.nodejs} .
+    '';
+    passthru = {
+      assets = pkgs.runCommandLocal "e2clicker-frontend-assets" { } ''
+        ln -s ${dist}/frontend/client $out
+      '';
+    };
+  };
 }
