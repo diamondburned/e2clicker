@@ -1,4 +1,9 @@
-import * as charts from "lightweight-charts";
+import type {
+  LineData,
+  IChartApi,
+  LineSeriesPartialOptions,
+  UTCTimestamp,
+} from "lightweight-charts";
 import { DateTime, Duration } from "luxon";
 import { fillCurve } from "estrannaise/src/models";
 
@@ -31,9 +36,9 @@ function mapValues<T extends Record<string, any>, U>(
 }
 
 export function ensureLine(
-  data: charts.LineData[],
-  chart: charts.IChartApi,
-  options: charts.LineSeriesPartialOptions,
+  data: LineData[],
+  chart: IChartApi,
+  options: LineSeriesPartialOptions,
 ): () => void {
   const line = chart.addLineSeries(options);
   line.setData(data);
@@ -43,15 +48,11 @@ export function ensureLine(
 
 const plotPoints = 500;
 
-export function fillE2Data(
-  start: DateTime,
-  end: DateTime,
-  f: (t: number) => number,
-): charts.LineData[] {
+export function fillE2Data(start: DateTime, end: DateTime, f: (t: number) => number): LineData[] {
   const xMin = 0;
   const xMax = end.diff(start).as("days");
   return fillCurve(f, xMin, xMax, plotPoints).map((p) => ({
-    time: start.plus(Duration.fromObject({ days: p.Time })).toUnixInteger() as charts.UTCTimestamp,
+    time: start.plus(Duration.fromObject({ days: p.Time })).toUnixInteger() as UTCTimestamp,
     value: p.E2,
   }));
 }

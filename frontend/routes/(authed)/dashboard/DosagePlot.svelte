@@ -11,13 +11,19 @@
 
   import * as e2 from "$lib/e2";
   import * as api from "$lib/api";
-  import * as charts from "lightweight-charts";
+  import type * as charts from "lightweight-charts";
+  import {
+    createChart,
+    LineStyle,
+    ColorType,
+    LineType,
+    LastPriceAnimationMode,
+  } from "lightweight-charts";
   import { DateTime } from "luxon";
   import {
     units,
     precision,
     gatherStyles,
-    ensureLine,
     fillE2Data,
     functions,
     conversionFactor,
@@ -67,16 +73,16 @@
       return;
     }
 
-    const chart = charts.createChart(plotDiv);
+    const chart = createChart(plotDiv);
     const idealLevels = chart.addLineSeries({
       title: "Ideal Levels",
       color: styles.secondary,
-      lineStyle: charts.LineStyle.Dashed,
+      lineStyle: LineStyle.Dashed,
     });
     const currentLevels = chart.addLineSeries({
       title: "Current Levels",
       color: styles.primary,
-      lineStyle: charts.LineStyle.Solid,
+      lineStyle: LineStyle.Solid,
     });
 
     const tooltipMargin = 12;
@@ -139,13 +145,13 @@
         },
         horzLines: {
           color: styles.muted,
-          style: charts.LineStyle.Solid,
+          style: LineStyle.Solid,
           visible: true,
         },
       },
       layout: {
         background: {
-          type: charts.ColorType.Solid,
+          type: ColorType.Solid,
           color: "transparent",
         },
         textColor: styles.color,
@@ -174,12 +180,12 @@
 
     [chart.idealLevels, chart.currentLevels].forEach((series) =>
       series.applyOptions({
-        lineType: charts.LineType.Curved,
+        lineType: LineType.Curved,
         lineWidth: 2,
         baseLineVisible: false,
         priceLineVisible: false,
         lastValueVisible: true,
-        lastPriceAnimation: charts.LastPriceAnimationMode.OnDataUpdate,
+        lastPriceAnimation: LastPriceAnimationMode.OnDataUpdate,
         priceFormat: {
           type: "custom",
           formatter: (price: charts.BarPrice) => price.toFixed(precision()) + " " + units,

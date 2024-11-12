@@ -7,12 +7,21 @@
 
 <main class="container spaced">
   <header class="big-brand">
-    <img class="logo" src="/favicon.png" alt="logo" />
+    <img class="logo" src="/logo.svg" alt="logo" />
     <h1 class="brand">e2clicker</h1>
   </header>
 
   <section class="big-screenshot">
-    <img alt="Screenshot of the e2clicker dashboard" src="/e2clicker-legacy.png" />
+    <img
+      class="light"
+      alt="Screenshot of the e2clicker dashboard"
+      src="/screenshots/dashboard-light.png"
+    />
+    <img
+      class="dark"
+      alt="Screenshot of the e2clicker dashboard"
+      src="/screenshots/dashboard-dark.png"
+    />
   </section>
 
   <p class="yap">
@@ -84,6 +93,19 @@
         border: var(--pico-border-width) solid var(--pico-primary);
         border-radius: var(--pico-border-radius);
         box-shadow: var(--pico-box-shadow-thick);
+      }
+
+      .dark {
+        display: none;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        .light {
+          display: none;
+        }
+        .dark {
+          display: block;
+        }
       }
     }
 

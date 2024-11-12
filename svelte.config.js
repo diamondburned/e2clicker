@@ -21,7 +21,7 @@ const config = {
       lib: "frontend/lib",
       params: "frontend/params",
       routes: "frontend/routes",
-      serviceWorker: "frontend/worker",
+      serviceWorker: "frontend/service-worker.ts",
       appTemplate: "frontend/app.html",
       errorTemplate: "frontend/error.html",
     },

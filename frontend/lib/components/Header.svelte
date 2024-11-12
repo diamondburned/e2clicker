@@ -30,7 +30,7 @@
   <nav class="container">
     <ul>
       <li class="brand">
-        <img class="logo" src="/favicon.png" alt="logo" />
+        <img class="logo" src="/logo.svg" alt="logo" />
         <strong><a href={$isLoggedIn ? "/dashboard" : "/"}>e2clicker</a></strong>
       </li>
     </ul>
@@ -80,7 +80,7 @@
 
     .logo {
       width: 1.5rem;
-      height: auto;
+      height: 1.5rem;
       vertical-align: text-bottom;
       margin-right: 0.5em;
     }

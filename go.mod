@@ -3,6 +3,7 @@ module libdb.so/e2clicker
 go 1.23
 
 require (
+	github.com/SherClockHolmes/webpush-go v1.3.0
 	github.com/alecthomas/assert/v2 v2.10.0
 	github.com/getkin/kin-openapi v0.128.0
 	github.com/go-chi/chi/v5 v5.1.0
@@ -19,7 +20,6 @@ require (
 )
 
 require (
-	github.com/SherClockHolmes/webpush-go v1.3.0 // indirect
 	github.com/alecthomas/repr v0.4.0 // indirect
 	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
 	github.com/go-openapi/jsonpointer v0.21.0 // indirect
