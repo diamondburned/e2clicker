@@ -56,17 +56,9 @@
   --pico-contrast-inverse: #{$pink-50};
 
   // Box shadow
-  --pico-shadow-color: #{mix($grey-800, $pink-800, 40%)};
-  --pico-box-shadow: #{shadows.shadow(
-      mix($grey-800, $pink-800, 40%),
-      $blur-strength: 2rem,
-      $opacity: 0.04
-    )};
-  --pico-box-shadow-thick: #{shadows.shadow(
-      mix($grey-800, $pink-800, 20%),
-      $blur-strength: 6rem,
-      $opacity: 0.15
-    )};
+  $shadow-color: mix($grey-800, $pink-800, 40%);
+  --pico-box-shadow: #{shadows.shadow($shadow-color, $blur-strength: 2rem, $opacity: 0.04)};
+  --pico-box-shadow-thick: #{shadows.shadow($shadow-color, $blur-strength: 6rem, $opacity: 0.15)};
 
   // Typography
   // Headings colors
@@ -92,8 +84,12 @@
   // Button
   // To disable box-shadow, remove the var or set to '0 0 0 rgba(0, 0, 0, 0)'
   // Don't use, 'none, 'false, 'null', '0', etc.
-  --pico-button-box-shadow: 0 0 0 rgba(0, 0, 0, 0);
-  --pico-button-hover-box-shadow: 0 0 0 rgba(0, 0, 0, 0);
+  --pico-button-box-shadow: #{shadows.shadow($shadow-color, $blur-strength: 0.5rem, $opacity: 0.03)};
+  --pico-button-hover-box-shadow: #{shadows.shadow(
+      $shadow-color,
+      $blur-strength: 1rem,
+      $opacity: 0.1
+    )};
 
   // Table
   --pico-table-border-color: var(--pico-muted-border-color);

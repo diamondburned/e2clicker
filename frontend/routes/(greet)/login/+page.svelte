@@ -25,6 +25,10 @@
   });
 </script>
 
+<svelte:head>
+  <title>Login - e2clicker</title>
+</svelte:head>
+
 <LoadingPage {promise} />
 
 <div class="outer-container">

@@ -56,6 +56,7 @@
       <input
         type="password"
         name="secret"
+        class="font-mono"
         placeholder="xxxxxxxxxxxxxxxxxxxx"
         bind:value={loginSecret}
       />

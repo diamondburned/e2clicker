@@ -1,5 +1,6 @@
 <script lang="ts">
-  import type { Snippet } from "svelte";
+  import { onMount, type Snippet } from "svelte";
+  import { prefersReducedMotion } from "$lib/dom.svelte.js";
 
   let {
     children,
@@ -11,8 +12,14 @@
 
   let innerHeight = $state(0);
   let outerHeight = $state(0);
-  let style = $derived(`height: ${innerHeight}px`);
+  let enabled = $state(false);
+  let style = $derived(enabled ? `height: ${innerHeight}px` : "");
   let equal = $derived(innerHeight === outerHeight);
+
+  onMount(() => {
+    // Only enable once the component is mounted.
+    enabled = !$prefersReducedMotion;
+  });
 </script>
 
 <div class="resize-container {anchor}" class:equal {style} bind:offsetHeight={outerHeight}>

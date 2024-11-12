@@ -1,4 +1,4 @@
-// @use "variables" as *;
+@use "sass:map";
 @use "@picocss/pico/scss/pico" as * with (
   $theme-color: "pink",
   $enable-responsive-spacings: true,
@@ -11,9 +11,15 @@
 @use "theme/schemes";
 @use "@picocss/pico/scss/colors" as *;
 @use "@picocss/pico/scss/colors/utilities";
+@use "@picocss/pico/scss/settings" as *;
 
 html {
   height: 100%;
+
+  scroll-behavior: smooth;
+  @media screen and (prefers-reduced-motion: reduce) {
+    scroll-behavior: auto;
+  }
 }
 
 body {
@@ -37,7 +43,7 @@ a:hover {
   text-decoration: none;
 }
 
-:not(button):not([role="button"]) {
+:not(mark):not(button):not([role="button"]) {
   @at-root .primary#{&} {
     color: var(--pico-color);
 
@@ -73,6 +79,18 @@ a:hover {
         color: var(--pico-secondary-focus);
       }
     }
+  }
+}
+
+mark {
+  &.primary {
+    color: var(--pico-primary-inverse);
+    background-color: var(--pico-primary-background);
+  }
+
+  &.secondary {
+    color: var(--pico-secondary-inverse);
+    background-color: var(--pico-secondary-background);
   }
 }
 
@@ -127,6 +145,37 @@ button,
   font-size: 1em;
 }
 
+button.minimal {
+  background: none;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  color: currentColor;
+  text-decoration: underline dashed;
+
+  &:hover {
+    text-decoration: underline solid;
+    color: var(--pico-primary-hover);
+  }
+}
+
+button.outline {
+  --button-background: var(--pico-primary-background);
+  --pico-button-outline-hover-background: color-mix(
+    in srgb,
+    var(--button-background),
+    transparent 90%
+  );
+
+  &:hover {
+    background-color: var(--pico-button-outline-hover-background);
+  }
+
+  &.secondary {
+    --button-background: var(--pico-secondary-background);
+  }
+}
+
 table.rounded {
   border-radius: var(--pico-border-radius);
   overflow: hidden;
@@ -137,4 +186,27 @@ table.rounded {
       border: none;
     }
   }
+}
+
+mark {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+section.as-card {
+  padding: var(--pico-block-spacing-vertical) var(--pico-block-spacing-horizontal);
+  margin-top: calc(-1 * var(--pico-block-spacing-vertical));
+  margin-bottom: calc(-1 * var(--pico-block-spacing-vertical));
+
+  border: var(--pico-border-width) solid transparent;
+  border-radius: var(--pico-border-radius);
+
+  @media (max-width: map.get(map.get($breakpoints, "sm"), "breakpoint")) {
+    padding: 0;
+  }
+}
+
+article:target,
+section.as-card:target {
+  border-color: var(--pico-primary);
 }

@@ -1,16 +1,17 @@
-import { defineConfig, presetMini } from "unocss";
+import { defineConfig, presetUno } from "unocss";
 import svelteExtractor from "@unocss/extractor-svelte";
 
-const filteredRules = ["container", "outline"];
-const mini = presetMini({ dark: "media" });
+const filteredRules = [/^__container$/, "outline"];
+const filterRule = (m: string | RegExp) => filteredRules.every((r) => r != m);
 
-// Delete these so they don't conflict with pico.css's.
-mini.rules = mini.rules!.filter(([match]) => filteredRules.every((rule) => rule !== match));
-delete mini.theme!.container;
-delete mini.theme!.containers;
+const unoPreset = presetUno({ dark: "media" });
+// Delete the rules inside filteredRules.
+unoPreset.rules = unoPreset.rules!.filter(([m]) => filterRule(m));
+// Shortcuts only contains the container, so delete all of it.
+unoPreset.shortcuts = [];
 
 export default defineConfig({
-  presets: [mini],
+  presets: [unoPreset],
   extractors: [svelteExtractor()],
   theme: {
     breakpoints: {
@@ -21,6 +22,7 @@ export default defineConfig({
       xxl: "1536px",
     },
     fontSize: {
+      xs: "0.65em",
       sm: "0.8em",
       base: "1em",
       xl: "1.25em",

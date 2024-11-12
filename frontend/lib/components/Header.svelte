@@ -29,7 +29,7 @@
 <header id="header" bind:this={header} class:scrolled class:fixed>
   <nav class="container">
     <ul>
-      <li>
+      <li class="brand">
         <img class="logo" src="/favicon.png" alt="logo" />
         <strong><a href={$isLoggedIn ? "/dashboard" : "/"}>e2clicker</a></strong>
       </li>
@@ -72,11 +72,23 @@
     }
   }
 
-  img.logo {
-    width: 1.5em;
-    height: auto;
-    vertical-align: text-bottom;
-    margin-right: 0.5em;
+  .brand {
+    height: 1.5rem; // prevent jiggling when loaded
+
+    padding-top: 0;
+    padding-bottom: 0;
+
+    .logo {
+      width: 1.5rem;
+      height: auto;
+      vertical-align: text-bottom;
+      margin-right: 0.5em;
+    }
+
+    a {
+      padding-top: 0;
+      padding-bottom: 0;
+    }
   }
 
   .current-user {

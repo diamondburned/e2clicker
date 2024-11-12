@@ -47,9 +47,13 @@
   }
 </script>
 
+<svelte:head>
+  <title>Settings - e2clicker</title>
+</svelte:head>
+
 <LoadingPage {promise} />
 
-{#if !deliveryMethod}
+{#if dosage != null && !deliveryMethod}
   <article
     class="no-delivery-method error-box"
     transition:slide={{ duration: 250, axis: "y", easing: sineInOut }}

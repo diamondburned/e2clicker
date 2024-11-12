@@ -89,6 +89,16 @@
   // Loading icon (animated)
   // Inspired by https://codepen.io/aleksander351/pen/KzgKPo
   --pico-icon-loading: url("data:image/svg+xml,%3Csvg fill='none' height='24' width='24' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg' %3E%3Cstyle%3E g %7B animation: rotate 2s linear infinite; transform-origin: center center; %7D circle %7B stroke-dasharray: 75,100; stroke-dashoffset: -5; animation: dash 1.5s ease-in-out infinite; stroke-linecap: round; %7D @keyframes rotate %7B 0%25 %7B transform: rotate(0deg); %7D 100%25 %7B transform: rotate(360deg); %7D %7D @keyframes dash %7B 0%25 %7B stroke-dasharray: 1,100; stroke-dashoffset: 0; %7D 50%25 %7B stroke-dasharray: 44.5,100; stroke-dashoffset: -17.5; %7D 100%25 %7B stroke-dasharray: 44.5,100; stroke-dashoffset: -62; %7D %7D %3C/style%3E%3Cg%3E%3Ccircle cx='12' cy='12' r='10' fill='none' stroke='#{functions.display-rgb($pink-400)}' stroke-width='4' /%3E%3C/g%3E%3C/svg%3E");
+
+  // Font sizes (sync with uno.config.ts)
+  --font-size-xs: 0.65em;
+  --font-size-sm: 0.8em;
+  --font-size-base: 1em;
+  --font-size-xl: 1.25em;
+  --font-size-2xl: 1.563em;
+  --font-size-3xl: 1.953em;
+  --font-size-4xl: 2.441em;
+  --font-size-5xl: 3.052em;
 }
 
 // Responsives spacings
@@ -124,37 +134,36 @@ h6 {
 }
 
 h1 {
-  --pico-font-size: 1.953em; // 3xl
+  --pico-font-size: var(--font-size-3xl);
   --pico-line-height: 1.125;
   --pico-typography-spacing-top: 3em;
 }
 
 h2 {
-  --pico-font-size: 1.563em; // 2xl
+  --pico-font-size: var(--font-size-2xl);
   --pico-line-height: 1.15;
   --pico-typography-spacing-top: 2.625em;
 }
 
 h3 {
-  --pico-font-size: 1.25em; // xl
-  --pico-line-height: 1.175;
+  --pico-font-size: var(--font-size-xl) --pico-line-height: 1.175;
   --pico-typography-spacing-top: 2.25em;
 }
 
 h4 {
-  --pico-font-size: 1em;
+  --pico-font-size: var(--font-size-base);
   --pico-line-height: 1.2;
   --pico-typography-spacing-top: 1.874em;
 }
 
 h5 {
-  --pico-font-size: 1em;
+  --pico-font-size: var(--font-size-sm);
   --pico-line-height: 1.225;
   --pico-typography-spacing-top: 1.6875em;
 }
 
 h6 {
-  --pico-font-size: 1em;
+  --pico-font-size: var(--font-size-sm);
   --pico-line-height: 1.25;
   --pico-typography-spacing-top: 1.5em;
 }

@@ -62,22 +62,21 @@
 
     user-select: none;
 
-    opacity: 0;
-
-    @keyframes fadeIn {
-      0% {
-        opacity: 0;
-      }
-      100% {
-        opacity: 1;
-      }
-    }
-
-    animation: fadeIn 150ms var(--pico-transition-easing);
-    animation-delay: 500ms;
-
     &.loading {
       cursor: wait;
+
+      opacity: 0;
+      @keyframes fadeIn {
+        0% {
+          opacity: 0;
+        }
+        100% {
+          opacity: 1;
+        }
+      }
+
+      animation: fadeIn 150ms var(--pico-transition-easing);
+      animation-delay: 500ms;
     }
 
     &.error {

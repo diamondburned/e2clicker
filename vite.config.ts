@@ -37,6 +37,8 @@ export default defineConfig({
     target: "esnext",
     sourcemap: true,
     reportCompressedSize: true,
+    // Fix estrannaise using require() syntax.
+    commonjsOptions: { transformMixedEsModules: true },
   },
   esbuild: {
     sourcemap: true,
