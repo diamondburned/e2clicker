@@ -19,10 +19,12 @@ require (
 )
 
 require (
+	github.com/SherClockHolmes/webpush-go v1.3.0 // indirect
 	github.com/alecthomas/repr v0.4.0 // indirect
 	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
 	github.com/go-openapi/jsonpointer v0.21.0 // indirect
 	github.com/go-openapi/swag v0.23.0 // indirect
+	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
 	github.com/google/uuid v1.5.0 // indirect
 	github.com/gorilla/mux v1.8.1 // indirect
 	github.com/hexops/gotextdiff v1.0.3 // indirect
