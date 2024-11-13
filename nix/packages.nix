@@ -64,6 +64,10 @@ let
       # https://kit.svelte.dev/docs/adapter-node#deploying
       cp -r node_modules package.json $out/frontend/
 
+      # Clean up node_modules so that just enough of it
+      # is there for the node server.
+      pnpm prune --prod
+
       runHook postInstall
     '';
   };
