@@ -1,6 +1,6 @@
 <div align="center">
     <h1>e2clicker</h1>
-    <img src="./assets/screenshots/dashboard-light.png" alt="screenshot" width="300" />
+    <img src="./assets/screenshots/dashboard-light.png" alt="screenshot" width="720" />
     <br />
     <br />
 </div>
