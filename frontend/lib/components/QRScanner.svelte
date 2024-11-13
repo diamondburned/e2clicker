@@ -114,10 +114,6 @@
   }
 
   .qr-scanner {
-    &:not(.visible) {
-      display: none;
-    }
-
     :global(.scan-region-highlight-svg) {
       stroke: var(--pico-primary) !important;
     }

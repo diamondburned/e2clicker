@@ -3,11 +3,7 @@ import { sveltekit } from "@sveltejs/kit/vite";
 import { SvelteKitPWA as sveltekitPWA } from "@vite-pwa/sveltekit";
 import pwaManifest from "./frontend/pwa-manifest";
 
-// import * as path from "path";
-// const root = new URL(".", import.meta.url).pathname;
-
 const devVMAddress = process.env.BACKEND_HTTP_ADDRESS;
-const browserTargets = ["chrome100", "firefox100", "ios15", "safari15"];
 
 export default defineConfig({
   // Why the FUCK is clearScreen true by default? That is fucking stupid.
@@ -51,22 +47,16 @@ export default defineConfig({
         format: "esm",
       },
     },
-    target: ["esnext", ...browserTargets],
+    target: ["esnext"],
     minify: true,
     cssMinify: true,
-    cssTarget: [...browserTargets],
+    cssTarget: ["chrome100", "firefox100", "safari15"],
+    cssCodeSplit: true,
     sourcemap: true,
     reportCompressedSize: true,
-    // Fix estrannaise using require() syntax.
-    commonjsOptions: { transformMixedEsModules: true },
   },
   esbuild: {
     sourcemap: true,
     treeShaking: true,
   },
 });
-
-// if (import.meta.hot) {
-//   // always reload the page on change because v86 is fragile
-//   import.meta.hot.accept(() => import.meta.hot!.invalidate());
-// }
