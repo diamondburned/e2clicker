@@ -7,5 +7,7 @@
 <style lang="scss">
   .material-symbols-rounded {
     vertical-align: text-bottom;
+    max-width: 1em;
+    overflow: hidden;
   }
 </style>

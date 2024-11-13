@@ -7,6 +7,7 @@ import pwaManifest from "./frontend/pwa-manifest";
 // const root = new URL(".", import.meta.url).pathname;
 
 const devVMAddress = process.env.BACKEND_HTTP_ADDRESS;
+const browserTargets = ["chrome100", "firefox100", "ios15", "safari15"];
 
 export default defineConfig({
   // Why the FUCK is clearScreen true by default? That is fucking stupid.
@@ -50,8 +51,10 @@ export default defineConfig({
         format: "esm",
       },
     },
-    target: "esnext",
+    target: ["esnext", ...browserTargets],
     minify: true,
+    cssMinify: true,
+    cssTarget: [...browserTargets],
     sourcemap: true,
     reportCompressedSize: true,
     // Fix estrannaise using require() syntax.

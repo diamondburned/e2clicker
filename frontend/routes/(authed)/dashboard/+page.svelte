@@ -76,63 +76,63 @@
   <title>Dashboard - e2clicker</title>
 </svelte:head>
 
-<LoadingPage promise={dosageLoader.promise} />
+<LoadingPage no-darken promise={dosageLoader.promise}>
+  <section class="dashboard-grid">
+    <div id="next-dose">
+      <NextDoseCountdown {now} {dosage} {history} onsubmit={() => update()}>
+        {#snippet footer()}
+          <button
+            class="secondary outline ml-2"
+            onclick={() => {
+              editingDoses = true;
+              goto("#dose-history-anchor");
+            }}
+            disabled={editingDoses}
+          >
+            <Icon name="edit" />
+            Edit doses
+          </button>
+        {/snippet}
+      </NextDoseCountdown>
+    </div>
 
-<section class="dashboard-grid">
-  <div id="next-dose">
-    <NextDoseCountdown {now} {dosage} {history} onsubmit={() => update()}>
-      {#snippet footer()}
-        <button
-          class="secondary outline ml-2"
-          onclick={() => {
-            editingDoses = true;
-            goto("#dose-history-anchor");
-          }}
-          disabled={editingDoses}
-        >
-          <Icon name="edit" />
-          Edit doses
-        </button>
-      {/snippet}
-    </NextDoseCountdown>
-  </div>
+    <article id="estrannaise-plot">
+      <h3>Estrogen Levels</h3>
+      <DosagePlot {doses} {startTime} {endTime} />
+    </article>
 
-  <article id="estrannaise-plot">
-    <h3>Estrogen Levels</h3>
-    <DosagePlot {doses} {startTime} {endTime} />
-  </article>
+    <article id="dose-info">
+      <DoseInfo {dosage} {delivery} />
+    </article>
 
-  <article id="dose-info">
-    <DoseInfo {dosage} {delivery} />
-  </article>
+    <article id="levels-info">
+      <h3>Current Levels</h3>
+    </article>
+  </section>
 
-  <article id="levels-info">
-    <h3>Current Levels</h3>
-  </article>
-</section>
+  <section id="dose-history" class="as-card">
+    <h2>Dose History</h2>
+    {#if dosage && history != undefined}
+      <DoseHistoryTable {now} {dosage} {history} bind:editing={editingDoses} />
+    {/if}
+  </section>
 
-<section id="dose-history" class="as-card">
-  <h2>Dose History</h2>
-  {#if dosage && history != undefined}
-    <DoseHistoryTable {now} {dosage} {history} bind:editing={editingDoses} />
+  {#if doses && !doses.dosage}
+    <Dialog open>
+      <h3>Further setup required</h3>
+      <p>
+        You don't currently have a dose schedule set up yet.
+        <br />
+        <span class="brand">Let's get that set up now!</span>
+      </p>
+      <footer>
+        <a href="/settings" role="button">
+          Head to settings <Icon name="arrow-forward" />
+        </a>
+      </footer>
+    </Dialog>
   {/if}
-</section>
-
-{#if doses && !doses.dosage}
-  <Dialog open>
-    <h3>Further setup required</h3>
-    <p>
-      You don't currently have a dose schedule set up yet.
-      <br />
-      <span class="brand">Let's get that set up now!</span>
-    </p>
-    <footer>
-      <a href="/settings" role="button">
-        Head to settings <Icon name="arrow-forward" />
-      </a>
-    </footer>
-  </Dialog>
-{/if}
+</LoadingPage>
 
 <style lang="scss">
   @use "sass:map";

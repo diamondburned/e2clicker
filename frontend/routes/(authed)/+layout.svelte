@@ -17,7 +17,7 @@
 
 <Header />
 
-<main class="container spaced-2">
+<main class="flex-1 container spaced-2">
   {@render children()}
 </main>
 

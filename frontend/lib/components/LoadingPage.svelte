@@ -5,15 +5,13 @@
   import { onDestroy, type Snippet } from "svelte";
 
   let {
-    main = false,
-    mainClass,
+    "no-darken": noDarken = true,
     promise = new Promise<T>(() => {}),
     children,
     errorHeader,
     errorFooter,
   }: {
-    main?: boolean;
-    mainClass?: string;
+    "no-darken"?: boolean;
     promise?: Promise<T>;
     children?: Snippet<[T]> | Snippet;
     errorHeader?: Snippet;
@@ -23,24 +21,21 @@
 
 {#await promise}
   <div
-    class="loading-screen loading"
+    class="loading-screen loading before:text-3xl"
+    class:darken={!noDarken}
     aria-busy="true"
     out:fade={{ duration: 400, easing: easeFade }}
-  >
-    Loading...
-  </div>
+  ></div>
 {:then value}
   {#if children}
-    {#if main}
-      <main class="container {mainClass ?? ''}" transition:fly={{ duration: 200, y: 100 }}>
-        {@render children(value)}
-      </main>
-    {:else}
-      {@render children(value)}
-    {/if}
+    {@render children(value)}
   {/if}
 {:catch error}
-  <div class="loading-screen error" transition:fade={{ duration: 400, easing: easeFade }}>
+  <div
+    class="loading-screen error"
+    class:darken={!noDarken}
+    transition:fade={{ duration: 400, easing: easeFade }}
+  >
     <article class="loading-error spaced">
       {#if errorHeader}
         {@render errorHeader?.()}
@@ -62,8 +57,10 @@
     height: 100%;
     z-index: 1000;
 
-    color: var(--pico-color);
-    background-color: var(--pico-modal-overlay-background-color);
+    &.darken {
+      color: var(--pico-color);
+      background-color: var(--pico-modal-overlay-background-color);
+    }
 
     display: flex;
     justify-content: center;
@@ -85,7 +82,7 @@
       }
 
       animation: fadeIn 150ms var(--pico-transition-easing);
-      animation-delay: 500ms;
+      animation-fill-mode: forwards;
     }
 
     &.error {

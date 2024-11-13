@@ -50,15 +50,14 @@
             estrogen dosages instantly. This is a free and open-source tool that
             <span class="brand">e2clicker</span> relies on, so please consider supporting them!
           </p>
-          <a
-            href="#hide-estrannaise"
-            class="hide-estrannaise"
+          <button
+            class="hide-estrannaise minimal"
             onclick={() => {
               hideEstrannaise = true;
             }}
           >
             <small>Hide this message</small>
-          </a>
+          </button>
         </footer>
       {/if}
     </main>

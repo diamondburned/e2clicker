@@ -37,14 +37,14 @@
   <h2>Login</h2>
 
   <div class="content">
-    <p>
-      Scan the secret QR code:
+    <div>
+      <span>Scan the secret QR code:</span>
       <span style="float: right">
         <Tooltip tooltip={loginTooltip} selectable>
           <Icon name="info" />
         </Tooltip>
       </span>
-    </p>
+    </div>
     <button class="secondary outline" onclick={() => (showQRDialog = true)}>
       Log in with QR <Icon name="qr-code-scanner" />
     </button>

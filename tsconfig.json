@@ -10,7 +10,7 @@
     "moduleResolution": "bundler",
     "esModuleInterop": true,
     "resolveJsonModule": true,
-    "types": ["vite-plugin-pwa/info", "vite-plugin-pwa/svelte"]
+    "types": ["vite-plugin-pwa/info", "vite-plugin-pwa/svelte", "unplugin-fonts/client"]
   },
   "files": ["./frontend/lib/e2/index.d.ts"]
 }

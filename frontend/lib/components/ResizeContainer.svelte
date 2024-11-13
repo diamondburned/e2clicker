@@ -1,6 +1,5 @@
 <script lang="ts">
   import { onMount, type Snippet } from "svelte";
-  import { prefersReducedMotion } from "$lib/dom.svelte.js";
 
   let {
     children,
@@ -15,10 +14,14 @@
   let enabled = $state(false);
   let style = $derived(enabled ? `height: ${innerHeight}px` : "");
   let equal = $derived(innerHeight === outerHeight);
+  let prefersReducedMotion = $state(false);
 
   onMount(() => {
-    // Only enable once the component is mounted.
-    enabled = !$prefersReducedMotion;
+    const prefersReducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => (prefersReducedMotion = prefersReducedMotionQuery.matches);
+    prefersReducedMotionQuery.addEventListener("change", update);
+    update();
+    return () => prefersReducedMotionQuery.removeEventListener("change", update);
   });
 </script>
 
