@@ -1,5 +1,6 @@
 import * as api from "$lib/api";
-import { type LevelUnits, availableUnits } from "estrannaise/src/modeldata";
+import type { LevelUnits } from "estrannaise/src/modeldata";
+import { availableUnits } from "estrannaise/src/models";
 import { getFunctions } from "./methods";
 
 export * from "./plot";

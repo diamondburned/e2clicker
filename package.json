@@ -38,7 +38,7 @@
     "@unocss/svelte-scoped": "^0.64.0",
     "@vite-pwa/sveltekit": "^0.6.6",
     "debounce-promise": "^3.1.2",
-    "estrannaise": "github:WHSAH/estrannaise.js",
+    "estrannaise": "github:diamondburned/estrannaise.js#esm",
     "lightweight-charts": "4.1.0",
     "luxon": "^3.5.0",
     "oazapfts": "^6.1.0",

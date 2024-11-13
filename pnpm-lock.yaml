@@ -51,8 +51,8 @@ importers:
         specifier: ^3.1.2
         version: 3.1.2
       estrannaise:
-        specifier: github:WHSAH/estrannaise.js
-        version: https://codeload.github.com/WHSAH/estrannaise.js/tar.gz/36aa0af07652670338b53ec232f1676d78298f4a
+        specifier: github:diamondburned/estrannaise.js#esm
+        version: https://codeload.github.com/diamondburned/estrannaise.js/tar.gz/8d57caeb9f83c63a202765e213b68d9c50b22566(@observablehq/plot@0.6.16)(cubic-spline@3.0.3)
       lightweight-charts:
         specifier: 4.1.0
         version: 4.1.0
@@ -1904,9 +1904,12 @@ packages:
   esrap@1.2.2:
     resolution: {integrity: sha512-F2pSJklxx1BlQIQgooczXCPHmcWpn6EsP5oo73LQfonG9fIlIENQ8vMmfGXeojP9MrkzUNAfyU5vdFlR9shHAw==}
 
-  estrannaise@https://codeload.github.com/WHSAH/estrannaise.js/tar.gz/36aa0af07652670338b53ec232f1676d78298f4a:
-    resolution: {tarball: https://codeload.github.com/WHSAH/estrannaise.js/tar.gz/36aa0af07652670338b53ec232f1676d78298f4a}
+  estrannaise@https://codeload.github.com/diamondburned/estrannaise.js/tar.gz/8d57caeb9f83c63a202765e213b68d9c50b22566:
+    resolution: {tarball: https://codeload.github.com/diamondburned/estrannaise.js/tar.gz/8d57caeb9f83c63a202765e213b68d9c50b22566}
     version: 1.0.0
+    peerDependencies:
+      '@observablehq/plot': ^0.6.14
+      cubic-spline: ^3.0.3
 
   estree-walker@1.0.1:
     resolution: {integrity: sha512-1fMXF3YP4pZZVozF8j/ZLfvnR8NSIljt56UhbZ5PeeDmmGHpgpdwQt7ITlGvYaQukCvuBRMLEiKiYC+oeIg4cg==}
@@ -2625,9 +2628,6 @@ packages:
 
   package-manager-detector@0.2.2:
     resolution: {integrity: sha512-VgXbyrSNsml4eHWIvxxG/nTL4wgybMTXCV2Un/+yEc3aDKKU6nQBZjbeP3Pl3qm9Qg92X/1ng4ffvCeD/zwHgg==}
-
-  papaparse@5.4.1:
-    resolution: {integrity: sha512-HipMsgJkZu8br23pW15uvo6sib6wne/4woLZPlFf3rpDyMe9ywEXUsuD7+6K9PRkJlVT51j/sCOYDKGGS3ZJrw==}
 
   parse-duration@1.1.0:
     resolution: {integrity: sha512-z6t9dvSJYaPoQq7quMzdEagSFtpGu+utzHqqxmpVWNNZRIXnvqyCvn9XsTdh7c/w0Bqmdz3RB3YnRaKtpRtEXQ==}
@@ -5504,11 +5504,10 @@ snapshots:
       '@jridgewell/sourcemap-codec': 1.5.0
       '@types/estree': 1.0.6
 
-  estrannaise@https://codeload.github.com/WHSAH/estrannaise.js/tar.gz/36aa0af07652670338b53ec232f1676d78298f4a:
+  estrannaise@https://codeload.github.com/diamondburned/estrannaise.js/tar.gz/8d57caeb9f83c63a202765e213b68d9c50b22566(@observablehq/plot@0.6.16)(cubic-spline@3.0.3):
     dependencies:
       '@observablehq/plot': 0.6.16
       cubic-spline: 3.0.3
-      papaparse: 5.4.1
 
   estree-walker@1.0.1: {}
 
@@ -6213,8 +6212,6 @@ snapshots:
   p-try@2.2.0: {}
 
   package-manager-detector@0.2.2: {}
-
-  papaparse@5.4.1: {}
 
   parse-duration@1.1.0: {}
 

@@ -1,7 +1,7 @@
 import * as api from "$lib/api";
-import {
-  type DeliveryMethod as EstrannaiseDeliveryMethod,
-  type PKParameter,
+import type {
+  DeliveryMethod as EstrannaiseDeliveryMethod,
+  PKParameter,
 } from "estrannaise/src/modeldata";
 import { PKFunctions, PKParameters, PKRandomFunctions } from "estrannaise/src/models";
 

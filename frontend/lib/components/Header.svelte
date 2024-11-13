@@ -73,14 +73,9 @@
   }
 
   .brand {
-    height: 1.5rem; // prevent jiggling when loaded
-
-    padding-top: 0;
-    padding-bottom: 0;
-
     .logo {
       width: 1.5rem;
-      height: 1.5rem;
+      min-height: 1.5rem; // prevent jiggling
       vertical-align: text-bottom;
       margin-right: 0.5em;
     }
