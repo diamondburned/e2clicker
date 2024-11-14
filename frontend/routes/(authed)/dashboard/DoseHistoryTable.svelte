@@ -26,14 +26,14 @@
 
   let lastDoseAt = $derived(
     history.length > 0 //
-      ? DateTime.fromISO(history![history!.length - 1].takenAt)
+      ? history![history!.length - 1].takenAt
       : null,
   );
 
   let visiblePastDay = $state(0);
 
   let visibleTotalDays = $derived.by(() => {
-    const daysList = history.map((d) => DateTime.fromISO(d.takenAt).startOf("day"));
+    const daysList = history.map((d) => d.takenAt.startOf("day"));
     const days = new Set(daysList);
     return days.size;
   });
@@ -46,8 +46,7 @@
     const start = visibleDoseTime;
     const end = visibleDoseTime.endOf("day");
     return history.filter((d) => {
-      const takenAt = DateTime.fromISO(d.takenAt);
-      return takenAt >= start && takenAt <= end;
+      return d.takenAt >= start && d.takenAt <= end;
     });
   });
 </script>
@@ -61,14 +60,13 @@
         <th data-column="Misc"></th>
       </tr>
       {#each visibleDoses.toReversed() as dose}
-        {@const delivery = e2.deliveryMethod(dose.deliveryMethod)}
         <tr>
           <td data-column="When">{e2.formatDoseTime(dose, now)} ago</td>
           <td data-column="Dose">
             {dose.dose}
-            {delivery?.units}
-            {#if delivery && delivery.id != dosage?.deliveryMethod}
-              <small class="delivery">({delivery.name})</small>
+            {dose.deliveryMethod.units}
+            {#if dose.deliveryMethod.id != dosage?.deliveryMethod}
+              <small class="delivery">({dose.deliveryMethod.name})</small>
             {/if}
           </td>
           <td data-column="Misc">
