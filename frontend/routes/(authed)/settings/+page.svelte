@@ -67,7 +67,7 @@
 
   <PreferenceGroup name="Dosage">
     {#snippet misc()}
-      {@render preferencesLoader(setDosage)}
+      {@render preferencesLoader(setDosage, dosageIsValid)}
     {/snippet}
 
     {#snippet description()}
@@ -198,12 +198,18 @@
   </Dialog>
 </LoadingPage>
 
-{#snippet preferencesLoader(asyncToOK: api.AnyAsyncToOK)}
-  {#await asyncToOK.promise}
-    <span aria-busy="true"></span>
-  {:then}
-    <span class="text-green">Saved <Icon name="done" /></span>
-  {:catch error}
-    <ErrorBox tiny {error} />
-  {/await}
+{#snippet preferencesLoader(asyncToOK: api.AnyAsyncToOK, valid: boolean)}
+  {#if !valid}
+    <span class="text-red">
+      <Icon name="error" />
+    </span>
+  {:else}
+    {#await asyncToOK.promise}
+      <span aria-busy="true"></span>
+    {:then}
+      <span class="text-green">Saved <Icon name="done" /></span>
+    {:catch error}
+      <ErrorBox tiny {error} />
+    {/await}
+  {/if}
 {/snippet}

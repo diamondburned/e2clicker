@@ -11,7 +11,7 @@
   }: {
     initial?: number;
     placeholder?: string;
-    onchange: (days: number) => void;
+    onchange: (days: number | undefined) => void;
   } & Omit<HTMLInputAttributes, "value" | "onchange"> = $props();
 
   let value = $state(initial ? durationstr(Duration.fromObject({ days: initial })) : "");
@@ -30,6 +30,7 @@
     const parsed = parseDuration(input.value, "ms");
     if (!parsed) {
       value = "";
+      onchange(undefined);
 
       input.setCustomValidity("Invalid duration.");
       input.reportValidity();
@@ -39,6 +40,7 @@
     const duration = Duration.fromMillis(parsed);
     if (duration.as("hours") < 1 || duration.as("months") > 1) {
       value = "";
+      onchange(undefined);
 
       input.setCustomValidity("Interval must be between 1 hour and 1 month.");
       input.reportValidity();
