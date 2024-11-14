@@ -63,32 +63,12 @@ export const estrannaiseDeliveryMethods: {
   patch: "patch ow",
 };
 
-export function getFunctions(
-  dosage?: api.Dosage,
-  conversionFactor = 1.0,
-): {
-  pk: (t: number) => number;
-  pkRandom: (t: number) => number;
-  pkParams: PKParameter;
-} {
-  const estrannaiseDelivery = dosage && estrannaiseDeliveryMethods[dosage.deliveryMethod];
-  if (!estrannaiseDelivery) {
-    return {
-      pk: () => 0,
-      pkRandom: () => 0,
-      pkParams: [0, 0, 0, 0],
-    };
+export function estrannaiseDeliveryMethod(method: OurDeliveryMethod): EstrannaiseDeliveryMethod {
+  const m = estrannaiseDeliveryMethods[method];
+  if (!m) {
+    throw new Error(`Unknown delivery method ${method} in estrainnaise code`);
   }
-
-  const pk = PKFunctions(conversionFactor)[estrannaiseDelivery];
-  const pkRandom = PKRandomFunctions(conversionFactor)[estrannaiseDelivery];
-  const pkParams = PKParameters[estrannaiseDelivery];
-
-  return {
-    pk: (t: number) => pk(t, dosage.dose, true, dosage.interval),
-    pkRandom: (t: number) => pkRandom(t, dosage.dose, true, dosage.interval),
-    pkParams,
-  };
+  return m;
 }
 
 // Background task to assert that all delivery methods are up to date.

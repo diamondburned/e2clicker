@@ -5,13 +5,11 @@
 
   let {
     dosage,
-    delivery,
-    class: klass = "",
   }: {
     dosage?: api.Dosage;
-    delivery?: (typeof e2.deliveryMethods)[number];
-    class?: string;
   } = $props();
+
+  let delivery = $derived(dosage && e2.deliveryMethod(dosage.deliveryMethod));
 </script>
 
 <h3>Your Dosage</h3>

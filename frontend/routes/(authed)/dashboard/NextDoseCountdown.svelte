@@ -5,27 +5,29 @@
   import * as api from "$lib/api.svelte";
   import { type Snippet } from "svelte";
   import { DateTime, Duration } from "luxon";
-  import ResizeContainer from "$lib/components/ResizeContainer.svelte";
 
   let {
     now,
-    dosage,
-    history,
+    doses,
     onsubmit,
     footer,
   }: {
     now: DateTime;
-    dosage?: api.Dosage;
-    history?: api.DosageHistory;
+    doses: {
+      dosage?: api.Dosage;
+      history?: e2.DosageHistory;
+    };
     onsubmit: () => void;
     footer?: Snippet;
   } = $props();
 
+  let dosage = $derived(doses?.dosage);
+  let history = $derived(doses?.history ?? []);
   let loading = $derived(dosage === undefined || history === undefined);
 
   let lastDoseAt = $derived(
     (history?.length ?? 0) > 0 //
-      ? DateTime.fromISO(history![history!.length - 1].takenAt)
+      ? history![history!.length - 1].takenAt
       : null,
   );
   let nextDoseAt = $derived(dosage && lastDoseAt && e2.timeUntilNextDose(dosage, lastDoseAt));

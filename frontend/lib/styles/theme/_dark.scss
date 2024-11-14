@@ -17,8 +17,8 @@
   --pico-text-selection-color: #{theme-colors.get("text-selection-color", "dark")};
 
   // Muted colors
-  --pico-muted-color: #{mix($pink-200, $grey-400, 40%)};
-  --pico-muted-border-color: #{mix($pink-200, $grey-600, 40%)};
+  --pico-muted-color: #{mix($pink-300, $grey-400, 40%)};
+  --pico-muted-border-color: #{mix($pink-350, $grey-800, 20%)};
 
   // Primary colors
   --pico-primary: #{$pink-350};

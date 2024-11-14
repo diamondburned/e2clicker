@@ -35,13 +35,22 @@ declare module "estrannaise/src/models" {
     ) => number;
   };
 
-  export function e2MultiDose3C(
+  // Calculate a given set of multi-doses.
+  // Offset values of `doses`, `times`, and `types` need to match.
+  export function e2multidosedose3C(
+    // time offset for dose calculation
     t: number,
+    // Dose amounts, in mg
     doses?: number[],
+    // Dosing intervals, in days
     times?: number[],
+    // Ester/types, see `methodList` for values
     models?: string[],
+    // conversion factor for conversion from pg/mL to other
     cf?: number,
+    // if values need uncertainty applied
     random?: boolean | number,
+    // true if days are set as interval
     intervals?: boolean,
   ): number;
 

@@ -1,5 +1,5 @@
 <script lang="ts" module>
-  import { DateTime, Duration } from "luxon";
+  import { DateTime, Duration, Interval } from "luxon";
 
   // The rate at which to poll the server for new data.
   const apiUpdateRate = Duration.fromObject({ minutes: 5 });
@@ -10,6 +10,12 @@
   function mountTimer(duration: Duration, callback: () => void): () => void {
     const v = setInterval(callback, duration.as("milliseconds"));
     return () => clearInterval(v);
+  }
+
+  function intervalUntilNow(duration: Duration) {
+    const iv = Interval.fromDateTimes(DateTime.now().minus(duration), DateTime.now());
+    if (!iv.isValid) throw new Error(iv.invalidReason);
+    return iv;
   }
 </script>
 
@@ -37,11 +43,11 @@
     }),
   );
 
-  let endTime = $state(DateTime.now());
-  let startTime = $derived(endTime.minus({ weeks: 2 }));
+  const historyDuration = Duration.fromObject({ month: 1 });
+  let historyInterval = $state(intervalUntilNow(historyDuration));
   onMount(() =>
     mountTimer(apiUpdateRate, () => {
-      endTime = DateTime.now();
+      historyInterval = intervalUntilNow(historyDuration);
     }),
   );
 
@@ -49,7 +55,7 @@
   // by updating all the time inputs.
   const update = () => {
     now = DateTime.now();
-    endTime = DateTime.now();
+    historyInterval = intervalUntilNow(historyDuration);
   };
 
   let dosageLoader = new api.AsyncToOK(api.dosage, {
@@ -59,15 +65,22 @@
 
   $effect(() => {
     dosageLoader.load({
-      historyStart: startTime.toISO(),
-      historyEnd: endTime.toISO(),
+      historyStart: historyInterval.start.toISO(),
+      historyEnd: historyInterval.end.toISO(),
     });
   });
 
-  let doses = $derived(dosageLoader.value);
-  let dosage = $derived(doses?.dosage);
-  let history = $derived(doses?.history);
-  let delivery = $derived(dosage && e2.deliveryMethod(dosage.deliveryMethod));
+  let doses = $derived.by(() => {
+    if (!dosageLoader.value) {
+      return {};
+    }
+
+    const { dosage, history } = dosageLoader.value;
+    return {
+      dosage,
+      history: history && e2.convertDoseHistory(history),
+    };
+  });
 
   let editingDoses = $state(false);
 </script>
@@ -79,7 +92,7 @@
 <LoadingPage no-darken promise={dosageLoader.promise}>
   <section class="dashboard-grid">
     <div id="next-dose">
-      <NextDoseCountdown {now} {dosage} {history} onsubmit={() => update()}>
+      <NextDoseCountdown {now} {doses} onsubmit={() => update()}>
         {#snippet footer()}
           <button
             class="secondary outline ml-2"
@@ -98,11 +111,11 @@
 
     <article id="estrannaise-plot">
       <h3>Estrogen Levels</h3>
-      <DosagePlot {doses} {startTime} {endTime} />
+      <DosagePlot {doses} interval={historyInterval} />
     </article>
 
     <article id="dose-info">
-      <DoseInfo {dosage} {delivery} />
+      <DoseInfo dosage={doses?.dosage} />
     </article>
 
     <article id="levels-info">
@@ -112,9 +125,7 @@
 
   <section id="dose-history" class="as-card">
     <h2>Dose History</h2>
-    {#if dosage && history != undefined}
-      <DoseHistoryTable {now} {dosage} {history} bind:editing={editingDoses} />
-    {/if}
+    <DoseHistoryTable {now} {doses} bind:editing={editingDoses} />
   </section>
 
   {#if doses && !doses.dosage}

@@ -1,23 +1,24 @@
-import type {
-  LineData,
-  IChartApi,
-  LineSeriesPartialOptions,
-  UTCTimestamp,
-} from "lightweight-charts";
-import { DateTime, Duration } from "luxon";
-import { fillCurve } from "estrannaise/src/models";
+import type * as api from "$lib/api";
+import type { LineData, UTCTimestamp } from "lightweight-charts";
+import { DateTime, Interval } from "luxon";
+import { fillTargetRange } from "estrannaise/src/models";
+import { deliveryMethod } from "./methods";
 
+// style variables used in the plot.
 export const picoVariables = {
   color: "--pico-color",
   primary: "--pico-primary",
   secondary: "--pico-secondary",
   muted: "--pico-muted-color",
+  mutedBorder: "--pico-muted-border-color",
   fontFamily: "--pico-font-family",
 } as const;
 
-export function gatherStyles(element: HTMLElement | null): {
+export type PlotStyles = {
   [key in keyof typeof picoVariables]: string;
-} {
+};
+
+export function gatherStyles(element: HTMLElement | null): PlotStyles {
   if (element) {
     const styles = getComputedStyle(element);
     return mapValues(picoVariables, (_, variable) => styles.getPropertyValue(variable));
@@ -35,24 +36,46 @@ function mapValues<T extends Record<string, any>, U>(
   ) as Record<keyof T, U>;
 }
 
-export function ensureLine(
-  data: LineData[],
-  chart: IChartApi,
-  options: LineSeriesPartialOptions,
-): () => void {
-  const line = chart.addLineSeries(options);
-  line.setData(data);
-  chart.timeScale().fitContent();
-  return () => chart.removeSeries(line);
+// wpathRange returns the range of the WPATH standards for estradiol levels.
+export function wpathRange(conversionFactor: number): {
+  lower: number;
+  upper: number;
+} {
+  const filled = fillTargetRange(0, 1, conversionFactor);
+  return {
+    lower: filled[0].lower,
+    upper: filled[0].upper,
+  };
 }
 
-const plotPoints = 500;
+export function dataWithinInterval(
+  data: LineData<UTCTimestamp>[],
+  iv: Interval,
+): LineData<UTCTimestamp>[] {
+  return data.filter((d) => iv.contains(DateTime.fromSeconds(d.time)));
+}
 
-export function fillE2Data(start: DateTime, end: DateTime, f: (t: number) => number): LineData[] {
-  const xMin = 0;
-  const xMax = end.diff(start).as("days");
-  return fillCurve(f, xMin, xMax, plotPoints).map((p) => ({
-    time: start.plus(Duration.fromObject({ days: p.Time })).toUnixInteger() as UTCTimestamp,
-    value: p.E2,
-  }));
+export type DosageObservation = Omit<
+  api.DosageObservation,
+  "deliveryMethod" | "takenAt" | "takenOffAt"
+> & {
+  deliveryMethod: api.DeliveryMethod;
+  takenAt: DateTime;
+  takenOffAt?: DateTime;
+};
+
+export type DosageHistory = DosageObservation[];
+
+// convertDoseHistory converts the dosage history from the API to have proper
+// DateTime objects.
+export function convertDoseHistory(history: api.DosageHistory): DosageHistory {
+  return history.map(
+    (dose) =>
+      ({
+        ...dose,
+        deliveryMethod: deliveryMethod(dose.deliveryMethod)!,
+        takenAt: DateTime.fromISO(dose.takenAt),
+        takenOffAt: dose.takenOffAt ? DateTime.fromISO(dose.takenOffAt) : undefined,
+      }) as DosageObservation,
+  );
 }

@@ -5,20 +5,24 @@
 
   import * as e2 from "$lib/e2.svelte";
   import * as api from "$lib/api";
-  import { fade, slide } from "svelte/transition";
+  import { slide } from "svelte/transition";
   import { DateTime } from "luxon";
 
   let {
     now,
-    dosage,
-    history,
+    doses,
     editing = $bindable(false),
   }: {
     now: DateTime;
-    dosage: api.Dosage;
-    history: api.DosageHistory;
+    doses: {
+      dosage?: api.Dosage;
+      history?: e2.DosageHistory;
+    };
     editing?: boolean;
   } = $props();
+
+  let dosage = $derived(doses?.dosage);
+  let history = $derived(doses?.history ?? []);
 
   let lastDoseAt = $derived(
     history.length > 0 //
