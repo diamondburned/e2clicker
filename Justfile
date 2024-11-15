@@ -34,8 +34,8 @@ build-clean:
 export BACKEND_HTTP_ADDRESS := "http://localhost:8000"
 
 dev: generate
-	zellij delete-session e2clicker || true
-	zellij --session e2clicker --new-session-with-layout ./nix/dev/zellij-layout.kdl
+    zellij delete-session e2clicker || true
+    zellij --session e2clicker --new-session-with-layout ./nix/dev/zellij-layout.kdl
 
 [private]
 dev-vm: generate
@@ -57,7 +57,7 @@ generate: openapi generate-backend generate-frontend generate-docs generate-vapi
 
 [private]
 generate-go:
-	go generate -x ./...
+    go generate -x ./...
 
 [private]
 generate-backend: openapi-backend generate-go generate-backend-config
@@ -67,15 +67,15 @@ generate-backend: openapi-backend generate-go generate-backend-config
 
 [private]
 generate-backend-config:
-	#!/bin/sh
-	flakePath=$(jq -n --arg path "$PWD" '$path')
-	nixmod2go \
-		-P e2clickermodule \
-		-T BackendConfig \
-		-O services.e2clicker.backend \
-		-c ./nix/modules/nixmod2go.json \
-		.#nixosModules.e2clicker \
-		./nix/modules/e2clicker/config.go
+    #!/bin/sh
+    flakePath=$(jq -n --arg path "$PWD" '$path')
+    nixmod2go \
+        -P e2clickermodule \
+        -T BackendConfig \
+        -O services.e2clicker.backend \
+        -c ./nix/modules/nixmod2go.json \
+        .#nixosModules.e2clicker \
+        ./nix/modules/e2clicker/config.go
 
 [private]
 generate-frontend: openapi-frontend
@@ -85,10 +85,10 @@ generate-docs: openapi-docs
 
 [private]
 generate-vapid:
-	#!/bin/sh
-	if [ ! -f vapid-keys.json ]; then
-		go run ./cmd/vapid-generate > vapid-keys.json
-	fi
+    #!/bin/sh
+    if [ ! -f vapid-keys.json ]; then
+        go run ./cmd/vapid-generate > vapid-keys.json
+    fi
 
 ###
 
@@ -134,4 +134,4 @@ format:
 
 [private]
 pnpm:
-	pnpm i --prefer-offline --prefer-frozen-lockfile --use-stderr
+    pnpm i --prefer-offline --prefer-frozen-lockfile --use-stderr

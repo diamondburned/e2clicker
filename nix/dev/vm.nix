@@ -82,6 +82,13 @@
     '';
   };
 
+  environment.systemPackages = with pkgs; [
+    pgcli
+    (pkgs.writeShellScriptBin "e2clicker-sql" ''
+      pgcli "postgresql://root@/e2clicker-backend"
+    '')
+  ];
+
   networking.firewall.allowedTCPPorts = [ 80 ];
 
   system.stateVersion = "24.11";

@@ -4,6 +4,7 @@ package user
 import (
 	"context"
 	"crypto/rand"
+	"encoding"
 	"encoding/base32"
 	"strings"
 
@@ -48,6 +49,11 @@ type UserAvatarStorage interface {
 // should be kept secret.
 type Secret string
 
+var (
+	_ encoding.TextMarshaler   = Secret("")
+	_ encoding.TextUnmarshaler = (*Secret)(nil)
+)
+
 func generateUserSecret() Secret {
 	const n = 10
 
@@ -64,8 +70,8 @@ func generateUserSecret() Secret {
 	return Secret(s)
 }
 
-// String returns the secret as a pretty string.
-func (s Secret) String() string {
+// PrettyString returns the secret as a pretty string.
+func (s Secret) PrettyString() string {
 	var b strings.Builder
 	b.Grow(len(s) + (len(s)/4 + 1))
 	for i, c := range s {
@@ -75,4 +81,14 @@ func (s Secret) String() string {
 		b.WriteRune(c)
 	}
 	return b.String()
+}
+
+func (s *Secret) UnmarshalText(text []byte) error {
+	*s = Secret(text)
+	*s = Secret(strings.ReplaceAll(string(*s), " ", ""))
+	return nil
+}
+
+func (s Secret) MarshalText() ([]byte, error) {
+	return []byte(string(s)), nil
 }
