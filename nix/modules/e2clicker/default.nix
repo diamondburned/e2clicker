@@ -184,7 +184,7 @@ in
         RestartSec = "5s";
         DynamicUser = true;
         RuntimeDirectory = "e2clicker-frontend";
-        RuntimeDirectoryMode = "0002";
+        RuntimeDirectoryMode = "0777";
         UMask = "0002";
       };
     };
