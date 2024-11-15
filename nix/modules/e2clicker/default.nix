@@ -184,18 +184,22 @@ in
         RestartSec = "5s";
         DynamicUser = true;
         RuntimeDirectory = "e2clicker-frontend";
+        UMask = "0002";
       };
     };
 
-    systemd.sockets.e2clicker-frontend = mkIf e2clicker.frontend.enable {
-      description = "e2clicker frontend socket";
-      after = [ "network.target" ];
-      wantedBy = [ "sockets.target" ];
-      listenStreams =
-        if e2clicker.frontend.socket then
-          [ "${e2clicker.frontend.socketPath}" ]
-        else
-          [ "${e2clicker.frontend.host}:${toString e2clicker.frontend.port}" ];
-    };
+    # systemd.sockets.e2clicker-frontend = mkIf e2clicker.frontend.enable {
+    #   description = "e2clicker frontend socket";
+    #   after = [ "network.target" ];
+    #   wantedBy = [ "sockets.target" ];
+    #   socketConfig = {
+    #     ListenStream =
+    #       if e2clicker.frontend.socket then
+    #         [ "${e2clicker.frontend.socketPath}" ]
+    #       else
+    #         [ "${e2clicker.frontend.host}:${toString e2clicker.frontend.port}" ];
+    #     Accept = false;
+    #   };
+    # };
   };
 }
