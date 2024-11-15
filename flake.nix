@@ -118,6 +118,7 @@
             pgformatter
 
             oapi-codegen
+            redocly-cli
             yaml-language-server
             yq-go
 

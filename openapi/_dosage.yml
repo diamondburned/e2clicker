@@ -22,7 +22,7 @@ paths:
                 items:
                   $ref: "#/components/schemas/DeliveryMethod"
         default:
-          $ref: "#/components/responses/ErrorResponse"
+          $ref: "./_base.yml#/components/responses/ErrorResponse"
 
   /dosage:
     get:
@@ -76,7 +76,7 @@ paths:
           description: >-
             Successfully set the dosage.
         default:
-          $ref: "#/components/responses/ErrorResponse"
+          $ref: "./_base.yml#/components/responses/ErrorResponse"
     delete:
       summary: Clear the user's dosage schedule
       operationId: clearDosage
@@ -85,7 +85,7 @@ paths:
           description: >-
             Successfully cleared the dosage.
         default:
-          $ref: "#/components/responses/ErrorResponse"
+          $ref: "./_base.yml#/components/responses/ErrorResponse"
 
   /dosage/dose:
     post:
@@ -128,7 +128,7 @@ paths:
           description: >-
             Successfully updated dosage.
         default:
-          $ref: "#/components/responses/ErrorResponse"
+          $ref: "./_base.yml#/components/responses/ErrorResponse"
     delete:
       summary: Delete multiple dosages from the user's history
       operationId: forgetDoses
@@ -148,7 +148,7 @@ paths:
           description: >-
             Successfully deleted dosages.
         default:
-          $ref: "#/components/responses/ErrorResponse"
+          $ref: "./_base.yml#/components/responses/ErrorResponse"
 
 components:
   schemas:

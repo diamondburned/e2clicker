@@ -1,4 +1,4 @@
-export PATH := x'${PATH}:${PWD}/scripts:${PWD}/node_modules/.bin'
+export PATH := x'${PATH}:${PWD}/node_modules/.bin'
 
 ###
 
@@ -51,7 +51,7 @@ dev-frontend:
 
 ###
 
-generate: openapi generate-backend generate-frontend generate-docs
+generate: openapi generate-backend generate-frontend generate-docs generate-vapid
 
 [private]
 generate-go:
@@ -69,25 +69,32 @@ generate-frontend: openapi-frontend
 [private]
 generate-docs: openapi-docs
 
+[private]
+generate-vapid:
+	#!/bin/sh
+	if [ ! -f vapid-keys.json ]; then
+		go run ./cmd/vapid-generate > vapid-keys.json
+	fi
+
 ###
 
 openapi: openapi-schema openapi-backend openapi-frontend openapi-docs
 
 [private]
 openapi-schema:
-    generate-openapi schema
+    ./openapi/generate.sh schema
 
 [private]
 openapi-backend: openapi-schema
-    generate-openapi backend
+    ./openapi/generate.sh backend
 
 [private]
 openapi-frontend: openapi-schema pnpm
-    generate-openapi frontend
+    ./openapi/generate.sh frontend
 
 [private]
 openapi-docs: openapi-schema pnpm
-    generate-openapi docs &> /dev/null
+    ./openapi/generate.sh docs &> /dev/null
 
 ###
 

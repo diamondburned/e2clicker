@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/oapi-codegen/oapi-codegen/v2.4.1/configuration-schema.json
+package: openapi
+output: ""
+generate:
+  models: true
+output-options:
+  skip-prune: true
+  name-normalizer: ToCamelCaseWithInitialisms
+  response-type-suffix: Response
+# TODO: This works, but oapi-codegen really dies with PathToRawSpec.
+# For now, we override it in generate.sh.
+import-mapping:
+  ./_base.yml: libdb.so/e2clicker/services/base/openapi
+  ./_dosage.yml: libdb.so/e2clicker/services/dosage/openapi
+  ./_notification.yml: libdb.so/e2clicker/services/notification/openapi
+  ./_user.yml: libdb.so/e2clicker/services/user/openapi

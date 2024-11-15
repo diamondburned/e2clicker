@@ -1,9 +1,15 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/OAI/OpenAPI-Specification/ba055ca00cbd735dceef4ed7c9db024cd9bfcd1a/schemas/v3.0/schema.json
+openapi: 3.0.0
+
 info:
   title: e2clicker service
   version: "0"
 
 servers:
+  - url: https://e2clicker.app/api
   - url: /api
+
+paths: {}
 
 components:
   securitySchemes:

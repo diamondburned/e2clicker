@@ -1,0 +1,176 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/OAI/OpenAPI-Specification/ba055ca00cbd735dceef4ed7c9db024cd9bfcd1a/schemas/v3.0/schema.json
+openapi: 3.0.0
+
+info:
+  title: user
+  version: ""
+
+paths:
+  /notification/push:
+    get:
+      summary: Get the server's push notification information
+      operationId: pushInfo
+      security: []
+      responses:
+        "200":
+          description: >-
+            Successfully retrieved the server's push notification information.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PushInfo"
+        default:
+          $ref: "./_base.yml#/components/responses/ErrorResponse"
+
+  /notification/push/subscription:
+    get:
+      summary: Get the user's push notification subscription
+      operationId: userPushSubscription
+      responses:
+        "200":
+          description: >-
+            Successfully retrieved the user's push notification subscription.
+          content:
+            application/json:
+              schema:
+                properties:
+                  expirationTime:
+                    type: integer
+                    description: >-
+                      The time at which the subscription expires. This is the time when
+                      the subscription will be automatically deleted by the browser.
+        "404":
+          description: >-
+            The user has not subscribed to push notifications.
+        default:
+          $ref: "./_base.yml#/components/responses/ErrorResponse"
+    post:
+      summary: Subscribe to push notifications
+      operationId: userSubscribePush
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PushSubscription"
+      responses:
+        "204":
+          description: >-
+            Successfully subscribed to push notifications.
+        default:
+          $ref: "./_base.yml#/components/responses/ErrorResponse"
+    delete:
+      summary: Unsubscribe from push notifications
+      operationId: userUnsubscribePush
+      responses:
+        "204":
+          description: >-
+            Successfully unsubscribed from push notifications.
+        "404":
+          description: >-
+            The user has not subscribed to push notifications.
+        default:
+          $ref: "./_base.yml#/components/responses/ErrorResponse"
+
+components:
+  schemas:
+    Notification:
+      required: [type, message, username]
+      properties:
+        type:
+          type: string
+          enum:
+            - reminder
+            - account_notice
+            - web_push_expiring
+          description: >-
+            The type of notification.
+          x-order: 1
+        message:
+          description: >-
+            The message of the notification.
+          allOf:
+            - $ref: "#/components/schemas/NotificationMessage"
+          x-order: 2
+        username:
+          type: string
+          description: >-
+            The username of the user to send the notification to.
+          x-order: 3
+
+    NotificationMessage:
+      description: >-
+        The message of the notification.
+        This is derived from the notification type but can be overridden by
+        the user.
+      required: [title, message]
+      properties:
+        title:
+          type: string
+          description: >-
+            The title of the notification.
+          x-order: 1
+        message:
+          type: string
+          description: >-
+            The message of the notification.
+          x-order: 2
+
+    PushInfo:
+      description: >-
+        This is returned by the server and contains information that the client
+        would need to subscribe to push notifications.
+      properties:
+        applicationServerKey:
+          type: string
+          format: byte
+          description: >-
+            A Base64-encoded string or ArrayBuffer containing an ECDSA P-256
+            public key that the push server will use to authenticate your
+            application server. If specified, all messages from your application
+            server must use the VAPID authentication scheme, and include a JWT
+            signed with the corresponding private key. This key IS NOT the same
+            ECDH key that you use to encrypt the data. For more information, see
+            "Using VAPID with WebPush".
+
+    PushSubscription:
+      description: >-
+        The configuration for a push notification subscription.
+
+        This is the object that is returned by calling
+        PushSubscription.toJSON(). More information can be found at:
+        https://developer.mozilla.org/en-US/docs/Web/API/PushSubscription/toJSON
+      required: [endpoint, keys]
+      properties:
+        endpoint:
+          type: string
+          description: >-
+            The endpoint to send the notification to.
+          x-order: 1
+        expirationTime:
+          type: number
+          format: double
+          description: >-
+            The time in milliseconds at which the subscription expires. This is
+            the time when the subscription will be automatically deleted by the
+            browser.
+          x-order: 2
+        keys:
+          type: object
+          description: >-
+            The VAPID keys to encrypt the push notification.
+          required: [p256dh, auth]
+          properties:
+            p256dh:
+              type: string
+              description: >-
+                An Elliptic curve Diffie–Hellman public key on the P-256 curve
+                (that is, the NIST secp256r1 elliptic curve). The resulting key
+                is an uncompressed point in ANSI X9.62 format.
+              x-order: 1
+            auth:
+              type: string
+              description: >-
+                An authentication secret, as described in Message Encryption for
+                Web Push.
+              x-order: 2
+          x-order: 3

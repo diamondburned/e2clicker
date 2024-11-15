@@ -36,7 +36,7 @@ paths:
                       secret:
                         $ref: "#/components/schemas/UserSecret"
         default:
-          $ref: "#/components/responses/ErrorResponse"
+          $ref: "./_base.yml#/components/responses/ErrorResponse"
 
   /auth:
     post:
@@ -75,7 +75,7 @@ paths:
                     description: >-
                       The session token
         default:
-          $ref: "#/components/responses/ErrorResponse"
+          $ref: "./_base.yml#/components/responses/ErrorResponse"
 
   /me:
     get:
@@ -90,7 +90,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/User"
         default:
-          $ref: "#/components/responses/ErrorResponse"
+          $ref: "./_base.yml#/components/responses/ErrorResponse"
 
   /me/avatar:
     get:
@@ -106,7 +106,7 @@ paths:
                 type: string
                 format: binary
         default:
-          $ref: "#/components/responses/ErrorResponse"
+          $ref: "./_base.yml#/components/responses/ErrorResponse"
     put:
       summary: Set the current user's avatar
       operationId: setCurrentUserAvatar
@@ -121,7 +121,7 @@ paths:
           description: >-
             Successfully set the user's avatar.
         default:
-          $ref: "#/components/responses/ErrorResponse"
+          $ref: "./_base.yml#/components/responses/ErrorResponse"
 
   /me/secret:
     get:
@@ -140,7 +140,7 @@ paths:
                   secret:
                     $ref: "#/components/schemas/UserSecret"
         default:
-          $ref: "#/components/responses/ErrorResponse"
+          $ref: "./_base.yml#/components/responses/ErrorResponse"
 
   /me/sessions:
     get:
@@ -157,7 +157,7 @@ paths:
                 items:
                   $ref: "#/components/schemas/Session"
         default:
-          $ref: "#/components/responses/ErrorResponse"
+          $ref: "./_base.yml#/components/responses/ErrorResponse"
     delete:
       summary: Delete one of the current user's sessions
       operationId: deleteUserSession
@@ -178,7 +178,7 @@ paths:
           description: >-
             Successfully deleted the user's sessions.
         default:
-          $ref: "#/components/responses/ErrorResponse"
+          $ref: "./_base.yml#/components/responses/ErrorResponse"
 
 components:
   schemas:

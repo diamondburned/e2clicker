@@ -1,244 +1,17 @@
 {
+  "openapi": "3.0.0",
   "info": {
     "title": "e2clicker service",
     "version": "0"
   },
   "servers": [
     {
+      "url": "https://e2clicker.app/api"
+    },
+    {
       "url": "/api"
     }
   ],
-  "components": {
-    "securitySchemes": {
-      "bearerAuth": {
-        "type": "http",
-        "scheme": "bearer"
-      }
-    },
-    "schemas": {
-      "Error": {
-        "type": "object",
-        "properties": {
-          "message": {
-            "type": "string",
-            "description": "A message describing the error"
-          },
-          "details": {
-            "description": "Additional details about the error"
-          },
-          "internal": {
-            "type": "boolean",
-            "description": "Whether the error is internal"
-          },
-          "internalCode": {
-            "type": "string",
-            "description": "An internal code for the error (useless for clients)"
-          }
-        },
-        "required": [
-          "message"
-        ]
-      },
-      "DeliveryMethod": {
-        "type": "object",
-        "required": [
-          "id",
-          "units",
-          "name"
-        ],
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "A short string representing the delivery method. This is what goes into the DeliveryMethod fields.",
-            "x-order": 1
-          },
-          "units": {
-            "type": "string",
-            "description": "The units of the delivery method.",
-            "x-order": 2
-          },
-          "name": {
-            "type": "string",
-            "description": "The full name of the delivery method.",
-            "x-order": 3
-          }
-        }
-      },
-      "Dosage": {
-        "type": "object",
-        "required": [
-          "deliveryMethod",
-          "dose",
-          "interval"
-        ],
-        "properties": {
-          "deliveryMethod": {
-            "type": "string",
-            "description": "The delivery method to use.",
-            "x-order": 1
-          },
-          "dose": {
-            "type": "number",
-            "format": "float",
-            "description": "The dosage amount.",
-            "x-order": 2
-          },
-          "interval": {
-            "type": "number",
-            "format": "double",
-            "description": "The interval between doses in days.",
-            "x-order": 3
-          },
-          "concurrence": {
-            "type": "integer",
-            "description": "The number of estrogen patches on the body at once. Only relevant if delivery method is patch.",
-            "x-order": 4
-          }
-        }
-      },
-      "DosageHistory": {
-        "type": "array",
-        "items": {
-          "$ref": "#/components/schemas/DosageObservation"
-        }
-      },
-      "DosageObservation": {
-        "type": "object",
-        "required": [
-          "id",
-          "deliveryMethod",
-          "dose",
-          "takenAt"
-        ],
-        "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int64",
-            "description": "The unique identifier for the observation.",
-            "x-order": 1
-          },
-          "deliveryMethod": {
-            "type": "string",
-            "description": "The delivery method used.",
-            "x-order": 2
-          },
-          "dose": {
-            "type": "number",
-            "format": "float",
-            "description": "The dosage amount.",
-            "x-order": 3
-          },
-          "takenAt": {
-            "type": "string",
-            "format": "date-time",
-            "description": "The time the dosage was taken.",
-            "x-order": 4
-          },
-          "takenOffAt": {
-            "type": "string",
-            "format": "date-time",
-            "description": "The time the dosage was taken off. This is only relevant for patch delivery methods.",
-            "x-order": 5
-          },
-          "comment": {
-            "type": "string",
-            "description": "A comment about the dosage, if any.",
-            "x-order": 6
-          }
-        }
-      },
-      "UserSecret": {
-        "description": "A secret and unique user identifier. This secret is generated once and never changes. It is used to both authenticate and identify a user, so it should be kept secret.",
-        "type": "string",
-        "x-go-type": "user.Secret",
-        "x-go-type-import": {
-          "path": "libdb.so/e2clicker/services/user",
-          "name": "userservice"
-        }
-      },
-      "Locale": {
-        "description": "A locale identifier.",
-        "type": "string",
-        "x-go-type": "user.Locale",
-        "x-go-type-import": {
-          "path": "libdb.so/e2clicker/services/user",
-          "name": "userservice"
-        }
-      },
-      "User": {
-        "description": "A user of the system.",
-        "type": "object",
-        "required": [
-          "name",
-          "locale",
-          "hasAvatar"
-        ],
-        "properties": {
-          "name": {
-            "type": "string",
-            "description": "The user's name",
-            "x-order": 1
-          },
-          "locale": {
-            "$ref": "#/components/schemas/Locale",
-            "x-order": 2
-          },
-          "hasAvatar": {
-            "type": "boolean",
-            "description": "Whether the user has an avatar.",
-            "x-order": 3
-          }
-        }
-      },
-      "Session": {
-        "description": "A session for a user.",
-        "type": "object",
-        "required": [
-          "id",
-          "createdAt",
-          "lastUsed"
-        ],
-        "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int64",
-            "description": "The session identifier",
-            "x-order": 1
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time",
-            "description": "The time the session was created",
-            "x-order": 2
-          },
-          "lastUsed": {
-            "type": "string",
-            "format": "date-time",
-            "description": "The last time the session was used",
-            "x-order": 3
-          },
-          "expiresAt": {
-            "type": "string",
-            "format": "date-time",
-            "description": "The time the session expires, or null if it never expires",
-            "x-order": 4
-          }
-        }
-      }
-    },
-    "responses": {
-      "ErrorResponse": {
-        "description": "The request is invalid.\n",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/Error"
-            }
-          }
-        }
-      }
-    }
-  },
   "security": [
     {
       "bearerAuth": []
@@ -466,6 +239,105 @@
         },
         "tags": [
           "dosage"
+        ]
+      }
+    },
+    "/notification/push": {
+      "get": {
+        "summary": "Get the server's push notification information",
+        "operationId": "pushInfo",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved the server's push notification information.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PushInfo"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        },
+        "tags": [
+          "notification"
+        ]
+      }
+    },
+    "/notification/push/subscription": {
+      "get": {
+        "summary": "Get the user's push notification subscription",
+        "operationId": "userPushSubscription",
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved the user's push notification subscription.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "expirationTime": {
+                      "type": "integer",
+                      "description": "The time at which the subscription expires. This is the time when the subscription will be automatically deleted by the browser."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The user has not subscribed to push notifications."
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        },
+        "tags": [
+          "notification"
+        ]
+      },
+      "post": {
+        "summary": "Subscribe to push notifications",
+        "operationId": "userSubscribePush",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PushSubscription"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Successfully subscribed to push notifications."
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        },
+        "tags": [
+          "notification"
+        ]
+      },
+      "delete": {
+        "summary": "Unsubscribe from push notifications",
+        "operationId": "userUnsubscribePush",
+        "responses": {
+          "204": {
+            "description": "Successfully unsubscribed from push notifications."
+          },
+          "404": {
+            "description": "The user has not subscribed to push notifications."
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        },
+        "tags": [
+          "notification"
         ]
       }
     },
@@ -757,5 +629,338 @@
       }
     }
   },
-  "openapi": "3.0.0"
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "A message describing the error"
+          },
+          "details": {
+            "description": "Additional details about the error"
+          },
+          "internal": {
+            "type": "boolean",
+            "description": "Whether the error is internal"
+          },
+          "internalCode": {
+            "type": "string",
+            "description": "An internal code for the error (useless for clients)"
+          }
+        },
+        "required": [
+          "message"
+        ]
+      },
+      "DeliveryMethod": {
+        "type": "object",
+        "required": [
+          "id",
+          "units",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "A short string representing the delivery method. This is what goes into the DeliveryMethod fields.",
+            "x-order": 1
+          },
+          "units": {
+            "type": "string",
+            "description": "The units of the delivery method.",
+            "x-order": 2
+          },
+          "name": {
+            "type": "string",
+            "description": "The full name of the delivery method.",
+            "x-order": 3
+          }
+        }
+      },
+      "Dosage": {
+        "type": "object",
+        "required": [
+          "deliveryMethod",
+          "dose",
+          "interval"
+        ],
+        "properties": {
+          "deliveryMethod": {
+            "type": "string",
+            "description": "The delivery method to use.",
+            "x-order": 1
+          },
+          "dose": {
+            "type": "number",
+            "format": "float",
+            "description": "The dosage amount.",
+            "x-order": 2
+          },
+          "interval": {
+            "type": "number",
+            "format": "double",
+            "description": "The interval between doses in days.",
+            "x-order": 3
+          },
+          "concurrence": {
+            "type": "integer",
+            "description": "The number of estrogen patches on the body at once. Only relevant if delivery method is patch.",
+            "x-order": 4
+          }
+        }
+      },
+      "DosageHistory": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/DosageObservation"
+        }
+      },
+      "DosageObservation": {
+        "type": "object",
+        "required": [
+          "id",
+          "deliveryMethod",
+          "dose",
+          "takenAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "The unique identifier for the observation.",
+            "x-order": 1
+          },
+          "deliveryMethod": {
+            "type": "string",
+            "description": "The delivery method used.",
+            "x-order": 2
+          },
+          "dose": {
+            "type": "number",
+            "format": "float",
+            "description": "The dosage amount.",
+            "x-order": 3
+          },
+          "takenAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The time the dosage was taken.",
+            "x-order": 4
+          },
+          "takenOffAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The time the dosage was taken off. This is only relevant for patch delivery methods.",
+            "x-order": 5
+          },
+          "comment": {
+            "type": "string",
+            "description": "A comment about the dosage, if any.",
+            "x-order": 6
+          }
+        }
+      },
+      "Notification": {
+        "required": [
+          "type",
+          "message",
+          "username"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "reminder",
+              "account_notice",
+              "web_push_expiring"
+            ],
+            "description": "The type of notification.",
+            "x-order": 1
+          },
+          "message": {
+            "description": "The message of the notification.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/NotificationMessage"
+              }
+            ],
+            "x-order": 2
+          },
+          "username": {
+            "type": "string",
+            "description": "The username of the user to send the notification to.",
+            "x-order": 3
+          }
+        }
+      },
+      "NotificationMessage": {
+        "description": "The message of the notification. This is derived from the notification type but can be overridden by the user.",
+        "required": [
+          "title",
+          "message"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "The title of the notification.",
+            "x-order": 1
+          },
+          "message": {
+            "type": "string",
+            "description": "The message of the notification.",
+            "x-order": 2
+          }
+        }
+      },
+      "PushInfo": {
+        "description": "This is returned by the server and contains information that the client would need to subscribe to push notifications.",
+        "properties": {
+          "applicationServerKey": {
+            "type": "string",
+            "format": "byte",
+            "description": "A Base64-encoded string or ArrayBuffer containing an ECDSA P-256 public key that the push server will use to authenticate your application server. If specified, all messages from your application server must use the VAPID authentication scheme, and include a JWT signed with the corresponding private key. This key IS NOT the same ECDH key that you use to encrypt the data. For more information, see \"Using VAPID with WebPush\"."
+          }
+        }
+      },
+      "PushSubscription": {
+        "description": "The configuration for a push notification subscription.\nThis is the object that is returned by calling PushSubscription.toJSON(). More information can be found at: https://developer.mozilla.org/en-US/docs/Web/API/PushSubscription/toJSON",
+        "required": [
+          "endpoint",
+          "keys"
+        ],
+        "properties": {
+          "endpoint": {
+            "type": "string",
+            "description": "The endpoint to send the notification to.",
+            "x-order": 1
+          },
+          "expirationTime": {
+            "type": "number",
+            "format": "double",
+            "description": "The time in milliseconds at which the subscription expires. This is the time when the subscription will be automatically deleted by the browser.",
+            "x-order": 2
+          },
+          "keys": {
+            "type": "object",
+            "description": "The VAPID keys to encrypt the push notification.",
+            "required": [
+              "p256dh",
+              "auth"
+            ],
+            "properties": {
+              "p256dh": {
+                "type": "string",
+                "description": "An Elliptic curve Diffie–Hellman public key on the P-256 curve (that is, the NIST secp256r1 elliptic curve). The resulting key is an uncompressed point in ANSI X9.62 format.",
+                "x-order": 1
+              },
+              "auth": {
+                "type": "string",
+                "description": "An authentication secret, as described in Message Encryption for Web Push.",
+                "x-order": 2
+              }
+            },
+            "x-order": 3
+          }
+        }
+      },
+      "UserSecret": {
+        "description": "A secret and unique user identifier. This secret is generated once and never changes. It is used to both authenticate and identify a user, so it should be kept secret.",
+        "type": "string",
+        "x-go-type": "user.Secret",
+        "x-go-type-import": {
+          "path": "libdb.so/e2clicker/services/user",
+          "name": "userservice"
+        }
+      },
+      "Locale": {
+        "description": "A locale identifier.",
+        "type": "string",
+        "x-go-type": "user.Locale",
+        "x-go-type-import": {
+          "path": "libdb.so/e2clicker/services/user",
+          "name": "userservice"
+        }
+      },
+      "User": {
+        "description": "A user of the system.",
+        "type": "object",
+        "required": [
+          "name",
+          "locale",
+          "hasAvatar"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The user's name",
+            "x-order": 1
+          },
+          "locale": {
+            "$ref": "#/components/schemas/Locale",
+            "x-order": 2
+          },
+          "hasAvatar": {
+            "type": "boolean",
+            "description": "Whether the user has an avatar.",
+            "x-order": 3
+          }
+        }
+      },
+      "Session": {
+        "description": "A session for a user.",
+        "type": "object",
+        "required": [
+          "id",
+          "createdAt",
+          "lastUsed"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "The session identifier",
+            "x-order": 1
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The time the session was created",
+            "x-order": 2
+          },
+          "lastUsed": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The last time the session was used",
+            "x-order": 3
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The time the session expires, or null if it never expires",
+            "x-order": 4
+          }
+        }
+      }
+    },
+    "responses": {
+      "ErrorResponse": {
+        "description": "The request is invalid.\n",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      }
+    }
+  }
 }
