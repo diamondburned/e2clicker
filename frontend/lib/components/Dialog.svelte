@@ -48,7 +48,11 @@
 {/if}
 
 <style lang="scss">
-  article.dialog {
+  .dialog-overlay {
+    margin: 0;
+  }
+
+  .dialog {
     position: relative;
     max-width: var(--max-width, initial);
 
