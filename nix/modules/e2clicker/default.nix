@@ -185,7 +185,7 @@ in
         DynamicUser = true;
         RuntimeDirectory = "e2clicker-frontend";
         RuntimeDirectoryMode = "0777";
-        UMask = "0002";
+        UMask = "0000";
       };
     };
 
