@@ -7,12 +7,9 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"unique"
 
 	"libdb.so/e2clicker/internal/validating"
 )
-
-var gotifyServiceName = registerNotificationConfig[*GotifyNotificationConfig]("gotify", nil)
 
 type GotifyNotificationConfig struct {
 	BaseURL  string         `json:"base_url"`
@@ -22,16 +19,6 @@ type GotifyNotificationConfig struct {
 }
 
 var _ validating.Validator = (*GotifyNotificationConfig)(nil)
-
-func (*GotifyNotificationConfig) isNotificationConfig() {}
-
-func (c *GotifyNotificationConfig) ServiceName() unique.Handle[string] {
-	return gotifyServiceName
-}
-
-func (c *GotifyNotificationConfig) MarshalJSON() ([]byte, error) {
-	return NotificationConfigJSON{gotifyServiceName, c}.MarshalJSON()
-}
 
 func (c *GotifyNotificationConfig) Validate() error {
 	if _, err := url.Parse(c.BaseURL); err != nil {
@@ -50,7 +37,7 @@ func NewGotifyService(c *http.Client) *GotifyService {
 	return &GotifyService{http: c}
 }
 
-func (s *GotifyService) Notify(ctx context.Context, n *Notification, config *GotifyNotificationConfig) error {
+func (s GotifyService) Notify(ctx context.Context, n Notification, config GotifyNotificationConfig) error {
 	if err := config.Validate(); err != nil {
 		return ConfigError{err: err}
 	}
@@ -74,8 +61,8 @@ func (s *GotifyService) Notify(ctx context.Context, n *Notification, config *Got
 	}
 
 	b, err := json.Marshal(gotifyNotification{
-		Title:    n.Title,
-		Message:  n.Message,
+		Title:    n.Message.Title,
+		Message:  n.Message.Message,
 		Priority: config.Priority,
 		Extras:   config.Extras,
 	})

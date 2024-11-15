@@ -8,11 +8,12 @@ import * as Oazapfts from "@oazapfts/runtime";
 import * as QS from "@oazapfts/runtime/query";
 export const defaults: Oazapfts.Defaults<Oazapfts.CustomHeaders> = {
     headers: {},
-    baseUrl: "/api",
+    baseUrl: "https://e2clicker.app/api",
 };
 const oazapfts = Oazapfts.runtime(defaults);
 export const servers = {
-    server1: "/api"
+    server1: "https://e2clicker.app/api",
+    server2: "/api"
 };
 export type DeliveryMethod = {
     /** A short string representing the delivery method. This is what goes into the DeliveryMethod fields. */
@@ -57,6 +58,23 @@ export type DosageObservation = {
     comment?: string;
 };
 export type DosageHistory = DosageObservation[];
+export type PushInfo = {
+    /** A Base64-encoded string or ArrayBuffer containing an ECDSA P-256 public key that the push server will use to authenticate your application server. If specified, all messages from your application server must use the VAPID authentication scheme, and include a JWT signed with the corresponding private key. This key IS NOT the same ECDH key that you use to encrypt the data. For more information, see "Using VAPID with WebPush". */
+    applicationServerKey?: string;
+};
+export type PushSubscription = {
+    /** The endpoint to send the notification to. */
+    endpoint: string;
+    /** The time in milliseconds at which the subscription expires. This is the time when the subscription will be automatically deleted by the browser. */
+    expirationTime?: number;
+    /** The VAPID keys to encrypt the push notification. */
+    keys: {
+        /** An Elliptic curve Diffie–Hellman public key on the P-256 curve (that is, the NIST secp256r1 elliptic curve). The resulting key is an uncompressed point in ANSI X9.62 format. */
+        p256dh: string;
+        /** An authentication secret, as described in Message Encryption for Web Push. */
+        auth: string;
+    };
+};
 export type Locale = string;
 export type User = {
     /** The user's name */
@@ -184,6 +202,70 @@ export function forgetDoses(doseIds: number[], opts?: Oazapfts.RequestOpts) {
     }>(`/dosage/dose${QS.query(QS.explode({
         dose_ids: doseIds
     }))}`, {
+        ...opts,
+        method: "DELETE"
+    }));
+}
+/**
+ * Get the server's push notification information
+ */
+export function pushInfo(opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 200;
+        data: PushInfo;
+    } | {
+        status: number;
+        data: Error;
+    }>("/notification/push", {
+        ...opts
+    }));
+}
+/**
+ * Get the user's push notification subscription
+ */
+export function userPushSubscription(opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 200;
+        data: {
+            /** The time at which the subscription expires. This is the time when the subscription will be automatically deleted by the browser. */
+            expirationTime?: number;
+        };
+    } | {
+        status: 404;
+    } | {
+        status: number;
+        data: Error;
+    }>("/notification/push/subscription", {
+        ...opts
+    }));
+}
+/**
+ * Subscribe to push notifications
+ */
+export function userSubscribePush(pushSubscription?: PushSubscription, opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 204;
+    } | {
+        status: number;
+        data: Error;
+    }>("/notification/push/subscription", oazapfts.json({
+        ...opts,
+        method: "POST",
+        body: pushSubscription
+    })));
+}
+/**
+ * Unsubscribe from push notifications
+ */
+export function userUnsubscribePush(opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 204;
+    } | {
+        status: 404;
+    } | {
+        status: number;
+        data: Error;
+    }>("/notification/push/subscription", {
         ...opts,
         method: "DELETE"
     }));

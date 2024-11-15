@@ -2,32 +2,32 @@ package notification
 
 import (
 	"context"
+	"fmt"
 
 	"go.uber.org/fx"
+	"libdb.so/e2clicker/services/api/openapi"
 	"libdb.so/e2clicker/services/user"
 )
 
 // UserPreferences is the preferences of a user.
 // It is JSON-serializable.
 type UserPreferences struct {
-	NotificationConfig  NotificationConfigJSON                   `json:"notificationConfig"`
-	CustomNotifications map[NotificationMessageType]Notification `json:"customNotification,omitempty"`
+	NotificationConfigs NotificationConfigs     `json:"notificationConfigs"`
+	CustomNotifications map[MessageType]Message `json:"customNotifications,omitempty"`
 }
 
-type UserStorage interface {
+type UserNotificationStorage interface {
 	// UserPreferences returns the preferences of a user.
-	// If null, the user will not receive any notifications.
-	UserPreferences(ctx context.Context, userSecret user.Secret) (*UserPreferences, error)
+	UserPreferences(ctx context.Context, userSecret user.Secret) (UserPreferences, error)
 	// SetUserPreferences sets the preferences of a user.
-	// Null is an acceptable value and means the user will not receive any
-	// notifications.
-	SetUserPreferences(ctx context.Context, userSecret user.Secret, prefs *UserPreferences) error
+	SetUserPreferences(ctx context.Context, userSecret user.Secret, prefs UserPreferences) error
 }
 
 // UserNotificationService is a service that sends notifications to users.
 type UserNotificationService struct {
-	notifier Notifier
-	storage  UserStorage
+	userNotifications UserNotificationStorage
+	users             *user.UserService
+	notification      *NotificationService
 }
 
 // UserNotificationServiceConfig is the configuration for the user notification
@@ -35,60 +35,85 @@ type UserNotificationService struct {
 type UserNotificationServiceConfig struct {
 	fx.In
 
-	Notifier
-	UserStorage
+	UserNotificationStorage
+	*NotificationService
+	*user.UserService
 }
 
 // NewUserNotificationService creates a new user notification service.
-func NewUserNotificationService(c UserNotificationServiceConfig) *UserNotificationService {
+func NewUserNotificationService(s UserNotificationServiceConfig) *UserNotificationService {
 	return &UserNotificationService{
-		notifier: c.Notifier,
-		storage:  c.UserStorage,
+		userNotifications: s.UserNotificationStorage,
+		users:             s.UserService,
+		notification:      s.NotificationService,
 	}
 }
 
 // NotifyUser sends a notification to a user.
-func (u *UserNotificationService) NotifyUser(ctx context.Context, id user.Secret, t NotificationMessageType) error {
-	prefs, err := u.storage.UserPreferences(ctx, id)
+func (s *UserNotificationService) NotifyUser(ctx context.Context, secret user.Secret, t MessageType) error {
+	prefs, err := s.userNotifications.UserPreferences(ctx, secret)
 	if err != nil {
 		return err
 	}
 
-	if prefs == nil || prefs.NotificationConfig.NotificationConfig == nil {
+	if prefs.NotificationConfigs.IsEmpty() {
 		return nil
 	}
 
-	var n *Notification
+	u, err := s.users.User(ctx, secret)
+	if err != nil {
+		return fmt.Errorf("failed to get user for notification: %w", err)
+	}
+
+	n := Notification{
+		Type:     t,
+		Username: u.Name,
+	}
 	if custom, ok := prefs.CustomNotifications[t]; ok {
-		n = &custom
+		n.Message = custom
 	} else {
-		n, err = LoadNotification(ctx, t)
+		n.Message, err = LoadNotification(ctx, t)
 		if err != nil {
 			return err
 		}
 	}
 
-	return u.notifier.Notify(ctx, n, prefs.NotificationConfig)
+	return s.notification.Notify(ctx, n, prefs.NotificationConfigs)
 }
 
 // UserPreferences returns the preferences of a user.
-// If null, the user will not receive any notifications.
-func (u *UserNotificationService) UserPreferences(ctx context.Context, secret user.Secret) (*UserPreferences, error) {
-	p, err := u.storage.UserPreferences(ctx, secret)
-	if err != nil || p != nil {
-		return p, err
-	}
-	return &UserPreferences{}, nil
+func (s *UserNotificationService) UserPreferences(ctx context.Context, secret user.Secret) (UserPreferences, error) {
+	return s.userNotifications.UserPreferences(ctx, secret)
 }
 
-// SetUserPreferences sets the preferences of a user.
-// Null is an acceptable value and means the user will not receive any
-// notifications.
-func (u *UserNotificationService) SetUserPreferences(ctx context.Context, secret user.Secret, prefs *UserPreferences) error {
-	return u.storage.SetUserPreferences(ctx, secret, prefs)
-}
+// AddWebPushSubscription adds a web push subscription to a user.
+func (s *UserNotificationService) AddWebPushSubscription(ctx context.Context, secret user.Secret, subscription openapi.PushSubscription) error {
+	panic("implement me")
 
-// DeleteUserPreferences calls [SetUserPreferences] with a nil [UserPreferences].
-func (u *UserNotificationService) DeleteUserPreferences(ctx context.Context, secret user.Secret) error {
-	return u.storage.SetUserPreferences(ctx, secret, nil)
+	// p, err := s.UserPreferences(ctx, secret)
+	// if err != nil {
+	// 	return err
+	// }
+	//
+	// var found bool
+	// for i := range p.NotificationConfigs.WebPush {
+	// 	c := &p.NotificationConfigs.WebPush[i]
+	// 	if c.Subscription.Endpoint == subscription.Endpoint {
+	// 		found = true
+	// 		c.Subscription = subscription
+	// 		break
+	// 	}
+	// }
+	// if !found {
+	// 	p.NotificationConfigs.WebPush = append(p.NotificationConfigs.WebPush, WebPushNotificationConfig{
+	// 		Subscription: subscription,
+	// 	})
+	// }
+	//
+	// if oldSubscription == nil {
+	// 	oldSubscription = &openapi.PushSubscription{}
+	// 	return nil
+	// }
+	//
+	// return s.userNotifications.SetUserPreferences(ctx, secret, prefs)
 }

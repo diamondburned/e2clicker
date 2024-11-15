@@ -9,19 +9,23 @@ import (
 	"libdb.so/e2clicker/services/user"
 )
 
-func (s *Storage) notificationUserStorage() notification.UserStorage {
+func (s *Storage) notificationUserStorage() notification.UserNotificationStorage {
 	return (*notificationUserStorage)(s)
 }
 
 type notificationUserStorage Storage
 
-func (s *notificationUserStorage) UserPreferences(ctx context.Context, userSecret user.Secret) (*notification.UserPreferences, error) {
-	return s.q.UserNotificationPreferences(ctx, sqlc.XID(userSecret))
+func (s *notificationUserStorage) UserPreferences(ctx context.Context, userSecret user.Secret) (notification.UserPreferences, error) {
+	p, err := s.q.UserNotificationPreferences(ctx, sqlc.XID(userSecret))
+	if err != nil || p == nil {
+		return notification.UserPreferences{}, err
+	}
+	return *p, nil
 }
 
-func (s *notificationUserStorage) SetUserPreferences(ctx context.Context, userSecret user.Secret, prefs *notification.UserPreferences) error {
+func (s *notificationUserStorage) SetUserPreferences(ctx context.Context, userSecret user.Secret, prefs notification.UserPreferences) error {
 	return s.q.SetUserNotificationPreferences(ctx, postgresqlc.SetUserNotificationPreferencesParams{
 		Secret:                  sqlc.XID(userSecret),
-		NotificationPreferences: prefs,
+		NotificationPreferences: &prefs,
 	})
 }

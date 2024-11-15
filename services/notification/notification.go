@@ -1,81 +1,92 @@
 package notification
 
 import (
+	"context"
 	"encoding/json"
-	"fmt"
-	"reflect"
-	"unique"
+	"errors"
+
+	"libdb.so/e2clicker/services/notification/openapi"
 )
 
-// Notification is a message to be sent to a user.
+// Notification describes a notification message to be sent to the user.
 type Notification struct {
-	Title   string `json:"title"`
-	Message string `json:"message"`
+	// Type is the type of the notification message.
+	Type MessageType
+	// Message is the notification message.
+	Message Message
+	// Username is the name of the user that this notification is for.
+	Username string
 }
 
-// NotificationConfig is a configuration for a notification.
-type NotificationConfig interface {
-	json.Marshaler
-	isNotificationConfig()
-}
-
-var configFactories = map[unique.Handle[string]]func() NotificationConfig{}
-
-func registerNotificationConfig[T NotificationConfig](name string, newFn func() NotificationConfig) unique.Handle[string] {
-	if newFn == nil {
-		rt := reflect.TypeFor[T]()
-		if rt.Kind() != reflect.Ptr {
-			panic("notification config must be a pointer")
-		}
-		rt = rt.Elem()
-		newFn = func() NotificationConfig {
-			rv := reflect.New(rt)
-			return rv.Interface().(NotificationConfig)
-		}
-	}
-
-	nameHandle := unique.Make(name)
-	configFactories[nameHandle] = newFn
-
-	return nameHandle
-}
-
-// NotificationConfigJSON is a JSON representation of a [NotificationConfig].
-// When handling JSON, this type must be used for marshaling to succeed.
-type NotificationConfigJSON struct {
-	ServiceName unique.Handle[string]
-	NotificationConfig
-}
-
-func (n NotificationConfigJSON) MarshalJSON() ([]byte, error) {
-	return json.Marshal(struct {
-		Service string             `json:"service"`
-		Config  NotificationConfig `json:"config"`
-	}{
-		Service: n.ServiceName.Value(),
-		Config:  n.NotificationConfig,
+// MarshalJSON marshals the notification to JSON according to the OpenAPI
+// schema.
+func (n Notification) MarshalJSON() ([]byte, error) {
+	return json.Marshal(openapi.Notification{
+		Type: openapi.NotificationType(n.Type),
+		Message: openapi.NotificationMessage{
+			Title:   n.Message.Title,
+			Message: n.Message.Message,
+		},
+		Username: n.Username,
 	})
 }
 
-func (n *NotificationConfigJSON) UnmarshalJSON(data []byte) error {
-	var raw struct {
-		Service string          `json:"service"`
-		Config  json.RawMessage `json:"config"`
-	}
-	if err := json.Unmarshal(data, &raw); err != nil {
+// UnmarshalJSON unmarshals the notification from JSON according to the OpenAPI
+// schema.
+func (n *Notification) UnmarshalJSON(data []byte) error {
+	var openapiNotification openapi.Notification
+	if err := json.Unmarshal(data, &openapiNotification); err != nil {
 		return err
 	}
 
-	newCfg, ok := configFactories[unique.Make(raw.Service)]
-	if !ok {
-		return fmt.Errorf("unknown notification service %q", raw.Service)
+	*n = Notification{
+		Type: MessageType(openapiNotification.Type),
+		Message: Message{
+			Title:   openapiNotification.Message.Title,
+			Message: openapiNotification.Message.Message,
+		},
+		Username: openapiNotification.Username,
 	}
-
-	config := newCfg()
-	if err := json.Unmarshal(raw.Config, config); err != nil {
-		return err
-	}
-
-	n.NotificationConfig = config
 	return nil
+}
+
+// MessageType is the type of the notification message.
+type MessageType string
+
+const (
+	// ReminderMessage is sent to remind the user of their hormone dose.
+	ReminderMessage MessageType = "reminder"
+	// AccountNoticeMessage is sent to notify the user that they need to
+	// check their account.
+	AccountNoticeMessage MessageType = "account_notice"
+	// WebPushExpiringMessage is sent to notify the user that their web push
+	// subscription is expiring.
+	WebPushExpiringMessage MessageType = "web_push_expiring"
+)
+
+// ErrUnknownNotificationType is returned when the notification type is unknown.
+var ErrUnknownNotificationType = errors.New("unknown notification type")
+
+// Message is the message of the notification to be sent to a user.
+type Message struct {
+	Title   string
+	Message string
+}
+
+// LoadNotification loads a notification message of the given type.
+func LoadNotification(ctx context.Context, t MessageType) (Message, error) {
+	switch t {
+	case ReminderMessage:
+		return Message{
+			Title:   "Reminder",
+			Message: "Don't forget to take your hormone dose!",
+		}, nil
+	case AccountNoticeMessage:
+		return Message{
+			Title:   "Account Notice",
+			Message: "Please check your e2clicker account.",
+		}, nil
+	default:
+		return Message{}, ErrUnknownNotificationType
+	}
 }

@@ -13,10 +13,10 @@ type ContextValidator interface {
 	ValidateContext(ctx context.Context) error
 }
 
-// Validate validates the given value.
+// ShouldValidate validates the given value.
 // If v does not implement either [Validator] or [ContextValidator], this
 // function does nothing.
-func Validate(ctx context.Context, v any) error {
+func ShouldValidate(ctx context.Context, v any) error {
 	if validator, ok := v.(Validator); ok {
 		return validator.Validate()
 	}

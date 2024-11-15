@@ -74,6 +74,7 @@ func main() {
 		fx.Supply(slog.Default()),
 		fx.Supply(cfg.API),
 		fx.Supply(cfg.PostgreSQL),
+		fx.Supply(cfg.Notification),
 		fx.WithLogger(func(logger *slog.Logger) fxevent.Logger {
 			l := &fxevent.SlogLogger{Logger: logger}
 			l.UseLogLevel(slog.LevelDebug)

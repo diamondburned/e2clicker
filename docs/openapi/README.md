@@ -6,6 +6,8 @@
 
 Base URLs:
 
+* <a href="https://e2clicker.app/api">https://e2clicker.app/api</a>
+
 * <a href="/api">/api</a>
 
 # Authentication
@@ -310,6 +312,154 @@ bearerAuth
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
 |204|[No Content](https://tools.ietf.org/html/rfc7231#section-6.3.5)|Successfully deleted dosages.|None|
+|default|Default|The request is invalid.|[Error](#schemaerror)|
+
+<aside class="warning">
+To perform this operation, you must be authenticated by means of one of the following methods:
+bearerAuth
+</aside>
+
+<h1 id="e2clicker-service-notification">notification</h1>
+
+## Get the server's push notification information
+
+<a id="opIdpushInfo"></a>
+
+`GET /notification/push`
+
+> Example responses
+
+> 200 Response
+
+```json
+{
+  "applicationServerKey": "string"
+}
+```
+
+<h3 id="get-the-server's-push-notification-information-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Successfully retrieved the server's push notification information.|[PushInfo](#schemapushinfo)|
+|default|Default|The request is invalid.|[Error](#schemaerror)|
+
+<aside class="success">
+This operation does not require authentication
+</aside>
+
+## Get the user's push notification subscription
+
+<a id="opIduserPushSubscription"></a>
+
+`GET /notification/push/subscription`
+
+> Example responses
+
+> 200 Response
+
+```json
+{
+  "expirationTime": 0
+}
+```
+
+<h3 id="get-the-user's-push-notification-subscription-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Successfully retrieved the user's push notification subscription.|Inline|
+|404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|The user has not subscribed to push notifications.|None|
+|default|Default|The request is invalid.|[Error](#schemaerror)|
+
+<h3 id="get-the-user's-push-notification-subscription-responseschema">Response Schema</h3>
+
+Status Code **200**
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|» expirationTime|integer|false|none|The time at which the subscription expires. This is the time when the subscription will be automatically deleted by the browser.|
+
+<aside class="warning">
+To perform this operation, you must be authenticated by means of one of the following methods:
+bearerAuth
+</aside>
+
+## Subscribe to push notifications
+
+<a id="opIduserSubscribePush"></a>
+
+`POST /notification/push/subscription`
+
+> Body parameter
+
+```json
+{
+  "endpoint": "string",
+  "expirationTime": 0.1,
+  "keys": {
+    "p256dh": "string",
+    "auth": "string"
+  }
+}
+```
+
+<h3 id="subscribe-to-push-notifications-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|body|body|[PushSubscription](#schemapushsubscription)|false|none|
+
+> Example responses
+
+> default Response
+
+```json
+{
+  "message": "string",
+  "details": null,
+  "internal": true,
+  "internalCode": "string"
+}
+```
+
+<h3 id="subscribe-to-push-notifications-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|204|[No Content](https://tools.ietf.org/html/rfc7231#section-6.3.5)|Successfully subscribed to push notifications.|None|
+|default|Default|The request is invalid.|[Error](#schemaerror)|
+
+<aside class="warning">
+To perform this operation, you must be authenticated by means of one of the following methods:
+bearerAuth
+</aside>
+
+## Unsubscribe from push notifications
+
+<a id="opIduserUnsubscribePush"></a>
+
+`DELETE /notification/push/subscription`
+
+> Example responses
+
+> default Response
+
+```json
+{
+  "message": "string",
+  "details": null,
+  "internal": true,
+  "internalCode": "string"
+}
+```
+
+<h3 id="unsubscribe-from-push-notifications-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|204|[No Content](https://tools.ietf.org/html/rfc7231#section-6.3.5)|Successfully unsubscribed from push notifications.|None|
+|404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|The user has not subscribed to push notifications.|None|
 |default|Default|The request is invalid.|[Error](#schemaerror)|
 
 <aside class="warning">
@@ -769,6 +919,114 @@ bearerAuth
 |takenAt|string(date-time)|true|none|The time the dosage was taken.|
 |takenOffAt|string(date-time)|false|none|The time the dosage was taken off. This is only relevant for patch delivery methods.|
 |comment|string|false|none|A comment about the dosage, if any.|
+
+<h2 id="tocS_Notification">Notification</h2>
+<!-- backwards compatibility -->
+<a id="schemanotification"></a>
+<a id="schema_Notification"></a>
+<a id="tocSnotification"></a>
+<a id="tocsnotification"></a>
+
+```json
+{
+  "type": "reminder",
+  "message": null,
+  "username": "string"
+}
+
+```
+
+### Properties
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|type|string|true|none|The type of notification.|
+
+#### Enumerated Values
+
+|Property|Value|
+|---|---|
+|type|reminder|
+|type|account_notice|
+|type|web_push_expiring|
+
+<h2 id="tocS_NotificationMessage">NotificationMessage</h2>
+<!-- backwards compatibility -->
+<a id="schemanotificationmessage"></a>
+<a id="schema_NotificationMessage"></a>
+<a id="tocSnotificationmessage"></a>
+<a id="tocsnotificationmessage"></a>
+
+```json
+{
+  "title": "string",
+  "message": "string"
+}
+
+```
+
+The message of the notification. This is derived from the notification type but can be overridden by the user.
+
+### Properties
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|title|string|true|none|The title of the notification.|
+|message|string|true|none|The message of the notification.|
+
+<h2 id="tocS_PushInfo">PushInfo</h2>
+<!-- backwards compatibility -->
+<a id="schemapushinfo"></a>
+<a id="schema_PushInfo"></a>
+<a id="tocSpushinfo"></a>
+<a id="tocspushinfo"></a>
+
+```json
+{
+  "applicationServerKey": "string"
+}
+
+```
+
+This is returned by the server and contains information that the client would need to subscribe to push notifications.
+
+### Properties
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|applicationServerKey|string(byte)|false|none|A Base64-encoded string or ArrayBuffer containing an ECDSA P-256 public key that the push server will use to authenticate your application server. If specified, all messages from your application server must use the VAPID authentication scheme, and include a JWT signed with the corresponding private key. This key IS NOT the same ECDH key that you use to encrypt the data. For more information, see "Using VAPID with WebPush".|
+
+<h2 id="tocS_PushSubscription">PushSubscription</h2>
+<!-- backwards compatibility -->
+<a id="schemapushsubscription"></a>
+<a id="schema_PushSubscription"></a>
+<a id="tocSpushsubscription"></a>
+<a id="tocspushsubscription"></a>
+
+```json
+{
+  "endpoint": "string",
+  "expirationTime": 0.1,
+  "keys": {
+    "p256dh": "string",
+    "auth": "string"
+  }
+}
+
+```
+
+The configuration for a push notification subscription.
+This is the object that is returned by calling PushSubscription.toJSON(). More information can be found at: https://developer.mozilla.org/en-US/docs/Web/API/PushSubscription/toJSON
+
+### Properties
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|endpoint|string|true|none|The endpoint to send the notification to.|
+|expirationTime|number(double)|false|none|The time in milliseconds at which the subscription expires. This is the time when the subscription will be automatically deleted by the browser.|
+|keys|object|true|none|The VAPID keys to encrypt the push notification.|
+|» p256dh|string|true|none|An Elliptic curve Diffie–Hellman public key on the P-256 curve (that is, the NIST secp256r1 elliptic curve). The resulting key is an uncompressed point in ANSI X9.62 format.|
+|» auth|string|true|none|An authentication secret, as described in Message Encryption for Web Push.|
 
 <h2 id="tocS_UserSecret">UserSecret</h2>
 <!-- backwards compatibility -->

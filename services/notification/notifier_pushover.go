@@ -11,8 +11,6 @@ import (
 	"libdb.so/e2clicker/internal/validating"
 )
 
-var pushoverServiceName = registerNotificationConfig[*PushoverNotificationConfig]("pushover", nil)
-
 type PushoverNotificationConfig struct {
 	Endpoint string `json:"endpoint"`
 	User     string `json:"user"`
@@ -23,12 +21,6 @@ type PushoverNotificationConfig struct {
 }
 
 var _ validating.Validator = (*PushoverNotificationConfig)(nil)
-
-func (*PushoverNotificationConfig) isNotificationConfig() {}
-
-func (c *PushoverNotificationConfig) MarshalJSON() ([]byte, error) {
-	return NotificationConfigJSON{pushoverServiceName, c}.MarshalJSON()
-}
 
 // Validate checks that the configuration is valid.
 func (c *PushoverNotificationConfig) Validate() error {
@@ -48,7 +40,7 @@ func NewPushoverService(c *http.Client) *PushoverService {
 	return &PushoverService{http: c}
 }
 
-func (s PushoverService) Notify(ctx context.Context, n *Notification, config *PushoverNotificationConfig) error {
+func (s PushoverService) Notify(ctx context.Context, n Notification, config PushoverNotificationConfig) error {
 	if err := config.Validate(); err != nil {
 		return ConfigError{err: err}
 	}
@@ -64,8 +56,8 @@ func (s PushoverService) Notify(ctx context.Context, n *Notification, config *Pu
 	}
 
 	b, err := json.Marshal(pushoverNotification{
-		Title:    n.Title,
-		Message:  n.Message,
+		Title:    n.Message.Title,
+		Message:  n.Message.Message,
 		User:     config.User,
 		Token:    config.Token,
 		Priority: config.Priority,

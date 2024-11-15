@@ -1,27 +1,35 @@
 package notification
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	"libdb.so/e2clicker/internal/publicerrors"
 )
 
 func init() {
-	publicerrors.MarkValuesPublic(ErrUnknownService)
+	publicerrors.MarkTypePublic[UnknownServiceError]()
 	publicerrors.MarkTypePublic[HTTPUnknownStatusError]()
 	publicerrors.MarkTypePublic[ConfigError]()
+	publicerrors.MarkTypePublic[WebPushSubscriptionExpired]()
 }
 
-// ErrUnknownService is returned when an unknown service is requested.
-var ErrUnknownService = errors.New("unknown service")
+// UnknownServiceError is returned when an unknown service is requested.
+type UnknownServiceError struct {
+	Service string `json:"service"`
+}
+
+func (e UnknownServiceError) Error() string {
+	return fmt.Sprintf("unknown service %q", e.Service)
+}
 
 // ConfigError is returned when a notification service is given an invalid
 // configuration or the configuration fails validation.
 type ConfigError struct {
-	err error
+	Service string `json:"service"`
+	err     error
 }
 
 func (e ConfigError) Error() string {
@@ -59,4 +67,14 @@ func consumeHTTPUnknownStatusError(resp *http.Response) error {
 		StatusCode: resp.StatusCode,
 		Body:       string(body),
 	}
+}
+
+// WebPushSubscriptionExpired is returned when a WebPush subscription has
+// expired.
+type WebPushSubscriptionExpired struct {
+	ExpiredAt time.Time `json:"expiredAt"`
+}
+
+func (e WebPushSubscriptionExpired) Error() string {
+	return fmt.Sprintf("push subscription expired at %s", e.ExpiredAt.Format(time.RFC3339))
 }

@@ -29,6 +29,13 @@ const (
 	BearerAuthScopes = "bearerAuth.Scopes"
 )
 
+// Defines values for NotificationType.
+const (
+	AccountNotice   NotificationType = "account_notice"
+	Reminder        NotificationType = "reminder"
+	WebPushExpiring NotificationType = "web_push_expiring"
+)
+
 // DeliveryMethod defines model for DeliveryMethod.
 type DeliveryMethod struct {
 	// ID A short string representing the delivery method. This is what goes into the DeliveryMethod fields.
@@ -97,6 +104,55 @@ type Error struct {
 
 // Locale A locale identifier.
 type Locale = user.Locale
+
+// Notification defines model for Notification.
+type Notification struct {
+	// Type The type of notification.
+	Type NotificationType `json:"type"`
+
+	// Message The message of the notification.
+	Message NotificationMessage `json:"message"`
+
+	// Username The username of the user to send the notification to.
+	Username string `json:"username"`
+}
+
+// NotificationType The type of notification.
+type NotificationType string
+
+// NotificationMessage The message of the notification. This is derived from the notification type but can be overridden by the user.
+type NotificationMessage struct {
+	// Title The title of the notification.
+	Title string `json:"title"`
+
+	// Message The message of the notification.
+	Message string `json:"message"`
+}
+
+// PushInfo This is returned by the server and contains information that the client would need to subscribe to push notifications.
+type PushInfo struct {
+	// ApplicationServerKey A Base64-encoded string or ArrayBuffer containing an ECDSA P-256 public key that the push server will use to authenticate your application server. If specified, all messages from your application server must use the VAPID authentication scheme, and include a JWT signed with the corresponding private key. This key IS NOT the same ECDH key that you use to encrypt the data. For more information, see "Using VAPID with WebPush".
+	ApplicationServerKey *[]byte `json:"applicationServerKey,omitempty"`
+}
+
+// PushSubscription The configuration for a push notification subscription.
+// This is the object that is returned by calling PushSubscription.toJSON(). More information can be found at: https://developer.mozilla.org/en-US/docs/Web/API/PushSubscription/toJSON
+type PushSubscription struct {
+	// Endpoint The endpoint to send the notification to.
+	Endpoint string `json:"endpoint"`
+
+	// ExpirationTime The time in milliseconds at which the subscription expires. This is the time when the subscription will be automatically deleted by the browser.
+	ExpirationTime *float64 `json:"expirationTime,omitempty"`
+
+	// Keys The VAPID keys to encrypt the push notification.
+	Keys struct {
+		// P256Dh An Elliptic curve Diffie–Hellman public key on the P-256 curve (that is, the NIST secp256r1 elliptic curve). The resulting key is an uncompressed point in ANSI X9.62 format.
+		P256Dh string `json:"p256dh"`
+
+		// Auth An authentication secret, as described in Message Encryption for Web Push.
+		Auth string `json:"auth"`
+	} `json:"keys"`
+}
 
 // Session A session for a user.
 type Session struct {
@@ -190,6 +246,9 @@ type EditDoseJSONRequestBody = EditDoseJSONBody
 // DeleteUserSessionJSONRequestBody defines body for DeleteUserSession for application/json ContentType.
 type DeleteUserSessionJSONRequestBody DeleteUserSessionJSONBody
 
+// UserSubscribePushJSONRequestBody defines body for UserSubscribePush for application/json ContentType.
+type UserSubscribePushJSONRequestBody = PushSubscription
+
 // RegisterJSONRequestBody defines body for Register for application/json ContentType.
 type RegisterJSONRequestBody RegisterJSONBody
 
@@ -237,6 +296,18 @@ type ServerInterface interface {
 	// List the current user's sessions
 	// (GET /me/sessions)
 	CurrentUserSessions(w http.ResponseWriter, r *http.Request)
+	// Get the server's push notification information
+	// (GET /notification/push)
+	PushInfo(w http.ResponseWriter, r *http.Request)
+	// Unsubscribe from push notifications
+	// (DELETE /notification/push/subscription)
+	UserUnsubscribePush(w http.ResponseWriter, r *http.Request)
+	// Get the user's push notification subscription
+	// (GET /notification/push/subscription)
+	UserPushSubscription(w http.ResponseWriter, r *http.Request)
+	// Subscribe to push notifications
+	// (POST /notification/push/subscription)
+	UserSubscribePush(w http.ResponseWriter, r *http.Request)
 	// Register a new account
 	// (POST /register)
 	Register(w http.ResponseWriter, r *http.Request)
@@ -586,6 +657,80 @@ func (siw *ServerInterfaceWrapper) CurrentUserSessions(w http.ResponseWriter, r 
 	handler.ServeHTTP(w, r)
 }
 
+// PushInfo operation middleware
+func (siw *ServerInterfaceWrapper) PushInfo(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PushInfo(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UserUnsubscribePush operation middleware
+func (siw *ServerInterfaceWrapper) UserUnsubscribePush(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UserUnsubscribePush(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UserPushSubscription operation middleware
+func (siw *ServerInterfaceWrapper) UserPushSubscription(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UserPushSubscription(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UserSubscribePush operation middleware
+func (siw *ServerInterfaceWrapper) UserSubscribePush(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UserSubscribePush(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // Register operation middleware
 func (siw *ServerInterfaceWrapper) Register(w http.ResponseWriter, r *http.Request) {
 
@@ -734,6 +879,10 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc("GET "+options.BaseURL+"/me/secret", wrapper.CurrentUserSecret)
 	m.HandleFunc("DELETE "+options.BaseURL+"/me/sessions", wrapper.DeleteUserSession)
 	m.HandleFunc("GET "+options.BaseURL+"/me/sessions", wrapper.CurrentUserSessions)
+	m.HandleFunc("GET "+options.BaseURL+"/notification/push", wrapper.PushInfo)
+	m.HandleFunc("DELETE "+options.BaseURL+"/notification/push/subscription", wrapper.UserUnsubscribePush)
+	m.HandleFunc("GET "+options.BaseURL+"/notification/push/subscription", wrapper.UserPushSubscription)
+	m.HandleFunc("POST "+options.BaseURL+"/notification/push/subscription", wrapper.UserSubscribePush)
 	m.HandleFunc("POST "+options.BaseURL+"/register", wrapper.Register)
 
 	return m
@@ -1136,6 +1285,136 @@ func (response CurrentUserSessionsdefaultJSONResponse) VisitCurrentUserSessionsR
 	return json.NewEncoder(w).Encode(response.Body)
 }
 
+type PushInfoRequestObject struct {
+}
+
+type PushInfoResponseObject interface {
+	VisitPushInfoResponse(w http.ResponseWriter) error
+}
+
+type PushInfo200JSONResponse PushInfo
+
+func (response PushInfo200JSONResponse) VisitPushInfoResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PushInfodefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response PushInfodefaultJSONResponse) VisitPushInfoResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+
+	return json.NewEncoder(w).Encode(response.Body)
+}
+
+type UserUnsubscribePushRequestObject struct {
+}
+
+type UserUnsubscribePushResponseObject interface {
+	VisitUserUnsubscribePushResponse(w http.ResponseWriter) error
+}
+
+type UserUnsubscribePush204Response struct {
+}
+
+func (response UserUnsubscribePush204Response) VisitUserUnsubscribePushResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type UserUnsubscribePush404Response struct {
+}
+
+func (response UserUnsubscribePush404Response) VisitUserUnsubscribePushResponse(w http.ResponseWriter) error {
+	w.WriteHeader(404)
+	return nil
+}
+
+type UserUnsubscribePushdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response UserUnsubscribePushdefaultJSONResponse) VisitUserUnsubscribePushResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+
+	return json.NewEncoder(w).Encode(response.Body)
+}
+
+type UserPushSubscriptionRequestObject struct {
+}
+
+type UserPushSubscriptionResponseObject interface {
+	VisitUserPushSubscriptionResponse(w http.ResponseWriter) error
+}
+
+type UserPushSubscription200JSONResponse struct {
+	// ExpirationTime The time at which the subscription expires. This is the time when the subscription will be automatically deleted by the browser.
+	ExpirationTime *int `json:"expirationTime,omitempty"`
+}
+
+func (response UserPushSubscription200JSONResponse) VisitUserPushSubscriptionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UserPushSubscription404Response struct {
+}
+
+func (response UserPushSubscription404Response) VisitUserPushSubscriptionResponse(w http.ResponseWriter) error {
+	w.WriteHeader(404)
+	return nil
+}
+
+type UserPushSubscriptiondefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response UserPushSubscriptiondefaultJSONResponse) VisitUserPushSubscriptionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+
+	return json.NewEncoder(w).Encode(response.Body)
+}
+
+type UserSubscribePushRequestObject struct {
+	Body *UserSubscribePushJSONRequestBody
+}
+
+type UserSubscribePushResponseObject interface {
+	VisitUserSubscribePushResponse(w http.ResponseWriter) error
+}
+
+type UserSubscribePush204Response struct {
+}
+
+func (response UserSubscribePush204Response) VisitUserSubscribePushResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type UserSubscribePushdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response UserSubscribePushdefaultJSONResponse) VisitUserSubscribePushResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+
+	return json.NewEncoder(w).Encode(response.Body)
+}
+
 type RegisterRequestObject struct {
 	Body *RegisterJSONRequestBody
 }
@@ -1221,6 +1500,18 @@ type StrictServerInterface interface {
 	// List the current user's sessions
 	// (GET /me/sessions)
 	CurrentUserSessions(ctx context.Context, request CurrentUserSessionsRequestObject) (CurrentUserSessionsResponseObject, error)
+	// Get the server's push notification information
+	// (GET /notification/push)
+	PushInfo(ctx context.Context, request PushInfoRequestObject) (PushInfoResponseObject, error)
+	// Unsubscribe from push notifications
+	// (DELETE /notification/push/subscription)
+	UserUnsubscribePush(ctx context.Context, request UserUnsubscribePushRequestObject) (UserUnsubscribePushResponseObject, error)
+	// Get the user's push notification subscription
+	// (GET /notification/push/subscription)
+	UserPushSubscription(ctx context.Context, request UserPushSubscriptionRequestObject) (UserPushSubscriptionResponseObject, error)
+	// Subscribe to push notifications
+	// (POST /notification/push/subscription)
+	UserSubscribePush(ctx context.Context, request UserSubscribePushRequestObject) (UserSubscribePushResponseObject, error)
 	// Register a new account
 	// (POST /register)
 	Register(ctx context.Context, request RegisterRequestObject) (RegisterResponseObject, error)
@@ -1636,6 +1927,109 @@ func (sh *strictHandler) CurrentUserSessions(w http.ResponseWriter, r *http.Requ
 	}
 }
 
+// PushInfo operation middleware
+func (sh *strictHandler) PushInfo(w http.ResponseWriter, r *http.Request) {
+	var request PushInfoRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.PushInfo(ctx, request.(PushInfoRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "PushInfo")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(PushInfoResponseObject); ok {
+		if err := validResponse.VisitPushInfoResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UserUnsubscribePush operation middleware
+func (sh *strictHandler) UserUnsubscribePush(w http.ResponseWriter, r *http.Request) {
+	var request UserUnsubscribePushRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UserUnsubscribePush(ctx, request.(UserUnsubscribePushRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UserUnsubscribePush")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UserUnsubscribePushResponseObject); ok {
+		if err := validResponse.VisitUserUnsubscribePushResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UserPushSubscription operation middleware
+func (sh *strictHandler) UserPushSubscription(w http.ResponseWriter, r *http.Request) {
+	var request UserPushSubscriptionRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UserPushSubscription(ctx, request.(UserPushSubscriptionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UserPushSubscription")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UserPushSubscriptionResponseObject); ok {
+		if err := validResponse.VisitUserPushSubscriptionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UserSubscribePush operation middleware
+func (sh *strictHandler) UserSubscribePush(w http.ResponseWriter, r *http.Request) {
+	var request UserSubscribePushRequestObject
+
+	var body UserSubscribePushJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UserSubscribePush(ctx, request.(UserSubscribePushRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UserSubscribePush")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UserSubscribePushResponseObject); ok {
+		if err := validResponse.VisitUserSubscribePushResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // Register operation middleware
 func (sh *strictHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var request RegisterRequestObject
@@ -1670,43 +2064,60 @@ func (sh *strictHandler) Register(w http.ResponseWriter, r *http.Request) {
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
-	"TVesEmjkfwMAAP//UTQ5WOMpAAA=",
+	"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",
+	"2tj2ECc7AAA=",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

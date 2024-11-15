@@ -4,3 +4,4 @@ package-lock.json
 .svelte-kit
 /result
 *.qcow2
+/vapid-keys.json

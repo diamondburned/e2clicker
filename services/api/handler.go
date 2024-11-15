@@ -285,3 +285,27 @@ func convertDosageObservation(o dosage.Observation) openapi.DosageObservation {
 		TakenOffAt:     o.TakenOffAt,
 	}
 }
+
+// Get the server's push notification information
+// (GET /notification/push)
+func (h *OpenAPIHandler) PushInfo(ctx context.Context, request openapi.PushInfoRequestObject) (openapi.PushInfoResponseObject, error) {
+	panic("not implemented") // TODO: Implement
+}
+
+// Unsubscribe from push notifications
+// (DELETE /notification/push/subscription)
+func (h *OpenAPIHandler) UserUnsubscribePush(ctx context.Context, request openapi.UserUnsubscribePushRequestObject) (openapi.UserUnsubscribePushResponseObject, error) {
+	panic("not implemented") // TODO: Implement
+}
+
+// Get the user's push notification subscription
+// (GET /notification/push/subscription)
+func (h *OpenAPIHandler) UserPushSubscription(ctx context.Context, request openapi.UserPushSubscriptionRequestObject) (openapi.UserPushSubscriptionResponseObject, error) {
+	panic("not implemented") // TODO: Implement
+}
+
+// Subscribe to push notifications
+// (POST /notification/push/subscription)
+func (h *OpenAPIHandler) UserSubscribePush(ctx context.Context, request openapi.UserSubscribePushRequestObject) (openapi.UserSubscribePushResponseObject, error) {
+	panic("not implemented") // TODO: Implement
+}

@@ -40,22 +40,27 @@
   services.e2clicker = {
     frontend = {
       enable = true;
-      port = 36000;
+      socket = true;
     };
     backend = {
       enable = true;
       debug = true;
-      api.listenAddress = ":36001";
-      postgresql.databaseURI = "postgresql://e2clicker-backend@/e2clicker-backend";
+      api = {
+        listenAddress = ":36001";
+      };
+      postgresql = {
+        databaseURI = "postgresql://e2clicker-backend@/e2clicker-backend";
+      };
+      notification = {
+        clientTimeout = "15s";
+        webPushKeys = ../../vapid-keys.json;
+      };
     };
   };
 
   services.caddy = {
     enable = true;
     virtualHosts.":80".extraConfig = ''
-      handle /api* {
-        reverse_proxy * localhost:36001
-      }
       handle /_app/immutable* {
         header Cache-Control "public, immutable, max-age=31536000"
         file_server {
@@ -64,8 +69,11 @@
           pass_thru
         }
       }
+      handle /api* {
+        reverse_proxy * localhost:36001
+      }
       handle {
-        reverse_proxy * localhost:36000
+        reverse_proxy * unix/${config.services.e2clicker.frontend.socketPath}
       }
     '';
   };
