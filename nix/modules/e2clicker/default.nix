@@ -100,8 +100,8 @@ in
       enable = mkEnableOption "e2clicker frontend";
 
       host = mkOption {
-        type = types.str;
-        default = "127.0.0.1";
+        type = types.nullOr types.str;
+        default = null;
         description = "The host the frontend should serve on.";
       };
 
@@ -153,54 +153,44 @@ in
     };
 
     services.e2clicker.frontend.socketPath =
-      if e2clicker.frontend.socket then "/run/e2clicker-frontend/http.sock" else null;
+      if e2clicker.frontend.socket then "/run/e2clicker-frontend.sock" else null;
 
     systemd.services.e2clicker-frontend = mkIf e2clicker.frontend.enable {
       description = "e2clicker frontend";
-      after = [ "network.target" ];
+      environment = {
+        NODE_ENV = "production";
+        HOST_HEADER = "x-forwarded-host";
+        PROTOCOL_HEADER = "x-forwarded-proto";
+        # the frontend doesn't even handle POST requests.
+        BODY_SIZE_LIMIT = "4K";
+        IDLE_TIMEOUT = toString (1 * 60 * 60); # 1 hour
+      };
       wantedBy = [ "multi-user.target" ];
-      environment =
-        (
-          if e2clicker.frontend.socket then
-            {
-              SOCKET_PATH = "${e2clicker.frontend.socketPath}";
-            }
-          else
-            {
-              HOST = "${e2clicker.frontend.host}";
-              PORT = "${toString e2clicker.frontend.port}";
-            }
-        )
-        // {
-          HOST_HEADER = "x-forwarded-host";
-          PROTOCOL_HEADER = "x-forwarded-proto";
-          # the frontend doesn't even handle POST requests.
-          BODY_SIZE_LIMIT = "4K";
-          IDLE_TIMEOUT = toString (1 * 60 * 60); # 1 hour
-        };
       serviceConfig = {
         ExecStart = "${getExe e2clicker.frontend.package}";
         Restart = "always";
         RestartSec = "5s";
         DynamicUser = true;
-        RuntimeDirectory = "e2clicker-frontend";
-        RuntimeDirectoryMode = "0777";
-        UMask = "0000";
       };
     };
 
-    # systemd.sockets.e2clicker-frontend = mkIf e2clicker.frontend.enable {
-    #   description = "e2clicker frontend socket";
-    #   after = [ "network.target" ];
-    #   wantedBy = [ "sockets.target" ];
-    #   socketConfig = {
-    #     ListenStream =
-    #       if e2clicker.frontend.socket then
-    #         [ "${e2clicker.frontend.socketPath}" ]
-    #       else
-    #         [ "${e2clicker.frontend.host}:${toString e2clicker.frontend.port}" ];
-    #     Accept = false;
-    #   };
-    # };
+    systemd.sockets.e2clicker-frontend = mkIf e2clicker.frontend.enable {
+      description = "e2clicker frontend socket";
+      after = [ "network.target" ];
+      wantedBy = [ "sockets.target" ];
+      socketConfig = {
+        ListenStream =
+          if e2clicker.frontend.socket then
+            "${e2clicker.frontend.socketPath}"
+          else if e2clicker.frontend.host != null then
+            "${e2clicker.frontend.host}:${toString e2clicker.frontend.port}"
+          else
+            "${toString e2clicker.frontend.port}";
+        Accept = false;
+        NoDelay = true;
+        SocketMode = "0666";
+        DirectoryMode = "0777";
+      };
+    };
   };
 }
