@@ -3,11 +3,10 @@ package user
 
 import (
 	"context"
-	"encoding"
-	"fmt"
-	"time"
+	"crypto/rand"
+	"encoding/base32"
+	"strings"
 
-	"github.com/rs/xid"
 	"libdb.so/e2clicker/internal/asset"
 )
 
@@ -47,39 +46,33 @@ type UserAvatarStorage interface {
 // Secret is a secret identifier for a user. This secret is generated once
 // and never changes. It is used to both authenticate and identify a user, so it
 // should be kept secret.
-type Secret xid.ID
-
-var (
-	_ fmt.Stringer             = Secret{}
-	_ encoding.TextMarshaler   = Secret{}
-	_ encoding.TextUnmarshaler = (*Secret)(nil)
-)
+type Secret string
 
 func generateUserSecret() Secret {
-	return Secret(xid.New())
-}
+	const n = 10
 
-// String formats the user secret into a string.
-func (id Secret) String() string {
-	return xid.ID(id).String()
-}
-
-// CreatedAt returns the creation time of the user secret.
-func (id Secret) CreatedAt() time.Time {
-	return xid.ID(id).Time()
-}
-
-// MarshalText implements the [encoding.TextMarshaler] interface.
-func (id Secret) MarshalText() ([]byte, error) {
-	return []byte(id.String()), nil
-}
-
-// UnmarshalText implements the [encoding.TextUnmarshaler] interface.
-func (id *Secret) UnmarshalText(text []byte) error {
-	v, err := xid.FromString(string(text))
-	if err != nil {
-		return err
+	var b [n]byte
+	if _, err := rand.Read(b[:]); err != nil {
+		panic(err)
 	}
-	*id = Secret(v)
-	return nil
+
+	s := base32.
+		StdEncoding.
+		WithPadding(base32.NoPadding).
+		EncodeToString(b[:])
+
+	return Secret(s)
+}
+
+// String returns the secret as a pretty string.
+func (s Secret) String() string {
+	var b strings.Builder
+	b.Grow(len(s) + (len(s)/4 + 1))
+	for i, c := range s {
+		if i != 0 && i%4 == 0 {
+			b.WriteByte(' ')
+		}
+		b.WriteRune(c)
+	}
+	return b.String()
 }

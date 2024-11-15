@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"libdb.so/e2clicker/internal/sqlc"
 	"libdb.so/e2clicker/internal/sqlc/postgresqlc"
 	"libdb.so/e2clicker/services/notification"
 	"libdb.so/e2clicker/services/user"
@@ -17,7 +16,7 @@ func (s *Storage) notificationUserStorage() notification.UserNotificationStorage
 type notificationUserStorage Storage
 
 func (s *notificationUserStorage) UserPreferences(ctx context.Context, userSecret user.Secret) (notification.UserPreferences, error) {
-	p, err := s.q.UserNotificationPreferences(ctx, sqlc.XID(userSecret))
+	p, err := s.q.UserNotificationPreferences(ctx, userSecret)
 	if err != nil || p == nil {
 		return notification.UserPreferences{}, err
 	}
@@ -33,7 +32,7 @@ func (s *notificationUserStorage) SetUserPreferencesTx(ctx context.Context, user
 
 	q := postgresqlc.New(tx)
 
-	p, err := q.UserNotificationPreferences(ctx, sqlc.XID(userSecret))
+	p, err := q.UserNotificationPreferences(ctx, userSecret)
 	if err != nil {
 		return fmt.Errorf("get user preferences: %w", err)
 	}
@@ -43,7 +42,7 @@ func (s *notificationUserStorage) SetUserPreferencesTx(ctx context.Context, user
 	}
 
 	if err := q.SetUserNotificationPreferences(ctx, postgresqlc.SetUserNotificationPreferencesParams{
-		Secret:                  sqlc.XID(userSecret),
+		Secret:                  userSecret,
 		NotificationPreferences: p,
 	}); err != nil {
 		return fmt.Errorf("set user preferences: %w", err)

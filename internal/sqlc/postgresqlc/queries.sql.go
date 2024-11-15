@@ -9,7 +9,6 @@ import (
 	"context"
 
 	"github.com/jackc/pgx/v5/pgtype"
-	sqlc "libdb.so/e2clicker/internal/sqlc"
 	notificationservice "libdb.so/e2clicker/services/notification"
 	userservice "libdb.so/e2clicker/services/user"
 )
@@ -24,7 +23,7 @@ RETURNING secret, name, locale, registered_at, notification_preferences
 `
 
 type CreateUserParams struct {
-	Secret sqlc.XID
+	Secret userservice.Secret
 	Name   string
 }
 
@@ -46,7 +45,7 @@ DELETE FROM dosage_schedule
 WHERE user_secret = $1
 `
 
-func (q *Queries) DeleteDosageSchedule(ctx context.Context, userSecret sqlc.XID) error {
+func (q *Queries) DeleteDosageSchedule(ctx context.Context, userSecret userservice.Secret) error {
 	_, err := q.db.Exec(ctx, deleteDosageSchedule, userSecret)
 	return err
 }
@@ -58,7 +57,7 @@ WHERE user_secret = $1
 `
 
 type DeleteSessionParams struct {
-	UserSecret sqlc.XID
+	UserSecret userservice.Secret
 	ID         int64
 }
 
@@ -117,7 +116,7 @@ FROM dosage_schedule
 WHERE user_secret = $1
 `
 
-func (q *Queries) DosageSchedule(ctx context.Context, userSecret sqlc.XID) (DosageSchedule, error) {
+func (q *Queries) DosageSchedule(ctx context.Context, userSecret userservice.Secret) (DosageSchedule, error) {
 	row := q.db.QueryRow(ctx, dosageSchedule, userSecret)
 	var i DosageSchedule
 	err := row.Scan(
@@ -141,7 +140,7 @@ ORDER BY taken_at ASC
 `
 
 type DoseHistoryParams struct {
-	UserSecret sqlc.XID
+	UserSecret userservice.Secret
 	Start      pgtype.Timestamptz
 	End        pgtype.Timestamptz
 }
@@ -184,7 +183,7 @@ RETURNING dose_id, user_secret, delivery_method, dose, taken_at, taken_off_at
 
 type EditDoseParams struct {
 	DoseID         int64
-	UserSecret     sqlc.XID
+	UserSecret     userservice.Secret
 	DeliveryMethod pgtype.Text
 	Dose           float32
 	TakenAt        pgtype.Timestamptz
@@ -213,7 +212,7 @@ WHERE user_secret = $1
 `
 
 type ForgetDosesParams struct {
-	UserSecret sqlc.XID
+	UserSecret userservice.Secret
 	DoseIDs    []int64
 }
 
@@ -231,7 +230,7 @@ FROM user_sessions
 WHERE user_secret = $1
 `
 
-func (q *Queries) ListSessions(ctx context.Context, userSecret sqlc.XID) ([]UserSession, error) {
+func (q *Queries) ListSessions(ctx context.Context, userSecret userservice.Secret) ([]UserSession, error) {
 	rows, err := q.db.Query(ctx, listSessions, userSecret)
 	if err != nil {
 		return nil, err
@@ -260,14 +259,14 @@ func (q *Queries) ListSessions(ctx context.Context, userSecret sqlc.XID) ([]User
 
 const recordDose = `-- name: RecordDose :one
 INSERT INTO dosage_history (user_secret, taken_at, delivery_method, dose) (
-  SELECT $1::xid_, $2::timestamptz, delivery_method, dose
+  SELECT $1::usersecret, $2::timestamptz, delivery_method, dose
   FROM dosage_schedule
-  WHERE dosage_schedule.user_secret = $1::xid_)
+  WHERE dosage_schedule.user_secret = $1::usersecret)
 RETURNING dosage_history.dose_id, dosage_history.user_secret, dosage_history.delivery_method, dosage_history.dose, dosage_history.taken_at, dosage_history.taken_off_at
 `
 
 type RecordDoseParams struct {
-	UserSecret sqlc.XID
+	UserSecret userservice.Secret
 	TakenAt    pgtype.Timestamptz
 }
 
@@ -294,7 +293,7 @@ INSERT INTO user_sessions (user_secret, token, created_at, last_used, user_agent
 `
 
 type RegisterSessionParams struct {
-	UserSecret sqlc.XID
+	UserSecret userservice.Secret
 	Token      []byte
 	UserAgent  pgtype.Text
 }
@@ -313,7 +312,7 @@ ON CONFLICT (user_secret)
 `
 
 type SetDosageScheduleParams struct {
-	UserSecret     sqlc.XID
+	UserSecret     userservice.Secret
 	DeliveryMethod pgtype.Text
 	Dose           float32
 	Interval       pgtype.Interval
@@ -340,7 +339,7 @@ ON CONFLICT (user_secret)
 `
 
 type SetUserAvatarParams struct {
-	UserSecret  sqlc.XID
+	UserSecret  userservice.Secret
 	AvatarImage []byte
 	MIMEType    string
 }
@@ -358,7 +357,7 @@ WHERE secret = $1
 `
 
 type SetUserNotificationPreferencesParams struct {
-	Secret                  sqlc.XID
+	Secret                  userservice.Secret
 	NotificationPreferences *notificationservice.UserPreferences
 }
 
@@ -375,7 +374,7 @@ WHERE secret = $1
 `
 
 type UpdateUserLocaleParams struct {
-	Secret sqlc.XID
+	Secret userservice.Secret
 	Locale userservice.Locale
 }
 
@@ -392,7 +391,7 @@ WHERE secret = $1
 `
 
 type UpdateUserNameParams struct {
-	Secret sqlc.XID
+	Secret userservice.Secret
 	Name   string
 }
 
@@ -407,7 +406,7 @@ FROM users_with_avatar
 WHERE secret = $1
 `
 
-func (q *Queries) User(ctx context.Context, secret sqlc.XID) (UsersWithAvatar, error) {
+func (q *Queries) User(ctx context.Context, secret userservice.Secret) (UsersWithAvatar, error) {
 	row := q.db.QueryRow(ctx, user, secret)
 	var i UsersWithAvatar
 	err := row.Scan(
@@ -433,7 +432,7 @@ type UserAvatarRow struct {
 	MIMEType    string
 }
 
-func (q *Queries) UserAvatar(ctx context.Context, userSecret sqlc.XID) (UserAvatarRow, error) {
+func (q *Queries) UserAvatar(ctx context.Context, userSecret userservice.Secret) (UserAvatarRow, error) {
 	row := q.db.QueryRow(ctx, userAvatar, userSecret)
 	var i UserAvatarRow
 	err := row.Scan(&i.AvatarImage, &i.MIMEType)
@@ -449,7 +448,7 @@ FROM users
 WHERE secret = $1
 `
 
-func (q *Queries) UserNotificationPreferences(ctx context.Context, secret sqlc.XID) (*notificationservice.UserPreferences, error) {
+func (q *Queries) UserNotificationPreferences(ctx context.Context, secret userservice.Secret) (*notificationservice.UserPreferences, error) {
 	row := q.db.QueryRow(ctx, userNotificationPreferences, secret)
 	var notification_preferences *notificationservice.UserPreferences
 	err := row.Scan(&notification_preferences)

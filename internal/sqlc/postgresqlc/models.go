@@ -6,7 +6,6 @@ package postgresqlc
 
 import (
 	"github.com/jackc/pgx/v5/pgtype"
-	sqlc "libdb.so/e2clicker/internal/sqlc"
 	notificationservice "libdb.so/e2clicker/services/notification"
 	userservice "libdb.so/e2clicker/services/user"
 )
@@ -19,7 +18,7 @@ type DeliveryMethod struct {
 
 type DosageHistory struct {
 	DoseID         int64
-	UserSecret     sqlc.XID
+	UserSecret     userservice.Secret
 	DeliveryMethod pgtype.Text
 	Dose           float32
 	TakenAt        pgtype.Timestamptz
@@ -27,7 +26,7 @@ type DosageHistory struct {
 }
 
 type DosageSchedule struct {
-	UserSecret     sqlc.XID
+	UserSecret     userservice.Secret
 	DeliveryMethod pgtype.Text
 	Dose           float32
 	Interval       pgtype.Interval
@@ -41,14 +40,14 @@ type Meta struct {
 
 type NotificationHistory struct {
 	NotificationID int64
-	UserSecret     sqlc.XID
+	UserSecret     userservice.Secret
 	DosageID       pgtype.Int8
 	SentAt         pgtype.Timestamptz
 	ErrorReason    pgtype.Text
 }
 
 type User struct {
-	Secret                  sqlc.XID
+	Secret                  userservice.Secret
 	Name                    string
 	Locale                  userservice.Locale
 	RegisteredAt            pgtype.Timestamp
@@ -56,14 +55,14 @@ type User struct {
 }
 
 type UserAvatar struct {
-	UserSecret  sqlc.XID
+	UserSecret  userservice.Secret
 	MIMEType    string
 	AvatarImage []byte
 }
 
 type UserSession struct {
 	ID         int64
-	UserSecret sqlc.XID
+	UserSecret userservice.Secret
 	Token      []byte
 	CreatedAt  pgtype.Timestamp
 	LastUsed   pgtype.Timestamp
@@ -71,7 +70,7 @@ type UserSession struct {
 }
 
 type UsersWithAvatar struct {
-	Secret    sqlc.XID
+	Secret    userservice.Secret
 	Name      string
 	Locale    userservice.Locale
 	HasAvatar bool

@@ -10,7 +10,6 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"libdb.so/e2clicker/internal/asset"
-	"libdb.so/e2clicker/internal/sqlc"
 	"libdb.so/e2clicker/internal/sqlc/postgresqlc"
 	"libdb.so/e2clicker/services/user"
 )
@@ -21,7 +20,7 @@ func (s *Storage) userSessionStorage() user.UserSessionStorage { return s }
 
 func (s *Storage) CreateUser(ctx context.Context, userSecret user.Secret, name string) (user.User, error) {
 	u, err := s.q.CreateUser(ctx, postgresqlc.CreateUserParams{
-		Secret: sqlc.XID(userSecret),
+		Secret: userSecret,
 		Name:   name,
 	})
 	if err != nil {
@@ -35,7 +34,7 @@ func (s *Storage) CreateUser(ctx context.Context, userSecret user.Secret, name s
 }
 
 func (s *Storage) User(ctx context.Context, userSecret user.Secret) (user.User, error) {
-	u, err := s.q.User(ctx, sqlc.XID(userSecret))
+	u, err := s.q.User(ctx, userSecret)
 	if err != nil {
 		return user.User{}, err
 	}
@@ -48,20 +47,20 @@ func (s *Storage) User(ctx context.Context, userSecret user.Secret) (user.User, 
 
 func (s *Storage) UpdateUserName(ctx context.Context, userSecret user.Secret, name string) error {
 	return s.q.UpdateUserName(ctx, postgresqlc.UpdateUserNameParams{
-		Secret: sqlc.XID(userSecret),
+		Secret: userSecret,
 		Name:   name,
 	})
 }
 
 func (s *Storage) UpdateUserLocale(ctx context.Context, userSecret user.Secret, locale user.Locale) error {
 	return s.q.UpdateUserLocale(ctx, postgresqlc.UpdateUserLocaleParams{
-		Secret: sqlc.XID(userSecret),
+		Secret: userSecret,
 		Locale: locale,
 	})
 }
 
 func (s *Storage) UserAvatar(ctx context.Context, userSecret user.Secret) (asset.ReadCloser, error) {
-	a, err := s.q.UserAvatar(ctx, sqlc.XID(userSecret))
+	a, err := s.q.UserAvatar(ctx, userSecret)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			err = user.ErrNoAvatar
@@ -81,7 +80,7 @@ func (s *Storage) SetUserAvatar(ctx context.Context, id user.Secret, a asset.Rea
 		return fmt.Errorf("failed to read avatar: %w", err)
 	}
 	return s.q.SetUserAvatar(ctx, postgresqlc.SetUserAvatarParams{
-		UserSecret:  sqlc.XID(id),
+		UserSecret:  id,
 		MIMEType:    a.ContentType,
 		AvatarImage: d,
 	})
@@ -89,7 +88,7 @@ func (s *Storage) SetUserAvatar(ctx context.Context, id user.Secret, a asset.Rea
 
 func (s *Storage) RegisterSession(ctx context.Context, token []byte, userSecret user.Secret, userAgent string) error {
 	return s.q.RegisterSession(ctx, postgresqlc.RegisterSessionParams{
-		UserSecret: sqlc.XID(userSecret),
+		UserSecret: userSecret,
 		Token:      token,
 		UserAgent:  pgtype.Text{String: userAgent, Valid: userAgent != ""},
 	})
@@ -107,7 +106,7 @@ func (s *Storage) ValidateSession(ctx context.Context, token []byte) (user.Sessi
 }
 
 func (s *Storage) ListSessions(ctx context.Context, userSecret user.Secret) ([]user.Session, error) {
-	l, err := s.q.ListSessions(ctx, sqlc.XID(userSecret))
+	l, err := s.q.ListSessions(ctx, userSecret)
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +125,7 @@ func convertSession(r postgresqlc.UserSession) user.Session {
 
 func (s *Storage) DeleteSession(ctx context.Context, userSecret user.Secret, sessionID int64) error {
 	err := s.q.DeleteSession(ctx, postgresqlc.DeleteSessionParams{
-		UserSecret: sqlc.XID(userSecret),
+		UserSecret: userSecret,
 		ID:         sessionID,
 	})
 	if errors.Is(err, pgx.ErrNoRows) {

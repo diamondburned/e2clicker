@@ -8,7 +8,6 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
-	"libdb.so/e2clicker/internal/sqlc"
 	"libdb.so/e2clicker/internal/sqlc/postgresqlc"
 	"libdb.so/e2clicker/services/dosage"
 	"libdb.so/e2clicker/services/user"
@@ -30,7 +29,7 @@ func (s *dosageStorage) DeliveryMethods(ctx context.Context) ([]dosage.DeliveryM
 }
 
 func (s *dosageStorage) Dosage(ctx context.Context, secret user.Secret) (*dosage.Dosage, error) {
-	d, err := s.q.DosageSchedule(ctx, sqlc.XID(secret))
+	d, err := s.q.DosageSchedule(ctx, secret)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
@@ -55,7 +54,7 @@ func (s *dosageStorage) Dosage(ctx context.Context, secret user.Secret) (*dosage
 func (s *dosageStorage) SetDosage(ctx context.Context, d dosage.Dosage) error {
 	int, frac := math.Modf(float64(d.Interval))
 	return s.q.SetDosageSchedule(ctx, postgresqlc.SetDosageScheduleParams{
-		UserSecret:     sqlc.XID(d.UserSecret),
+		UserSecret:     d.UserSecret,
 		DeliveryMethod: pgtype.Text{String: d.DeliveryMethod, Valid: true},
 		Dose:           d.Dose,
 		Interval: pgtype.Interval{
@@ -71,12 +70,12 @@ func (s *dosageStorage) SetDosage(ctx context.Context, d dosage.Dosage) error {
 }
 
 func (s *dosageStorage) ClearDosage(ctx context.Context, secret user.Secret) error {
-	return s.q.DeleteDosageSchedule(ctx, sqlc.XID(secret))
+	return s.q.DeleteDosageSchedule(ctx, secret)
 }
 
 func (s *dosageStorage) RecordDose(ctx context.Context, userSecret user.Secret, takenAt time.Time) (dosage.Observation, error) {
 	o, err := s.q.RecordDose(ctx, postgresqlc.RecordDoseParams{
-		UserSecret: sqlc.XID(userSecret),
+		UserSecret: userSecret,
 		TakenAt:    pgtype.Timestamptz{Time: takenAt, Valid: true},
 	})
 	if err != nil {
@@ -87,7 +86,7 @@ func (s *dosageStorage) RecordDose(ctx context.Context, userSecret user.Secret, 
 
 func (s *dosageStorage) EditDose(ctx context.Context, userSecret user.Secret, o dosage.Observation) error {
 	n, err := s.q.EditDose(ctx, postgresqlc.EditDoseParams{
-		UserSecret:     sqlc.XID(userSecret),
+		UserSecret:     userSecret,
 		DoseID:         o.DoseID,
 		DeliveryMethod: pgtype.Text{String: o.DeliveryMethod, Valid: true},
 		Dose:           o.Dose,
@@ -105,7 +104,7 @@ func (s *dosageStorage) EditDose(ctx context.Context, userSecret user.Secret, o 
 
 func (s *dosageStorage) ForgetDoses(ctx context.Context, userSecret user.Secret, doseIDs []int64) error {
 	n, err := s.q.ForgetDoses(ctx, postgresqlc.ForgetDosesParams{
-		UserSecret: sqlc.XID(userSecret),
+		UserSecret: userSecret,
 		DoseIDs:    doseIDs,
 	})
 	if err != nil {
@@ -119,7 +118,7 @@ func (s *dosageStorage) ForgetDoses(ctx context.Context, userSecret user.Secret,
 
 func (s *dosageStorage) DoseHistory(ctx context.Context, secret user.Secret, begin, end time.Time) (dosage.History, error) {
 	o, err := s.q.DoseHistory(ctx, postgresqlc.DoseHistoryParams{
-		UserSecret: sqlc.XID(secret),
+		UserSecret: secret,
 		Start:      pgtype.Timestamptz{Time: begin, Valid: true},
 		End:        pgtype.Timestamptz{Time: end, Valid: true},
 	})

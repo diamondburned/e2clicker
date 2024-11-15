@@ -13,7 +13,7 @@ UPDATE
   meta
 SET v = 2;
 
-CREATE DOMAIN xid_ AS char(20);
+CREATE DOMAIN usersecret AS text COLLATE "C";
 
 CREATE DOMAIN notificationpreferences AS jsonb;
 
@@ -33,8 +33,8 @@ INSERT INTO delivery_methods (id, units, name)
   ('patch', 'mcg/day', 'Patch');
 
 CREATE TABLE users (
-  -- The user's secret in xid_ format.
-  secret xid_ PRIMARY KEY,
+  -- The user's secret (a random string).
+  secret usersecret PRIMARY KEY,
   -- The user's display name.
   name text NOT NULL,
   -- The user's locale.
@@ -45,9 +45,11 @@ CREATE TABLE users (
   notification_preferences notificationpreferences
 );
 
+CREATE INDEX users_secret ON users USING HASH (secret);
+
 CREATE TABLE user_avatars (
-  -- The user's secret in xid_ format.
-  user_secret xid_ PRIMARY KEY REFERENCES users (secret) ON DELETE CASCADE,
+  -- The user's secret.
+  user_secret usersecret PRIMARY KEY REFERENCES users (secret) ON DELETE CASCADE,
   -- The MIME type of the image.
   mime_type text NOT NULL,
   -- The user's avatar image, limited to 1MB.
@@ -65,8 +67,8 @@ CREATE TABLE user_sessions (
   -- The session ID. This should never be used to log in, but it can be used
   -- to revoke a session.
   id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-  -- The user's secret in xid_ format.
-  user_secret xid_ NOT NULL REFERENCES users (secret) ON DELETE CASCADE,
+  -- The user's secret.
+  user_secret usersecret NOT NULL REFERENCES users (secret) ON DELETE CASCADE,
   -- The session token.
   token bytea UNIQUE NOT NULL,
   -- The time the session was created.
@@ -82,7 +84,7 @@ CREATE INDEX user_sessions_user_secret ON user_sessions USING HASH (user_secret)
 CREATE INDEX user_sessions_token ON user_sessions USING HASH (token);
 
 CREATE TABLE dosage_schedule (
-  user_secret xid_ PRIMARY KEY REFERENCES users (secret) ON DELETE CASCADE,
+  user_secret usersecret PRIMARY KEY REFERENCES users (secret) ON DELETE CASCADE,
   -- The delivery method of the medication.
   delivery_method text REFERENCES delivery_methods (id) ON DELETE CASCADE,
   -- The dose of the medication.
@@ -97,7 +99,7 @@ CREATE TABLE dosage_schedule (
 CREATE TABLE dosage_history (
   dose_id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
   -- The user that took the dose.
-  user_secret xid_ NOT NULL REFERENCES users (secret) ON DELETE CASCADE,
+  user_secret usersecret NOT NULL REFERENCES users (secret) ON DELETE CASCADE,
   -- The delivery method of the medication.
   delivery_method text REFERENCES delivery_methods (id) ON DELETE CASCADE,
   -- The dose of the medication.
@@ -116,7 +118,7 @@ CREATE INDEX dosage_history_taken_at ON dosage_history USING BTREE (user_secret,
 CREATE TABLE notification_history (
   notification_id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
   -- The user that the notification was for.
-  user_secret xid_ NOT NULL REFERENCES users (secret) ON DELETE CASCADE,
+  user_secret usersecret NOT NULL REFERENCES users (secret) ON DELETE CASCADE,
   -- The dosage that the notification was for.
   dosage_id bigint REFERENCES dosage_history (dose_id) ON DELETE CASCADE,
   -- The time the notification was sent.
