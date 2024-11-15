@@ -25,7 +25,6 @@
     identMap = ''
       e2clicker-backend e2clicker-backend e2clicker-backend
     '';
-    extraPlugins = ps: with ps; [ ];
   };
 
   environment.systemPackages = with pkgs; [ pgcli ];
