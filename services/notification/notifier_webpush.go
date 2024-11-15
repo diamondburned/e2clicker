@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"math"
 	"net/http"
 	"os"
 	"time"
@@ -66,17 +65,15 @@ func NewWebPushSevice(config e2clickermodule.Notification) (*WebPushService, err
 	}, nil
 }
 
+// VAPIDPublicKey returns the VAPID public key.
+func (s WebPushService) VAPIDPublicKey() string {
+	return s.keys.PublicKey
+}
+
 func (s WebPushService) Notify(ctx context.Context, n Notification, config WebPushNotificationConfig) error {
 	if config.Subscription.ExpirationTime != nil {
-		expMs := *config.Subscription.ExpirationTime
-		expSecInt, expSecFrac := math.Modf(expMs / 1000)
-		exp := time.Unix(
-			int64(expSecInt),
-			int64(expSecFrac*float64(time.Second)),
-		)
-
-		if exp.Before(time.Now()) {
-			return &WebPushSubscriptionExpired{exp}
+		if config.Subscription.ExpirationTime.Before(time.Now()) {
+			return &WebPushSubscriptionExpired{*config.Subscription.ExpirationTime}
 		}
 	}
 

@@ -11,7 +11,10 @@ import (
 	"libdb.so/e2clicker/internal/publicerrors"
 	"libdb.so/e2clicker/services/api/openapi"
 	"libdb.so/e2clicker/services/dosage"
+	"libdb.so/e2clicker/services/notification"
 	"libdb.so/e2clicker/services/user"
+
+	notificationapi "libdb.so/e2clicker/services/notification/openapi"
 )
 
 // OpenAPIHandler is the handler for the OpenAPI service.
@@ -19,6 +22,7 @@ import (
 type OpenAPIHandler struct {
 	logger *slog.Logger
 	users  *user.UserService
+	notifs *notification.UserNotificationService
 	dosage dosage.DosageStorage
 }
 
@@ -28,6 +32,7 @@ type OpenAPIHandlerServices struct {
 	fx.In
 
 	*user.UserService
+	*notification.UserNotificationService
 	dosage.DosageStorage
 }
 
@@ -36,6 +41,7 @@ func NewOpenAPIHandler(deps OpenAPIHandlerServices, logger *slog.Logger) *OpenAP
 	return &OpenAPIHandler{
 		logger: logger,
 		users:  deps.UserService,
+		notifs: deps.UserNotificationService,
 		dosage: deps.DosageStorage,
 	}
 }
@@ -145,7 +151,7 @@ func (h *OpenAPIHandler) CurrentUserSessions(ctx context.Context, request openap
 func (h *OpenAPIHandler) DeleteUserSession(ctx context.Context, request openapi.DeleteUserSessionRequestObject) (openapi.DeleteUserSessionResponseObject, error) {
 	session := sessionFromCtx(ctx)
 
-	err := h.users.DeleteSession(ctx, session.UserSecret, request.Body.ID)
+	err := h.users.DeleteSession(ctx, session.UserSecret, request.Params.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -286,26 +292,46 @@ func convertDosageObservation(o dosage.Observation) openapi.DosageObservation {
 	}
 }
 
-// Get the server's push notification information
-// (GET /notification/push)
-func (h *OpenAPIHandler) PushInfo(ctx context.Context, request openapi.PushInfoRequestObject) (openapi.PushInfoResponseObject, error) {
-	panic("not implemented") // TODO: Implement
+func (h *OpenAPIHandler) WebPushInfo(ctx context.Context, request openapi.WebPushInfoRequestObject) (openapi.WebPushInfoResponseObject, error) {
+	i, err := h.notifs.WebPushInfo(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return openapi.WebPushInfo200JSONResponse(openapi.PushInfo(i)), nil
 }
 
-// Unsubscribe from push notifications
-// (DELETE /notification/push/subscription)
-func (h *OpenAPIHandler) UserUnsubscribePush(ctx context.Context, request openapi.UserUnsubscribePushRequestObject) (openapi.UserUnsubscribePushResponseObject, error) {
-	panic("not implemented") // TODO: Implement
+func (h *OpenAPIHandler) UserPushSubscriptions(ctx context.Context, request openapi.UserPushSubscriptionsRequestObject) (openapi.UserPushSubscriptionsResponseObject, error) {
+	session := sessionFromCtx(ctx)
+
+	p, err := h.notifs.UserPreferences(ctx, session.UserSecret)
+	if err != nil {
+		return nil, err
+	}
+
+	ret := make([]openapi.ReturnedPushSubscription, len(p.NotificationConfigs.WebPush))
+	for i, sub := range p.NotificationConfigs.WebPush {
+		ret[i] = openapi.ReturnedPushSubscription{
+			DeviceID:       sub.Subscription.DeviceID,
+			ExpirationTime: sub.Subscription.ExpirationTime,
+		}
+		ret[i].Keys.P256Dh = sub.Subscription.Keys.P256Dh
+	}
+
+	return openapi.UserPushSubscriptions200JSONResponse(ret), nil
 }
 
-// Get the user's push notification subscription
-// (GET /notification/push/subscription)
-func (h *OpenAPIHandler) UserPushSubscription(ctx context.Context, request openapi.UserPushSubscriptionRequestObject) (openapi.UserPushSubscriptionResponseObject, error) {
-	panic("not implemented") // TODO: Implement
-}
-
-// Subscribe to push notifications
-// (POST /notification/push/subscription)
 func (h *OpenAPIHandler) UserSubscribePush(ctx context.Context, request openapi.UserSubscribePushRequestObject) (openapi.UserSubscribePushResponseObject, error) {
-	panic("not implemented") // TODO: Implement
+	session := sessionFromCtx(ctx)
+	if err := h.notifs.SubscribeWebPush(ctx, session.UserSecret, notificationapi.PushSubscription(*request.Body)); err != nil {
+		return nil, err
+	}
+	return openapi.UserSubscribePush204Response{}, nil
+}
+
+func (h *OpenAPIHandler) UserUnsubscribePush(ctx context.Context, request openapi.UserUnsubscribePushRequestObject) (openapi.UserUnsubscribePushResponseObject, error) {
+	session := sessionFromCtx(ctx)
+	if err := h.notifs.UnsubscribeWebPush(ctx, session.UserSecret, request.Params.DeviceID); err != nil {
+		return nil, err
+	}
+	return openapi.UserUnsubscribePush204Response{}, nil
 }

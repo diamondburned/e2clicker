@@ -54,6 +54,9 @@ func (n *Notification) UnmarshalJSON(data []byte) error {
 type MessageType string
 
 const (
+	// WelcomeMessage is sent to welcome the user.
+	// Realistically, it is used as a test message.
+	WelcomeMessage MessageType = "welcome"
 	// ReminderMessage is sent to remind the user of their hormone dose.
 	ReminderMessage MessageType = "reminder"
 	// AccountNoticeMessage is sent to notify the user that they need to
@@ -76,15 +79,25 @@ type Message struct {
 // LoadNotification loads a notification message of the given type.
 func LoadNotification(ctx context.Context, t MessageType) (Message, error) {
 	switch t {
+	case WelcomeMessage:
+		return Message{
+			Title:   "Welcome! 😄🌈❤️",
+			Message: "e2clicker can send you notifications to remind you now!",
+		}, nil
 	case ReminderMessage:
 		return Message{
-			Title:   "Reminder",
+			Title:   "Reminder!",
 			Message: "Don't forget to take your hormone dose!",
 		}, nil
 	case AccountNoticeMessage:
 		return Message{
 			Title:   "Account Notice",
 			Message: "Please check your e2clicker account.",
+		}, nil
+	case WebPushExpiringMessage:
+		return Message{
+			Title:   "Notifications will stop working soon 😟",
+			Message: "Your browser's push subscription is expiring soon. You need to refresh it!",
 		}, nil
 	default:
 		return Message{}, ErrUnknownNotificationType

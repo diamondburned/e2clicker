@@ -54,10 +54,9 @@ type AuthParams struct {
 	UserAgent *string `json:"User-Agent,omitempty"`
 }
 
-// DeleteUserSessionJSONBody defines parameters for DeleteUserSession.
-type DeleteUserSessionJSONBody struct {
-	// ID The session identifier to delete
-	ID int64 `json:"id"`
+// DeleteUserSessionParams defines parameters for DeleteUserSession.
+type DeleteUserSessionParams struct {
+	ID int64 `form:"id" json:"id"`
 }
 
 // RegisterJSONBody defines parameters for Register.
@@ -68,9 +67,6 @@ type RegisterJSONBody struct {
 
 // AuthJSONRequestBody defines body for Auth for application/json ContentType.
 type AuthJSONRequestBody AuthJSONBody
-
-// DeleteUserSessionJSONRequestBody defines body for DeleteUserSession for application/json ContentType.
-type DeleteUserSessionJSONRequestBody DeleteUserSessionJSONBody
 
 // RegisterJSONRequestBody defines body for Register for application/json ContentType.
 type RegisterJSONRequestBody RegisterJSONBody

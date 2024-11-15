@@ -2,14 +2,14 @@
 openapi: 3.0.0
 
 info:
-  title: user
+  title: notification
   version: ""
 
 paths:
-  /notification/push:
+  /pushinfo:
     get:
       summary: Get the server's push notification information
-      operationId: pushInfo
+      operationId: webPushInfo
       security: []
       responses:
         "200":
@@ -22,10 +22,10 @@ paths:
         default:
           $ref: "./_base.yml#/components/responses/ErrorResponse"
 
-  /notification/push/subscription:
+  /notifications/push/subscriptions:
     get:
-      summary: Get the user's push notification subscription
-      operationId: userPushSubscription
+      summary: Get the user's push notification subscriptions
+      operationId: userPushSubscriptions
       responses:
         "200":
           description: >-
@@ -33,21 +33,19 @@ paths:
           content:
             application/json:
               schema:
-                properties:
-                  expirationTime:
-                    type: integer
-                    description: >-
-                      The time at which the subscription expires. This is the time when
-                      the subscription will be automatically deleted by the browser.
+                type: array
+                items:
+                  $ref: "#/components/schemas/ReturnedPushSubscription"
         "404":
           description: >-
             The user has not subscribed to push notifications.
         default:
           $ref: "./_base.yml#/components/responses/ErrorResponse"
-    post:
-      summary: Subscribe to push notifications
+    put:
+      summary: Create or update a push subscription
       operationId: userSubscribePush
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -61,13 +59,18 @@ paths:
     delete:
       summary: Unsubscribe from push notifications
       operationId: userUnsubscribePush
+      parameters:
+        - name: deviceID
+          in: query
+          required: true
+          schema:
+            $ref: "#/components/schemas/PushDeviceID"
+          description: >-
+            The device ID of the push subscription to unsubscribe from.
       responses:
         "204":
           description: >-
             Successfully unsubscribed from push notifications.
-        "404":
-          description: >-
-            The user has not subscribed to push notifications.
         default:
           $ref: "./_base.yml#/components/responses/ErrorResponse"
 
@@ -115,14 +118,33 @@ components:
             The message of the notification.
           x-order: 2
 
+    PushDeviceID:
+      type: string
+      example: 7996e974
+      description: >-
+        A short ID associated with the device that the push subscription is for
+        This is used to identify the device when updating its push subscription
+        later on.
+
+        Realistically, this will be handled as an opaque random string
+        generated on the device side, so the server has no way to correlate 
+        it with any fingerprinting.
+
+        The recommended way to generate this string in JavaScript is:
+
+        ```js
+        crypto.randomUUID().slice(0, 8)
+        ```
+      x-order: -99
+
     PushInfo:
       description: >-
         This is returned by the server and contains information that the client
         would need to subscribe to push notifications.
+      required: [applicationServerKey]
       properties:
         applicationServerKey:
           type: string
-          format: byte
           description: >-
             A Base64-encoded string or ArrayBuffer containing an ECDSA P-256
             public key that the push server will use to authenticate your
@@ -139,20 +161,21 @@ components:
         This is the object that is returned by calling
         PushSubscription.toJSON(). More information can be found at:
         https://developer.mozilla.org/en-US/docs/Web/API/PushSubscription/toJSON
-      required: [endpoint, keys]
+      required: [deviceID, endpoint, keys]
       properties:
+        deviceID:
+          $ref: "#/components/schemas/PushDeviceID"
         endpoint:
           type: string
           description: >-
             The endpoint to send the notification to.
           x-order: 1
         expirationTime:
-          type: number
-          format: double
+          type: string
+          format: date-time
           description: >-
-            The time in milliseconds at which the subscription expires. This is
-            the time when the subscription will be automatically deleted by the
-            browser.
+            The time at which the subscription expires. This is the time when
+            the subscription will be automatically deleted by the browser.
           x-order: 2
         keys:
           type: object
@@ -174,3 +197,30 @@ components:
                 Web Push.
               x-order: 2
           x-order: 3
+
+    ReturnedPushSubscription:
+      description: >-
+        Similar to a [PushSubscription], but specifically for returning to the user.
+        This type contains no secrets.
+      required: [deviceID, keys]
+      properties:
+        deviceID:
+          allOf:
+            - $ref: "#/components/schemas/PushDeviceID"
+          x-order: 1
+        expirationTime:
+          type: string
+          format: date-time
+          description: >-
+            The time at which the subscription expires. This is the time when
+            the subscription will be automatically deleted by the browser.
+        keys:
+          required: [p256dh]
+          properties:
+            p256dh:
+              type: string
+              description: >-
+                An Elliptic curve Diffie–Hellman public key on the P-256 curve
+                (that is, the NIST secp256r1 elliptic curve). The resulting key
+                is an uncompressed point in ANSI X9.62 format.
+          x-order: 2

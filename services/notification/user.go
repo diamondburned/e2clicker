@@ -3,9 +3,10 @@ package notification
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"go.uber.org/fx"
-	"libdb.so/e2clicker/services/api/openapi"
+	"libdb.so/e2clicker/services/notification/openapi"
 	"libdb.so/e2clicker/services/user"
 )
 
@@ -19,8 +20,10 @@ type UserPreferences struct {
 type UserNotificationStorage interface {
 	// UserPreferences returns the preferences of a user.
 	UserPreferences(ctx context.Context, userSecret user.Secret) (UserPreferences, error)
-	// SetUserPreferences sets the preferences of a user.
-	SetUserPreferences(ctx context.Context, userSecret user.Secret, prefs UserPreferences) error
+	// SetUserPreferencesTx sets the preferences of a user inside a transaction.
+	// The function set is called with the current preferences and should modify
+	// the given preferences, all within the same transaction.
+	SetUserPreferencesTx(ctx context.Context, userSecret user.Secret, set func(*UserPreferences) error) error
 }
 
 // UserNotificationService is a service that sends notifications to users.
@@ -81,39 +84,49 @@ func (s *UserNotificationService) NotifyUser(ctx context.Context, secret user.Se
 	return s.notification.Notify(ctx, n, prefs.NotificationConfigs)
 }
 
+// WebPushInfo returns the web push information of the server.
+func (s *UserNotificationService) WebPushInfo(ctx context.Context) (openapi.PushInfo, error) {
+	if s.notification.services.WebPush == nil {
+		return openapi.PushInfo{}, UnknownServiceError{Service: "webPush"}
+	}
+	return openapi.PushInfo{
+		ApplicationServerKey: s.notification.services.WebPush.VAPIDPublicKey(),
+	}, nil
+}
+
 // UserPreferences returns the preferences of a user.
 func (s *UserNotificationService) UserPreferences(ctx context.Context, secret user.Secret) (UserPreferences, error) {
 	return s.userNotifications.UserPreferences(ctx, secret)
 }
 
-// AddWebPushSubscription adds a web push subscription to a user.
-func (s *UserNotificationService) AddWebPushSubscription(ctx context.Context, secret user.Secret, subscription openapi.PushSubscription) error {
-	panic("implement me")
+// SubscribeWebPush sets the web push subscription of a user.
+// The particular subscription is identified by the device ID.
+func (s *UserNotificationService) SubscribeWebPush(ctx context.Context, secret user.Secret, subscription openapi.PushSubscription) error {
+	return s.userNotifications.SetUserPreferencesTx(ctx, secret, func(p *UserPreferences) error {
+		ix := slices.IndexFunc(p.NotificationConfigs.WebPush,
+			func(c WebPushNotificationConfig) bool {
+				return c.Subscription.DeviceID == subscription.DeviceID
+			},
+		)
+		if ix != -1 {
+			p.NotificationConfigs.WebPush[ix].Subscription = subscription
+		} else {
+			p.NotificationConfigs.WebPush = append(p.NotificationConfigs.WebPush, WebPushNotificationConfig{
+				Subscription: subscription,
+			})
+		}
+		return nil
+	})
+}
 
-	// p, err := s.UserPreferences(ctx, secret)
-	// if err != nil {
-	// 	return err
-	// }
-	//
-	// var found bool
-	// for i := range p.NotificationConfigs.WebPush {
-	// 	c := &p.NotificationConfigs.WebPush[i]
-	// 	if c.Subscription.Endpoint == subscription.Endpoint {
-	// 		found = true
-	// 		c.Subscription = subscription
-	// 		break
-	// 	}
-	// }
-	// if !found {
-	// 	p.NotificationConfigs.WebPush = append(p.NotificationConfigs.WebPush, WebPushNotificationConfig{
-	// 		Subscription: subscription,
-	// 	})
-	// }
-	//
-	// if oldSubscription == nil {
-	// 	oldSubscription = &openapi.PushSubscription{}
-	// 	return nil
-	// }
-	//
-	// return s.userNotifications.SetUserPreferences(ctx, secret, prefs)
+// UnsubscribeWebPush removes the web push subscription of a user.
+func (s *UserNotificationService) UnsubscribeWebPush(ctx context.Context, secret user.Secret, deviceID string) error {
+	return s.userNotifications.SetUserPreferencesTx(ctx, secret, func(p *UserPreferences) error {
+		p.NotificationConfigs.WebPush = slices.DeleteFunc(p.NotificationConfigs.WebPush,
+			func(c WebPushNotificationConfig) bool {
+				return c.Subscription.DeviceID == deviceID
+			},
+		)
+		return nil
+	})
 }

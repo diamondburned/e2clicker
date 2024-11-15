@@ -2,11 +2,11 @@
 openapi: 3.0.0
 
 info:
-  title: user
+  title: dosage
   version: ""
 
 paths:
-  /delivery-methods:
+  /deliverymethods:
     get:
       summary: List all available delivery methods
       operationId: deliveryMethods
@@ -67,6 +67,7 @@ paths:
       summary: Set the user's dosage
       operationId: setDosage
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -92,6 +93,7 @@ paths:
       summary: Record a new dosage to the user's history
       operationId: recordDose
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -115,6 +117,7 @@ paths:
       summary: Update a dosage in the user's history
       operationId: editDose
       requestBody:
+        required: true
         content:
           application/json:
             schema:

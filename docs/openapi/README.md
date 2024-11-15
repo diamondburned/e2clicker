@@ -20,7 +20,7 @@ Base URLs:
 
 <a id="opIddeliveryMethods"></a>
 
-`GET /delivery-methods`
+`GET /deliverymethods`
 
 > Example responses
 
@@ -127,7 +127,7 @@ bearerAuth
 
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
-|body|body|[Dosage](#schemadosage)|false|none|
+|body|body|[Dosage](#schemadosage)|true|none|
 
 > Example responses
 
@@ -203,7 +203,7 @@ bearerAuth
 
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
-|body|body|object|false|none|
+|body|body|object|true|none|
 |» takenAt|body|string(date-time)|true|The time the dosage was taken.|
 
 > Example responses
@@ -255,7 +255,7 @@ bearerAuth
 
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
-|body|body|any|false|none|
+|body|body|any|true|none|
 
 > Example responses
 
@@ -323,9 +323,9 @@ bearerAuth
 
 ## Get the server's push notification information
 
-<a id="opIdpushInfo"></a>
+<a id="opIdwebPushInfo"></a>
 
-`GET /notification/push`
+`GET /pushinfo`
 
 > Example responses
 
@@ -348,23 +348,29 @@ bearerAuth
 This operation does not require authentication
 </aside>
 
-## Get the user's push notification subscription
+## Get the user's push notification subscriptions
 
-<a id="opIduserPushSubscription"></a>
+<a id="opIduserPushSubscriptions"></a>
 
-`GET /notification/push/subscription`
+`GET /notifications/push/subscriptions`
 
 > Example responses
 
 > 200 Response
 
 ```json
-{
-  "expirationTime": 0
-}
+[
+  {
+    "deviceID": "7996e974",
+    "expirationTime": "2019-08-24T14:15:22Z",
+    "keys": {
+      "p256dh": "string"
+    }
+  }
+]
 ```
 
-<h3 id="get-the-user's-push-notification-subscription-responses">Responses</h3>
+<h3 id="get-the-user's-push-notification-subscriptions-responses">Responses</h3>
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
@@ -372,31 +378,32 @@ This operation does not require authentication
 |404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|The user has not subscribed to push notifications.|None|
 |default|Default|The request is invalid.|[Error](#schemaerror)|
 
-<h3 id="get-the-user's-push-notification-subscription-responseschema">Response Schema</h3>
+<h3 id="get-the-user's-push-notification-subscriptions-responseschema">Response Schema</h3>
 
 Status Code **200**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|» expirationTime|integer|false|none|The time at which the subscription expires. This is the time when the subscription will be automatically deleted by the browser.|
+|*anonymous*|[[ReturnedPushSubscription](#schemareturnedpushsubscription)]|false|none|[Similar to a [PushSubscription], but specifically for returning to the user. This type contains no secrets.]|
 
 <aside class="warning">
 To perform this operation, you must be authenticated by means of one of the following methods:
 bearerAuth
 </aside>
 
-## Subscribe to push notifications
+## Create or update a push subscription
 
 <a id="opIduserSubscribePush"></a>
 
-`POST /notification/push/subscription`
+`PUT /notifications/push/subscriptions`
 
 > Body parameter
 
 ```json
 {
+  "deviceID": "7996e974",
   "endpoint": "string",
-  "expirationTime": 0.1,
+  "expirationTime": "2019-08-24T14:15:22Z",
   "keys": {
     "p256dh": "string",
     "auth": "string"
@@ -404,11 +411,11 @@ bearerAuth
 }
 ```
 
-<h3 id="subscribe-to-push-notifications-parameters">Parameters</h3>
+<h3 id="create-or-update-a-push-subscription-parameters">Parameters</h3>
 
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
-|body|body|[PushSubscription](#schemapushsubscription)|false|none|
+|body|body|[PushSubscription](#schemapushsubscription)|true|none|
 
 > Example responses
 
@@ -423,7 +430,7 @@ bearerAuth
 }
 ```
 
-<h3 id="subscribe-to-push-notifications-responses">Responses</h3>
+<h3 id="create-or-update-a-push-subscription-responses">Responses</h3>
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
@@ -439,7 +446,13 @@ bearerAuth
 
 <a id="opIduserUnsubscribePush"></a>
 
-`DELETE /notification/push/subscription`
+`DELETE /notifications/push/subscriptions`
+
+<h3 id="unsubscribe-from-push-notifications-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|deviceID|query|[PushDeviceID](#schemapushdeviceid)|true|The device ID of the push subscription to unsubscribe from.|
 
 > Example responses
 
@@ -459,7 +472,6 @@ bearerAuth
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
 |204|[No Content](https://tools.ietf.org/html/rfc7231#section-6.3.5)|Successfully unsubscribed from push notifications.|None|
-|404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|The user has not subscribed to push notifications.|None|
 |default|Default|The request is invalid.|[Error](#schemaerror)|
 
 <aside class="warning">
@@ -487,7 +499,7 @@ bearerAuth
 
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
-|body|body|object|false|none|
+|body|body|object|true|none|
 |» name|body|string|true|The name to register with|
 
 > Example responses
@@ -535,7 +547,7 @@ This operation does not require authentication
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
 |User-Agent|header|string|false|The user agent of the client making the request.|
-|body|body|object|false|none|
+|body|body|object|true|none|
 
 > Example responses
 
@@ -641,7 +653,7 @@ bearerAuth
 
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
-|body|body|string(binary)|false|none|
+|body|body|string(binary)|true|none|
 
 > Example responses
 
@@ -745,20 +757,11 @@ bearerAuth
 
 `DELETE /me/sessions`
 
-> Body parameter
-
-```json
-{
-  "id": 0
-}
-```
-
 <h3 id="delete-one-of-the-current-user's-sessions-parameters">Parameters</h3>
 
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
-|body|body|object|false|none|
-|» id|body|integer(int64)|true|The session identifier to delete|
+|id|query|integer(int64)|true|none|
 
 > Example responses
 
@@ -974,6 +977,29 @@ The message of the notification. This is derived from the notification type but 
 |title|string|true|none|The title of the notification.|
 |message|string|true|none|The message of the notification.|
 
+<h2 id="tocS_PushDeviceID">PushDeviceID</h2>
+<!-- backwards compatibility -->
+<a id="schemapushdeviceid"></a>
+<a id="schema_PushDeviceID"></a>
+<a id="tocSpushdeviceid"></a>
+<a id="tocspushdeviceid"></a>
+
+```json
+"7996e974"
+
+```
+
+A short ID associated with the device that the push subscription is for This is used to identify the device when updating its push subscription later on.
+Realistically, this will be handled as an opaque random string generated on the device side, so the server has no way to correlate  it with any fingerprinting.
+The recommended way to generate this string in JavaScript is:
+```js crypto.randomUUID().slice(0, 8) ```
+
+### Properties
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|*anonymous*|string|false|none|A short ID associated with the device that the push subscription is for This is used to identify the device when updating its push subscription later on.<br>Realistically, this will be handled as an opaque random string generated on the device side, so the server has no way to correlate  it with any fingerprinting.<br>The recommended way to generate this string in JavaScript is:<br>```js crypto.randomUUID().slice(0, 8) ```|
+
 <h2 id="tocS_PushInfo">PushInfo</h2>
 <!-- backwards compatibility -->
 <a id="schemapushinfo"></a>
@@ -994,7 +1020,7 @@ This is returned by the server and contains information that the client would ne
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|applicationServerKey|string(byte)|false|none|A Base64-encoded string or ArrayBuffer containing an ECDSA P-256 public key that the push server will use to authenticate your application server. If specified, all messages from your application server must use the VAPID authentication scheme, and include a JWT signed with the corresponding private key. This key IS NOT the same ECDH key that you use to encrypt the data. For more information, see "Using VAPID with WebPush".|
+|applicationServerKey|string|true|none|A Base64-encoded string or ArrayBuffer containing an ECDSA P-256 public key that the push server will use to authenticate your application server. If specified, all messages from your application server must use the VAPID authentication scheme, and include a JWT signed with the corresponding private key. This key IS NOT the same ECDH key that you use to encrypt the data. For more information, see "Using VAPID with WebPush".|
 
 <h2 id="tocS_PushSubscription">PushSubscription</h2>
 <!-- backwards compatibility -->
@@ -1005,8 +1031,9 @@ This is returned by the server and contains information that the client would ne
 
 ```json
 {
+  "deviceID": "7996e974",
   "endpoint": "string",
-  "expirationTime": 0.1,
+  "expirationTime": "2019-08-24T14:15:22Z",
   "keys": {
     "p256dh": "string",
     "auth": "string"
@@ -1020,13 +1047,31 @@ This is the object that is returned by calling PushSubscription.toJSON(). More i
 
 ### Properties
 
-|Name|Type|Required|Restrictions|Description|
-|---|---|---|---|---|
-|endpoint|string|true|none|The endpoint to send the notification to.|
-|expirationTime|number(double)|false|none|The time in milliseconds at which the subscription expires. This is the time when the subscription will be automatically deleted by the browser.|
-|keys|object|true|none|The VAPID keys to encrypt the push notification.|
-|» p256dh|string|true|none|An Elliptic curve Diffie–Hellman public key on the P-256 curve (that is, the NIST secp256r1 elliptic curve). The resulting key is an uncompressed point in ANSI X9.62 format.|
-|» auth|string|true|none|An authentication secret, as described in Message Encryption for Web Push.|
+*None*
+
+<h2 id="tocS_ReturnedPushSubscription">ReturnedPushSubscription</h2>
+<!-- backwards compatibility -->
+<a id="schemareturnedpushsubscription"></a>
+<a id="schema_ReturnedPushSubscription"></a>
+<a id="tocSreturnedpushsubscription"></a>
+<a id="tocsreturnedpushsubscription"></a>
+
+```json
+{
+  "deviceID": "7996e974",
+  "expirationTime": "2019-08-24T14:15:22Z",
+  "keys": {
+    "p256dh": "string"
+  }
+}
+
+```
+
+Similar to a [PushSubscription], but specifically for returning to the user. This type contains no secrets.
+
+### Properties
+
+*None*
 
 <h2 id="tocS_UserSecret">UserSecret</h2>
 <!-- backwards compatibility -->

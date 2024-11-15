@@ -60,13 +60,24 @@ export type DosageObservation = {
 export type DosageHistory = DosageObservation[];
 export type PushInfo = {
     /** A Base64-encoded string or ArrayBuffer containing an ECDSA P-256 public key that the push server will use to authenticate your application server. If specified, all messages from your application server must use the VAPID authentication scheme, and include a JWT signed with the corresponding private key. This key IS NOT the same ECDH key that you use to encrypt the data. For more information, see "Using VAPID with WebPush". */
-    applicationServerKey?: string;
+    applicationServerKey: string;
+};
+export type PushDeviceId = string;
+export type ReturnedPushSubscription = {
+    deviceID: PushDeviceId;
+    /** The time at which the subscription expires. This is the time when the subscription will be automatically deleted by the browser. */
+    expirationTime?: string;
+    keys: {
+        /** An Elliptic curve Diffie–Hellman public key on the P-256 curve (that is, the NIST secp256r1 elliptic curve). The resulting key is an uncompressed point in ANSI X9.62 format. */
+        p256dh: string;
+    };
 };
 export type PushSubscription = {
+    deviceID: PushDeviceId;
     /** The endpoint to send the notification to. */
     endpoint: string;
-    /** The time in milliseconds at which the subscription expires. This is the time when the subscription will be automatically deleted by the browser. */
-    expirationTime?: number;
+    /** The time at which the subscription expires. This is the time when the subscription will be automatically deleted by the browser. */
+    expirationTime?: string;
     /** The VAPID keys to encrypt the push notification. */
     keys: {
         /** An Elliptic curve Diffie–Hellman public key on the P-256 curve (that is, the NIST secp256r1 elliptic curve). The resulting key is an uncompressed point in ANSI X9.62 format. */
@@ -104,7 +115,7 @@ export function deliveryMethods(opts?: Oazapfts.RequestOpts) {
     } | {
         status: number;
         data: Error;
-    }>("/delivery-methods", {
+    }>("/deliverymethods", {
         ...opts
     }));
 }
@@ -133,7 +144,7 @@ export function dosage({ historyStart, historyEnd }: {
 /**
  * Set the user's dosage
  */
-export function setDosage(dosage?: Dosage, opts?: Oazapfts.RequestOpts) {
+export function setDosage(dosage: Dosage, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 204;
     } | {
@@ -162,7 +173,7 @@ export function clearDosage(opts?: Oazapfts.RequestOpts) {
 /**
  * Record a new dosage to the user's history
  */
-export function recordDose(body?: {
+export function recordDose(body: {
     /** The time the dosage was taken. */
     takenAt: string;
 }, opts?: Oazapfts.RequestOpts) {
@@ -178,7 +189,7 @@ export function recordDose(body?: {
 /**
  * Update a dosage in the user's history
  */
-export function editDose(body?: DosageObservation, opts?: Oazapfts.RequestOpts) {
+export function editDose(body: DosageObservation, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 204;
     } | {
@@ -209,63 +220,60 @@ export function forgetDoses(doseIds: number[], opts?: Oazapfts.RequestOpts) {
 /**
  * Get the server's push notification information
  */
-export function pushInfo(opts?: Oazapfts.RequestOpts) {
+export function webPushInfo(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
         data: PushInfo;
     } | {
         status: number;
         data: Error;
-    }>("/notification/push", {
+    }>("/pushinfo", {
         ...opts
     }));
 }
 /**
- * Get the user's push notification subscription
+ * Get the user's push notification subscriptions
  */
-export function userPushSubscription(opts?: Oazapfts.RequestOpts) {
+export function userPushSubscriptions(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
-        data: {
-            /** The time at which the subscription expires. This is the time when the subscription will be automatically deleted by the browser. */
-            expirationTime?: number;
-        };
+        data: ReturnedPushSubscription[];
     } | {
         status: 404;
     } | {
         status: number;
         data: Error;
-    }>("/notification/push/subscription", {
+    }>("/notifications/push/subscriptions", {
         ...opts
     }));
 }
 /**
- * Subscribe to push notifications
+ * Create or update a push subscription
  */
-export function userSubscribePush(pushSubscription?: PushSubscription, opts?: Oazapfts.RequestOpts) {
+export function userSubscribePush(pushSubscription: PushSubscription, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 204;
     } | {
         status: number;
         data: Error;
-    }>("/notification/push/subscription", oazapfts.json({
+    }>("/notifications/push/subscriptions", oazapfts.json({
         ...opts,
-        method: "POST",
+        method: "PUT",
         body: pushSubscription
     })));
 }
 /**
  * Unsubscribe from push notifications
  */
-export function userUnsubscribePush(opts?: Oazapfts.RequestOpts) {
+export function userUnsubscribePush(deviceId: PushDeviceId, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 204;
     } | {
-        status: 404;
-    } | {
         status: number;
         data: Error;
-    }>("/notification/push/subscription", {
+    }>(`/notifications/push/subscriptions${QS.query(QS.explode({
+        deviceID: deviceId
+    }))}`, {
         ...opts,
         method: "DELETE"
     }));
@@ -273,7 +281,7 @@ export function userUnsubscribePush(opts?: Oazapfts.RequestOpts) {
 /**
  * Register a new account
  */
-export function register(body?: {
+export function register(body: {
     /** The name to register with */
     name: string;
 }, opts?: Oazapfts.RequestOpts) {
@@ -294,7 +302,7 @@ export function register(body?: {
 /**
  * Authenticate a user and obtain a session
  */
-export function auth(body?: {
+export function auth(body: {
     secret: UserSecret;
 }, { userAgent }: {
     userAgent?: string;
@@ -348,7 +356,7 @@ export function currentUserAvatar(opts?: Oazapfts.RequestOpts) {
 /**
  * Set the current user's avatar
  */
-export function setCurrentUserAvatar(body?: Blob, opts?: Oazapfts.RequestOpts) {
+export function setCurrentUserAvatar(body: Blob, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 204;
     } | {
@@ -393,18 +401,16 @@ export function currentUserSessions(opts?: Oazapfts.RequestOpts) {
 /**
  * Delete one of the current user's sessions
  */
-export function deleteUserSession(body?: {
-    /** The session identifier to delete */
-    id: number;
-}, opts?: Oazapfts.RequestOpts) {
+export function deleteUserSession(id: number, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 204;
     } | {
         status: number;
         data: Error;
-    }>("/me/sessions", oazapfts.json({
+    }>(`/me/sessions${QS.query(QS.explode({
+        id
+    }))}`, {
         ...opts,
-        method: "DELETE",
-        body
-    })));
+        method: "DELETE"
+    }));
 }
