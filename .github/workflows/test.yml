@@ -17,4 +17,4 @@ jobs:
         shell: nix develop -c bash -e {0}
 
       - name: Run Flake tests
-        run: nix flake check path:"$PWD"
+        run: nix flake check

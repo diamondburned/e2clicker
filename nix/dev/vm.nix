@@ -53,7 +53,11 @@
       };
       notification = {
         clientTimeout = "15s";
-        webPushKeys = ../../vapid-keys.json;
+        webPushKeys =
+          let
+            path = ../../vapid-keys.json;
+          in
+          if builtins.pathExists path then path else null;
       };
     };
   };
