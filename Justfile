@@ -39,7 +39,9 @@ dev: generate
 
 [private]
 dev-vm: generate
-    nix run .#nixosConfigurations.dev-vm.config.system.build.nixos-shell
+    # Force a path to the flake instead of a git+path to include the
+    # vapid-keys.json file, which is gitignore'd.
+    nix run "path://$PWD"'#nixosConfigurations.dev-vm.config.system.build.nixos-shell'
 
 [private]
 dev-backend:

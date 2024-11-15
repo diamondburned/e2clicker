@@ -152,7 +152,7 @@ in
     };
 
     services.e2clicker.frontend.socketPath =
-      if services.e2clicker.frontend.socket then "/run/e2clicker-frontend/http.sock" else null;
+      if e2clicker.frontend.socket then "/run/e2clicker-frontend/http.sock" else null;
 
     systemd.services.e2clicker-frontend = mkIf e2clicker.frontend.enable {
       description = "e2clicker frontend";
@@ -162,7 +162,7 @@ in
         (
           if e2clicker.frontend.socket then
             {
-              SOCKET_PATH = "${services.e2clicker.frontend.socketPath}";
+              SOCKET_PATH = "${e2clicker.frontend.socketPath}";
             }
           else
             {
