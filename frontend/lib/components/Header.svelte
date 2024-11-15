@@ -2,7 +2,8 @@
   import Icon from "./Icon.svelte";
 
   import * as api from "$lib/api";
-  import { isLoggedIn } from "$lib/api";
+  import { isLoggedIn, token } from "$lib/api";
+  import { goto } from "$app/navigation";
 
   let { fixed = false } = $props();
 
@@ -13,9 +14,18 @@
 
   $effect(() => {
     if ($isLoggedIn) {
-      api.currentUser().then((u) => {
-        me = u;
-      });
+      api
+        .currentUser()
+        .then((u) => {
+          me = u;
+        })
+        .catch((err) => {
+          if ("status" in err && err.status == 401) {
+            // Clear token and redirect to /login.
+            token.set(null);
+            goto("/login");
+          }
+        });
     }
   });
 </script>

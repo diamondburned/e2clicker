@@ -15,6 +15,7 @@ export const isLoggedIn = derived(token, (token) => !!token);
 
 token.subscribe((token) => {
   api.defaults.headers = { Authorization: `Bearer ${token}` };
+  api.defaults.baseUrl = "/api";
 });
 
 export function setToken(newToken: string | null) {
