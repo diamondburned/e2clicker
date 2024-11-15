@@ -3,7 +3,20 @@
   import Footer from "$lib/components/Footer.svelte";
 
   import { isLoggedIn } from "$lib/api.js";
+  import { dev } from "$app/environment";
 </script>
+
+<svelte:head>
+  <meta property="og:title" content="e2clicker" />
+  <meta
+    property="og:description"
+    content="Easily track your estrogen levels and dosages with e2clicker, free and open-source forever for everyone!"
+  />
+  <meta property="og:image" content="/screenshots/dashboard-light.png" />
+  <meta property="og:image:width" content="1223" />
+  <meta property="og:image:height" content="707" />
+  <meta property="og:image:alt" content="Screenshot of the e2clicker dashboard" />
+</svelte:head>
 
 <main class="container spaced">
   <header class="big-brand">
@@ -32,14 +45,18 @@
   </p>
 
   <section>
-    {#if $isLoggedIn}
-      <a href="/dashboard" role="button">
-        Go to Dashboard <Icon name="arrow-forward" />
-      </a>
+    {#if dev}
+      {#if $isLoggedIn}
+        <a href="/dashboard" role="button">
+          Go to Dashboard <Icon name="arrow-forward" />
+        </a>
+      {:else}
+        <a href="/login" role="button">
+          Get Started <Icon name="arrow-forward" />
+        </a>
+      {/if}
     {:else}
-      <a href="/login" role="button">
-        Get Started <Icon name="arrow-forward" />
-      </a>
+      <h3>Coming soon!</h3>
     {/if}
   </section>
 </main>

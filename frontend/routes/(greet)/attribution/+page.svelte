@@ -1,3 +1,7 @@
+<svelte:head>
+  <title>Attribution - e2clicker</title>
+</svelte:head>
+
 <main class="container spaced-2">
   <h1>Attribution</h1>
 
