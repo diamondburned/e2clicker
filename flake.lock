@@ -66,11 +66,11 @@
         "nixpkgs": "nixpkgs"
       },
       "locked": {
-        "lastModified": 1731614934,
-        "narHash": "sha256-zKvAVqH9HRS6agTeRKH5Hqup6XEXHVUe4irdWXTku7U=",
+        "lastModified": 1731637569,
+        "narHash": "sha256-7UOX2Hgp0d+XlukEpbzQN+CMHUvdwgr6ygKN71ItPpM=",
         "owner": "diamondburned",
         "repo": "nixmod2go",
-        "rev": "31a46d81b1fc073486542bf059bf865929245efd",
+        "rev": "32dd99c597f0dd8179313c9287840f328fd0f2d1",
         "type": "github"
       },
       "original": {

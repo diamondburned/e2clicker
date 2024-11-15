@@ -60,10 +60,22 @@ generate-go:
 	go generate -x ./...
 
 [private]
-generate-backend: openapi-backend generate-go
+generate-backend: openapi-backend generate-go generate-backend-config
     go mod tidy
     go mod download
     gomod2nix --outdir nix
+
+[private]
+generate-backend-config:
+	#!/bin/sh
+	flakePath=$(jq -n --arg path "$PWD" '$path')
+	nixmod2go \
+		-P e2clickermodule \
+		-T BackendConfig \
+		-O services.e2clicker.backend \
+		-c ./nix/modules/nixmod2go.json \
+		.#nixosModules.e2clicker \
+		./nix/modules/e2clicker/config.go
 
 [private]
 generate-frontend: openapi-frontend

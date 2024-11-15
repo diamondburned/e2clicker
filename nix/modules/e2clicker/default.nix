@@ -1,8 +1,9 @@
+self:
+
 {
   config,
   lib,
   pkgs,
-  self,
   ...
 }:
 

@@ -144,7 +144,7 @@
     ))
     // {
       nixosModules = {
-        e2clicker = import ./nix/modules/e2clicker;
+        e2clicker = import ./nix/modules/e2clicker self;
         e2clicker-postgresql = import ./nix/modules/e2clicker-postgresql;
       };
 
