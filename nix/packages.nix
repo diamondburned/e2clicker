@@ -23,34 +23,27 @@ let
     yq-go
   ];
 
-  dist = pkgs.stdenv.mkDerivation rec {
+  frontend = pkgs.stdenv.mkDerivation (final: {
     inherit src version;
-    pname = "e2clicker-dist";
+    pname = "e2clicker-frontend";
 
-    nativeBuildInputs = buildDeps ++ [ pkgs.pnpm.configHook ];
+    nativeBuildInputs = buildDeps ++ [
+      # This uses pnpmDeps.
+      pkgs.pnpm.configHook
+    ];
+
+    buildInputs = with pkgs; [
+      nodejs
+    ];
 
     pnpmDeps = pkgs.pnpm.fetchDeps {
-      inherit pname version src;
+      inherit (final) pname version src;
       hash = hashes.pnpmPackages;
     };
-
-    goModules =
-      (pkgs.buildGoApplication {
-        inherit src version;
-        pname = "e2clicker";
-        modules = ./gomod2nix.toml;
-      }).vendorEnv;
-
-    # Needed for gomod2nix.
-    # GO111MODULE = "on";
-    # GOFLAGS = "-mod=vendor";
 
     buildPhase = ''
       runHook preBuild
 
-      ln -s ${goModules} vendor
-
-      just --no-deps build-backend
       just --no-deps build-frontend
 
       runHook postBuild
@@ -59,45 +52,67 @@ let
     installPhase = ''
       runHook preInstall
 
-      cp -r dist $out
-
+      mkdir $out
+      cp -r dist $out/share
       # https://kit.svelte.dev/docs/adapter-node#deploying
-      cp -r node_modules package.json $out/frontend/
+      cp -r node_modules package.json $out/share/frontend/
 
-      # Clean up node_modules so that just enough of it
-      # is there for the node server.
-      pnpm prune --prod
+      mkdir $out/bin
+      {
+        echo '#!/bin/bash' # will be fixed by stdenv
+        echo "cd $out/share/frontend"
+        echo 'exec '${lib.getExe pkgs.nodejs}' .'
+      } > $out/bin/e2clicker-frontend
+      chmod +x $out/bin/e2clicker-frontend
 
       runHook postInstall
     '';
+
+    passthru = {
+      assets = "${self}/share/frontend/client";
+    };
+
+    meta = {
+      description = "The e2clicker frontend package";
+      mainProgram = "e2clicker-frontend";
+    };
+  });
+
+  backend = pkgs.buildGoApplication {
+    inherit src version;
+    pname = "e2clicker-backend";
+    modules = ./gomod2nix.toml;
+
+    nativeBuildInputs = buildDeps;
+
+    buildPhase = ''
+      runHook preBuild
+
+      just --no-deps build-backend
+
+      runHook postBuild
+    '';
+
+    installPhase = ''
+      runHook preInstall
+
+      mkdir $out
+      cp -r dist $out/share
+
+      mkdir $out/bin
+      ln -s $out/share/backend/* $out/bin/
+
+      runHook postInstall
+    '';
+
+    meta = {
+      description = "The e2clicker backend package";
+      mainProgram = "e2clicker-backend";
+    };
   };
 in
 
 rec {
-  e2clicker-backend =
-    pkgs.runCommandLocal "e2clicker-backend"
-      {
-        inherit version;
-        meta = {
-          description = "The e2clicker backend package";
-          mainProgram = "e2clicker-backend";
-        };
-      }
-      ''
-        mkdir $out
-        ln -s ${dist}/backend $out/bin
-      '';
-
-  e2clicker-frontend = pkgs.writeShellApplication {
-    name = "e2clicker-frontend";
-    text = ''
-      cd ${dist}/frontend
-      exec ${lib.getExe pkgs.nodejs} .
-    '';
-    passthru = {
-      assets = pkgs.runCommandLocal "e2clicker-frontend-assets" { } ''
-        ln -s ${dist}/frontend/client $out
-      '';
-    };
-  };
+  e2clicker-frontend = frontend;
+  e2clicker-backend = backend;
 }
