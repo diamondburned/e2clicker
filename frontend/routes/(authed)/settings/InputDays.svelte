@@ -19,6 +19,11 @@
   function durationstr(duration: Duration): string {
     return duration.normalize().rescale().toHuman({ listStyle: "narrow" });
   }
+
+  function setValidity(input: HTMLInputElement, message: string | null) {
+    input.setCustomValidity(message || "");
+    input.reportValidity();
+  }
 </script>
 
 <input
@@ -31,9 +36,7 @@
     if (!parsed) {
       value = "";
       onchange(undefined);
-
-      input.setCustomValidity("Invalid duration.");
-      input.reportValidity();
+      setValidity(input, "Invalid duration.");
       return;
     }
 
@@ -41,13 +44,12 @@
     if (duration.as("hours") < 1 || duration.as("months") > 1) {
       value = "";
       onchange(undefined);
-
-      input.setCustomValidity("Interval must be between 1 hour and 1 month.");
-      input.reportValidity();
+      setValidity(input, "Interval must be between 1 hour and 1 month.");
       return;
     }
 
     value = durationstr(duration);
     onchange(duration.as("days"));
+    setValidity(input, null);
   }}
 />
