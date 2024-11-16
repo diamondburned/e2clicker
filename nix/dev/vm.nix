@@ -91,5 +91,11 @@
 
   networking.firewall.allowedTCPPorts = [ 80 ];
 
+  programs.bash.interactiveShellInit = ''
+    # Stop VM on Ctrl+D or exit
+    alias __shutdown="shutdown now"
+    trap  __shutdown  EXIT
+  '';
+
   system.stateVersion = "24.11";
 }
