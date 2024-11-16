@@ -15,9 +15,7 @@ import (
 )
 
 // WebPushNotificationConfig is a configuration for the Push API service.
-type WebPushNotificationConfig struct {
-	Subscription openapi.PushSubscription `json:"subscription"`
-}
+type WebPushNotificationConfig = openapi.PushSubscription
 
 func convertSubscription(subscription openapi.PushSubscription) *webpush.Subscription {
 	return &webpush.Subscription{
@@ -71,9 +69,9 @@ func (s WebPushService) VAPIDPublicKey() string {
 }
 
 func (s WebPushService) Notify(ctx context.Context, n Notification, config WebPushNotificationConfig) error {
-	if config.Subscription.ExpirationTime != nil {
-		if config.Subscription.ExpirationTime.Before(time.Now()) {
-			return &WebPushSubscriptionExpired{*config.Subscription.ExpirationTime}
+	if config.ExpirationTime != nil {
+		if config.ExpirationTime.Before(time.Now()) {
+			return &WebPushSubscriptionExpired{*config.ExpirationTime}
 		}
 	}
 
@@ -84,7 +82,7 @@ func (s WebPushService) Notify(ctx context.Context, n Notification, config WebPu
 
 	resp, err := webpush.SendNotificationWithContext(
 		ctx, m,
-		convertSubscription(config.Subscription),
+		convertSubscription(config),
 		&webpush.Options{
 			HTTPClient:      &s.http,
 			Urgency:         webpush.UrgencyHigh,

@@ -300,7 +300,7 @@ func (h *OpenAPIHandler) WebPushInfo(ctx context.Context, request openapi.WebPus
 	return openapi.WebPushInfo200JSONResponse(openapi.PushInfo(i)), nil
 }
 
-func (h *OpenAPIHandler) UserPushSubscriptions(ctx context.Context, request openapi.UserPushSubscriptionsRequestObject) (openapi.UserPushSubscriptionsResponseObject, error) {
+func (h *OpenAPIHandler) UserNotificationMethods(ctx context.Context, request openapi.UserNotificationMethodsRequestObject) (openapi.UserNotificationMethodsResponseObject, error) {
 	session := sessionFromCtx(ctx)
 
 	p, err := h.notifs.UserPreferences(ctx, session.UserSecret)
@@ -308,16 +308,46 @@ func (h *OpenAPIHandler) UserPushSubscriptions(ctx context.Context, request open
 		return nil, err
 	}
 
-	ret := make([]openapi.ReturnedPushSubscription, len(p.NotificationConfigs.WebPush))
-	for i, sub := range p.NotificationConfigs.WebPush {
-		ret[i] = openapi.ReturnedPushSubscription{
-			DeviceID:       sub.Subscription.DeviceID,
-			ExpirationTime: sub.Subscription.ExpirationTime,
+	var ret openapi.ReturnedNotificationMethods
+
+	if len(p.NotificationConfigs.WebPush) > 0 {
+		s := make([]openapi.ReturnedPushSubscription, len(p.NotificationConfigs.WebPush))
+		for i, sub := range p.NotificationConfigs.WebPush {
+			s[i] = openapi.ReturnedPushSubscription{
+				DeviceID:       sub.DeviceID,
+				ExpirationTime: sub.ExpirationTime,
+			}
+			s[i].Keys.P256Dh = sub.Keys.P256Dh
 		}
-		ret[i].Keys.P256Dh = sub.Subscription.Keys.P256Dh
+		ret.WebPush = &s
 	}
 
-	return openapi.UserPushSubscriptions200JSONResponse(ret), nil
+	return openapi.UserNotificationMethods200JSONResponse(ret), nil
+}
+
+func (h *OpenAPIHandler) UserPushSubscription(ctx context.Context, request openapi.UserPushSubscriptionRequestObject) (openapi.UserPushSubscriptionResponseObject, error) {
+	session := sessionFromCtx(ctx)
+
+	p, err := h.notifs.UserPreferences(ctx, session.UserSecret)
+	if err != nil {
+		return nil, err
+	}
+
+	ix := slices.IndexFunc(p.NotificationConfigs.WebPush,
+		func(c notificationapi.PushSubscription) bool { return c.DeviceID == request.DeviceID },
+	)
+	if ix == -1 {
+		return openapi.UserPushSubscription404JSONResponse(openapi.Error{
+			Message: "subscription not found",
+			Details: anyPtr(map[string]string{
+				"deviceID": string(request.DeviceID),
+			}),
+		}), nil
+	}
+
+	return openapi.UserPushSubscription200JSONResponse(openapi.PushSubscription(
+		p.NotificationConfigs.WebPush[ix],
+	)), nil
 }
 
 func (h *OpenAPIHandler) UserSubscribePush(ctx context.Context, request openapi.UserSubscribePushRequestObject) (openapi.UserSubscribePushResponseObject, error) {
@@ -330,7 +360,7 @@ func (h *OpenAPIHandler) UserSubscribePush(ctx context.Context, request openapi.
 
 func (h *OpenAPIHandler) UserUnsubscribePush(ctx context.Context, request openapi.UserUnsubscribePushRequestObject) (openapi.UserUnsubscribePushResponseObject, error) {
 	session := sessionFromCtx(ctx)
-	if err := h.notifs.UnsubscribeWebPush(ctx, session.UserSecret, request.Params.DeviceID); err != nil {
+	if err := h.notifs.UnsubscribeWebPush(ctx, session.UserSecret, request.DeviceID); err != nil {
 		return nil, err
 	}
 	return openapi.UserUnsubscribePush204Response{}, nil

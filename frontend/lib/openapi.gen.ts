@@ -72,6 +72,9 @@ export type ReturnedPushSubscription = {
         p256dh: string;
     };
 };
+export type ReturnedNotificationMethods = {
+    webPush?: ReturnedPushSubscription[];
+};
 export type PushSubscription = {
     deviceID: PushDeviceId;
     /** The endpoint to send the notification to. */
@@ -232,19 +235,48 @@ export function webPushInfo(opts?: Oazapfts.RequestOpts) {
     }));
 }
 /**
- * Get the user's push notification subscriptions
+ * Get the user's notification methods
  */
-export function userPushSubscriptions(opts?: Oazapfts.RequestOpts) {
+export function userNotificationMethods(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
-        data: ReturnedPushSubscription[];
-    } | {
-        status: 404;
+        data: ReturnedNotificationMethods;
     } | {
         status: number;
         data: Error;
-    }>("/notifications/push/subscriptions", {
+    }>("/notifications/methods", {
         ...opts
+    }));
+}
+/**
+ * Get the user's push notification subscription
+ */
+export function userPushSubscription(deviceId: PushDeviceId, opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 200;
+        data: PushSubscription;
+    } | {
+        status: 404;
+        data: Error;
+    } | {
+        status: number;
+        data: Error;
+    }>(`/notifications/methods/push/${encodeURIComponent(deviceId)}`, {
+        ...opts
+    }));
+}
+/**
+ * Unsubscribe from push notifications
+ */
+export function userUnsubscribePush(deviceId: PushDeviceId, opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 204;
+    } | {
+        status: number;
+        data: Error;
+    }>(`/notifications/methods/push/${encodeURIComponent(deviceId)}`, {
+        ...opts,
+        method: "DELETE"
     }));
 }
 /**
@@ -256,27 +288,11 @@ export function userSubscribePush(pushSubscription: PushSubscription, opts?: Oaz
     } | {
         status: number;
         data: Error;
-    }>("/notifications/push/subscriptions", oazapfts.json({
+    }>("/notifications/methods/push", oazapfts.json({
         ...opts,
         method: "PUT",
         body: pushSubscription
     })));
-}
-/**
- * Unsubscribe from push notifications
- */
-export function userUnsubscribePush(deviceId: PushDeviceId, opts?: Oazapfts.RequestOpts) {
-    return oazapfts.ok(oazapfts.fetchJson<{
-        status: 204;
-    } | {
-        status: number;
-        data: Error;
-    }>(`/notifications/push/subscriptions${QS.query(QS.explode({
-        deviceID: deviceId
-    }))}`, {
-        ...opts,
-        method: "DELETE"
-    }));
 }
 /**
  * Register a new account

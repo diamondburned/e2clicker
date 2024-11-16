@@ -166,6 +166,11 @@ type PushSubscription struct {
 	} `json:"keys"`
 }
 
+// ReturnedNotificationMethods defines model for ReturnedNotificationMethods.
+type ReturnedNotificationMethods struct {
+	WebPush *[]ReturnedPushSubscription `json:"webPush,omitempty"`
+}
+
 // ReturnedPushSubscription Similar to a [PushSubscription], but specifically for returning to the user. This type contains no secrets.
 type ReturnedPushSubscription struct {
 	DeviceID PushDeviceID `json:"deviceID"`
@@ -248,12 +253,6 @@ type DeleteUserSessionParams struct {
 	ID int64 `form:"id" json:"id"`
 }
 
-// UserUnsubscribePushParams defines parameters for UserUnsubscribePush.
-type UserUnsubscribePushParams struct {
-	// DeviceID The device ID of the push subscription to unsubscribe from.
-	DeviceID PushDeviceID `form:"deviceID" json:"deviceID"`
-}
-
 // RegisterJSONBody defines parameters for Register.
 type RegisterJSONBody struct {
 	// Name The name to register with
@@ -322,15 +321,18 @@ type ServerInterface interface {
 	// List the current user's sessions
 	// (GET /me/sessions)
 	CurrentUserSessions(w http.ResponseWriter, r *http.Request)
-	// Unsubscribe from push notifications
-	// (DELETE /notifications/push/subscriptions)
-	UserUnsubscribePush(w http.ResponseWriter, r *http.Request, params UserUnsubscribePushParams)
-	// Get the user's push notification subscriptions
-	// (GET /notifications/push/subscriptions)
-	UserPushSubscriptions(w http.ResponseWriter, r *http.Request)
+	// Get the user's notification methods
+	// (GET /notifications/methods)
+	UserNotificationMethods(w http.ResponseWriter, r *http.Request)
 	// Create or update a push subscription
-	// (PUT /notifications/push/subscriptions)
+	// (PUT /notifications/methods/push)
 	UserSubscribePush(w http.ResponseWriter, r *http.Request)
+	// Unsubscribe from push notifications
+	// (DELETE /notifications/methods/push/{deviceID})
+	UserUnsubscribePush(w http.ResponseWriter, r *http.Request, deviceID PushDeviceID)
+	// Get the user's push notification subscription
+	// (GET /notifications/methods/push/{deviceID})
+	UserPushSubscription(w http.ResponseWriter, r *http.Request, deviceID PushDeviceID)
 	// Get the server's push notification information
 	// (GET /pushinfo)
 	WebPushInfo(w http.ResponseWriter, r *http.Request)
@@ -703,48 +705,8 @@ func (siw *ServerInterfaceWrapper) CurrentUserSessions(w http.ResponseWriter, r 
 	handler.ServeHTTP(w, r)
 }
 
-// UserUnsubscribePush operation middleware
-func (siw *ServerInterfaceWrapper) UserUnsubscribePush(w http.ResponseWriter, r *http.Request) {
-
-	var err error
-
-	ctx := r.Context()
-
-	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
-
-	r = r.WithContext(ctx)
-
-	// Parameter object where we will unmarshal all parameters from the context
-	var params UserUnsubscribePushParams
-
-	// ------------- Required query parameter "deviceID" -------------
-
-	if paramValue := r.URL.Query().Get("deviceID"); paramValue != "" {
-
-	} else {
-		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "deviceID"})
-		return
-	}
-
-	err = runtime.BindQueryParameter("form", true, true, "deviceID", r.URL.Query(), &params.DeviceID)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "deviceID", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.UserUnsubscribePush(w, r, params)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
-
-// UserPushSubscriptions operation middleware
-func (siw *ServerInterfaceWrapper) UserPushSubscriptions(w http.ResponseWriter, r *http.Request) {
+// UserNotificationMethods operation middleware
+func (siw *ServerInterfaceWrapper) UserNotificationMethods(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 
@@ -753,7 +715,7 @@ func (siw *ServerInterfaceWrapper) UserPushSubscriptions(w http.ResponseWriter, 
 	r = r.WithContext(ctx)
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.UserPushSubscriptions(w, r)
+		siw.Handler.UserNotificationMethods(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -774,6 +736,68 @@ func (siw *ServerInterfaceWrapper) UserSubscribePush(w http.ResponseWriter, r *h
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.UserSubscribePush(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UserUnsubscribePush operation middleware
+func (siw *ServerInterfaceWrapper) UserUnsubscribePush(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "deviceID" -------------
+	var deviceID PushDeviceID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "deviceID", r.PathValue("deviceID"), &deviceID, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "deviceID", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UserUnsubscribePush(w, r, deviceID)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UserPushSubscription operation middleware
+func (siw *ServerInterfaceWrapper) UserPushSubscription(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "deviceID" -------------
+	var deviceID PushDeviceID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "deviceID", r.PathValue("deviceID"), &deviceID, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "deviceID", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UserPushSubscription(w, r, deviceID)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -945,9 +969,10 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc("GET "+options.BaseURL+"/me/secret", wrapper.CurrentUserSecret)
 	m.HandleFunc("DELETE "+options.BaseURL+"/me/sessions", wrapper.DeleteUserSession)
 	m.HandleFunc("GET "+options.BaseURL+"/me/sessions", wrapper.CurrentUserSessions)
-	m.HandleFunc("DELETE "+options.BaseURL+"/notifications/push/subscriptions", wrapper.UserUnsubscribePush)
-	m.HandleFunc("GET "+options.BaseURL+"/notifications/push/subscriptions", wrapper.UserPushSubscriptions)
-	m.HandleFunc("PUT "+options.BaseURL+"/notifications/push/subscriptions", wrapper.UserSubscribePush)
+	m.HandleFunc("GET "+options.BaseURL+"/notifications/methods", wrapper.UserNotificationMethods)
+	m.HandleFunc("PUT "+options.BaseURL+"/notifications/methods/push", wrapper.UserSubscribePush)
+	m.HandleFunc("DELETE "+options.BaseURL+"/notifications/methods/push/{deviceID}", wrapper.UserUnsubscribePush)
+	m.HandleFunc("GET "+options.BaseURL+"/notifications/methods/push/{deviceID}", wrapper.UserPushSubscription)
 	m.HandleFunc("GET "+options.BaseURL+"/pushinfo", wrapper.WebPushInfo)
 	m.HandleFunc("POST "+options.BaseURL+"/register", wrapper.Register)
 
@@ -1351,64 +1376,28 @@ func (response CurrentUserSessionsdefaultJSONResponse) VisitCurrentUserSessionsR
 	return json.NewEncoder(w).Encode(response.Body)
 }
 
-type UserUnsubscribePushRequestObject struct {
-	Params UserUnsubscribePushParams
+type UserNotificationMethodsRequestObject struct {
 }
 
-type UserUnsubscribePushResponseObject interface {
-	VisitUserUnsubscribePushResponse(w http.ResponseWriter) error
+type UserNotificationMethodsResponseObject interface {
+	VisitUserNotificationMethodsResponse(w http.ResponseWriter) error
 }
 
-type UserUnsubscribePush204Response struct {
-}
+type UserNotificationMethods200JSONResponse ReturnedNotificationMethods
 
-func (response UserUnsubscribePush204Response) VisitUserUnsubscribePushResponse(w http.ResponseWriter) error {
-	w.WriteHeader(204)
-	return nil
-}
-
-type UserUnsubscribePushdefaultJSONResponse struct {
-	Body       Error
-	StatusCode int
-}
-
-func (response UserUnsubscribePushdefaultJSONResponse) VisitUserUnsubscribePushResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(response.StatusCode)
-
-	return json.NewEncoder(w).Encode(response.Body)
-}
-
-type UserPushSubscriptionsRequestObject struct {
-}
-
-type UserPushSubscriptionsResponseObject interface {
-	VisitUserPushSubscriptionsResponse(w http.ResponseWriter) error
-}
-
-type UserPushSubscriptions200JSONResponse []ReturnedPushSubscription
-
-func (response UserPushSubscriptions200JSONResponse) VisitUserPushSubscriptionsResponse(w http.ResponseWriter) error {
+func (response UserNotificationMethods200JSONResponse) VisitUserNotificationMethodsResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type UserPushSubscriptions404Response struct {
-}
-
-func (response UserPushSubscriptions404Response) VisitUserPushSubscriptionsResponse(w http.ResponseWriter) error {
-	w.WriteHeader(404)
-	return nil
-}
-
-type UserPushSubscriptionsdefaultJSONResponse struct {
+type UserNotificationMethodsdefaultJSONResponse struct {
 	Body       Error
 	StatusCode int
 }
 
-func (response UserPushSubscriptionsdefaultJSONResponse) VisitUserPushSubscriptionsResponse(w http.ResponseWriter) error {
+func (response UserNotificationMethodsdefaultJSONResponse) VisitUserNotificationMethodsResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(response.StatusCode)
 
@@ -1437,6 +1426,72 @@ type UserSubscribePushdefaultJSONResponse struct {
 }
 
 func (response UserSubscribePushdefaultJSONResponse) VisitUserSubscribePushResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+
+	return json.NewEncoder(w).Encode(response.Body)
+}
+
+type UserUnsubscribePushRequestObject struct {
+	DeviceID PushDeviceID `json:"deviceID"`
+}
+
+type UserUnsubscribePushResponseObject interface {
+	VisitUserUnsubscribePushResponse(w http.ResponseWriter) error
+}
+
+type UserUnsubscribePush204Response struct {
+}
+
+func (response UserUnsubscribePush204Response) VisitUserUnsubscribePushResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type UserUnsubscribePushdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response UserUnsubscribePushdefaultJSONResponse) VisitUserUnsubscribePushResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+
+	return json.NewEncoder(w).Encode(response.Body)
+}
+
+type UserPushSubscriptionRequestObject struct {
+	DeviceID PushDeviceID `json:"deviceID"`
+}
+
+type UserPushSubscriptionResponseObject interface {
+	VisitUserPushSubscriptionResponse(w http.ResponseWriter) error
+}
+
+type UserPushSubscription200JSONResponse PushSubscription
+
+func (response UserPushSubscription200JSONResponse) VisitUserPushSubscriptionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UserPushSubscription404JSONResponse Error
+
+func (response UserPushSubscription404JSONResponse) VisitUserPushSubscriptionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UserPushSubscriptiondefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response UserPushSubscriptiondefaultJSONResponse) VisitUserPushSubscriptionResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(response.StatusCode)
 
@@ -1556,15 +1611,18 @@ type StrictServerInterface interface {
 	// List the current user's sessions
 	// (GET /me/sessions)
 	CurrentUserSessions(ctx context.Context, request CurrentUserSessionsRequestObject) (CurrentUserSessionsResponseObject, error)
-	// Unsubscribe from push notifications
-	// (DELETE /notifications/push/subscriptions)
-	UserUnsubscribePush(ctx context.Context, request UserUnsubscribePushRequestObject) (UserUnsubscribePushResponseObject, error)
-	// Get the user's push notification subscriptions
-	// (GET /notifications/push/subscriptions)
-	UserPushSubscriptions(ctx context.Context, request UserPushSubscriptionsRequestObject) (UserPushSubscriptionsResponseObject, error)
+	// Get the user's notification methods
+	// (GET /notifications/methods)
+	UserNotificationMethods(ctx context.Context, request UserNotificationMethodsRequestObject) (UserNotificationMethodsResponseObject, error)
 	// Create or update a push subscription
-	// (PUT /notifications/push/subscriptions)
+	// (PUT /notifications/methods/push)
 	UserSubscribePush(ctx context.Context, request UserSubscribePushRequestObject) (UserSubscribePushResponseObject, error)
+	// Unsubscribe from push notifications
+	// (DELETE /notifications/methods/push/{deviceID})
+	UserUnsubscribePush(ctx context.Context, request UserUnsubscribePushRequestObject) (UserUnsubscribePushResponseObject, error)
+	// Get the user's push notification subscription
+	// (GET /notifications/methods/push/{deviceID})
+	UserPushSubscription(ctx context.Context, request UserPushSubscriptionRequestObject) (UserPushSubscriptionResponseObject, error)
 	// Get the server's push notification information
 	// (GET /pushinfo)
 	WebPushInfo(ctx context.Context, request WebPushInfoRequestObject) (WebPushInfoResponseObject, error)
@@ -1978,49 +2036,23 @@ func (sh *strictHandler) CurrentUserSessions(w http.ResponseWriter, r *http.Requ
 	}
 }
 
-// UserUnsubscribePush operation middleware
-func (sh *strictHandler) UserUnsubscribePush(w http.ResponseWriter, r *http.Request, params UserUnsubscribePushParams) {
-	var request UserUnsubscribePushRequestObject
-
-	request.Params = params
+// UserNotificationMethods operation middleware
+func (sh *strictHandler) UserNotificationMethods(w http.ResponseWriter, r *http.Request) {
+	var request UserNotificationMethodsRequestObject
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.UserUnsubscribePush(ctx, request.(UserUnsubscribePushRequestObject))
+		return sh.ssi.UserNotificationMethods(ctx, request.(UserNotificationMethodsRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "UserUnsubscribePush")
+		handler = middleware(handler, "UserNotificationMethods")
 	}
 
 	response, err := handler(r.Context(), w, r, request)
 
 	if err != nil {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(UserUnsubscribePushResponseObject); ok {
-		if err := validResponse.VisitUserUnsubscribePushResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// UserPushSubscriptions operation middleware
-func (sh *strictHandler) UserPushSubscriptions(w http.ResponseWriter, r *http.Request) {
-	var request UserPushSubscriptionsRequestObject
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.UserPushSubscriptions(ctx, request.(UserPushSubscriptionsRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "UserPushSubscriptions")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(UserPushSubscriptionsResponseObject); ok {
-		if err := validResponse.VisitUserPushSubscriptionsResponse(w); err != nil {
+	} else if validResponse, ok := response.(UserNotificationMethodsResponseObject); ok {
+		if err := validResponse.VisitUserNotificationMethodsResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -2052,6 +2084,58 @@ func (sh *strictHandler) UserSubscribePush(w http.ResponseWriter, r *http.Reques
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(UserSubscribePushResponseObject); ok {
 		if err := validResponse.VisitUserSubscribePushResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UserUnsubscribePush operation middleware
+func (sh *strictHandler) UserUnsubscribePush(w http.ResponseWriter, r *http.Request, deviceID PushDeviceID) {
+	var request UserUnsubscribePushRequestObject
+
+	request.DeviceID = deviceID
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UserUnsubscribePush(ctx, request.(UserUnsubscribePushRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UserUnsubscribePush")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UserUnsubscribePushResponseObject); ok {
+		if err := validResponse.VisitUserUnsubscribePushResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UserPushSubscription operation middleware
+func (sh *strictHandler) UserPushSubscription(w http.ResponseWriter, r *http.Request, deviceID PushDeviceID) {
+	var request UserPushSubscriptionRequestObject
+
+	request.DeviceID = deviceID
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UserPushSubscription(ctx, request.(UserPushSubscriptionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UserPushSubscription")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UserPushSubscriptionResponseObject); ok {
+		if err := validResponse.VisitUserPushSubscriptionResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -2117,65 +2201,67 @@ func (sh *strictHandler) Register(w http.ResponseWriter, r *http.Request) {
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/9xb644bN7J+lUKfA8Q+0EiO7TjH82/icTaTjS+wPOsFbMGmmiWJcTfZIdkaa4MB9h32",
-	"DfdJFkWy7926jKUskH+jbnaxWPXVlTW/R7FKMyVRWhOd/x5pNJmSBt2P51or/SY8oQexkhalpT9ZliUi",
-	"ZlYoOfnVKEnPTLzClNFf/6txEZ1H/zOpqE/8WzNxVKPb29tRxNHEWmREJDqP3q4QNP6Wo7EgDAi5Zong",
-	"4w8yorXhc6J+iYlYo968QLtSnJ5kWmWorfB8C/esSfwCzEppC8ZqIZegMdNoUFr6YVcIPNCE1BEdw9sV",
-	"8WDgZsUsLBUSQ1a5tc39YSEw4WYcjSK7yTA6j/we0Sj6cqY0Rx2df3s7iiRLscsXHXqRJwnQa1CLXma2",
-	"kX50O4pyKbz6urTdq7vQfUhCJ3UIjTw6f09SLXYKh5mVn6v5rxjb6HYUXSrDltjVSaxknGuNMh4QgszT",
-	"OWriFI3VaokSMmbjFRpQ0nE/V3wDzIKSMY7hlUw2oDHBNZMWxKJ9ONKdI1A7pZAWl6jrx3zsYNjGU5e9",
-	"NnWrIDe4U+lcmYHzcicoYKnKpSU6C6VTZqPzaJEoZivCXjBN1YzcUfSaJf3Ei7cwR3uDKGk3h2DgbGMa",
-	"u3GVzxPctt2jNhJa8gqnrPE0DIyfhLFKb5yVWkzNLmfhv3o1N0TYHfC2pM20ZpuKdH1RD/zSNHiutl8I",
-	"r4DNVW69mTh6IwIVk5utOn5yR/jkBneZ34nAQ/5C8EFn8VuOIDg5xoVADQulnUhUJdzGdkLaJ4+3GhhZ",
-	"gWWfUV7Y/k2tSLEmdrhhBtwHTZgyi2e0dJvQHhd7vVosDt4O1GJRuX3VcC8kBudM2oo0hzP5Xa9jHbKp",
-	"QnR9JuUjaQfrHC0TSU88uOBc0J8sgbCmBnr0YTlYsezzLO9WaFeoq+U+TIflJYNzpRJksk7rmeI9SL6Q",
-	"5dcQK44l2jzxe7nBBI1xj+NEkGO435Hs7ShK0RRBp23c4RX45/Mi2vvDdki1FFPQ7ZP9LypmSe+WiXtT",
-	"M6J+O1+qs/AwN6jHgV7tzZlIM6Udin3q4BaSGYqYFmbMrqLzKBFzPh8bNcGHcSLiz6gnYY2Z0AfuVC8V",
-	"sRIPOMea/FiSvFpE5++3e+U6uRfh49tZXz5XyD8kILL24bjt7rw4em12kzkS7c9R5ikpSmMqJHd+h8Ux",
-	"+cSPtNSJ6QbnH7PcrD7il0w46c92xGyS2nCyVrwtjkS/KRswKHnnjGDVjuStBTm3skJ0jZlZS40vhkC/",
-	"S+yli+OoxRo5LLRKezgnmc9zCzGTMEdQa9RacI4S5pvy5HS6QTAdDIet0dAKmwzhg14dTPTbjvDdDpX0",
-	"SeSvc7O6RDKnq8vhquLqEpgxKhbMIocbYVch36YPwVIJQb8Jh2DyeUmC1EDerVAJpQUEpuA8NnUqNyuU",
-	"kGecuZqFsvouuYRZyqHl+IN8gywRxoqYJclmBJZ2uBEJpYSwYpInyIEZYBJUxijqaya5SosCaYkStTtN",
-	"yL4DF0ZwHIHxhRA5GtSwYgakghu2Id5jpTUSIwDCelkwuYGFkEvUmRau5hp/kL7c89kXJ6n5z4uNPceB",
-	"GyHhZ7ZmU3dQEOb8g/z06dOvBmK9yawae96vr68u790fm0TEeO/BCP7/Pnz69In8xBeWZgSe6PunT5/g",
-	"0+8fb8PF2dOnQfFXcqH6EOeVpdHmWiIv7CFIg0kOVCgzISk6+uTAWVQBAx/L4EblCQeJXuVBj3OkH06z",
-	"dSCbrqHVKvCp2/mvuOlD6A/M4JPHZygpxPJCokrDBeXPP+SLBeqCYXrDJDx/djm9gNdnD797Alk+T0QM",
-	"n3HTxrE/rsNUbhzbLLcrAm5M+tuoXEONyfDBGK4WYDKMKTbyEbAkKdyC8a5o4ENIc2P9TiuEv128JqOr",
-	"NnQLKT7hyKlAyDjJOQKDn9+9BSOWsm6ZDqQmU5LTkTMt1sTyZ9wE90jHvZrCy1dvvWrJ4T9/dvlTJYeN",
-	"yotjo3Qw9GbCLBvDj0pDqjTW9T8CgwgfomtDW3r+HT/vcE5g+xCNd2YkvTov3NS05gn6/WSs5EIsc+2l",
-	"RY6HdaHW8CjOTj3cfRlA+Y8XQMsCyM/QwdqcjK36efrq5b37Y3jRkkgRWhYqlxyYPYeVtZk5n0w4rjEh",
-	"sI9T9Q+RJGys9HKC8ux6OuEqNpN3OJ9cvL6atHeb+N06xsJrLnxbZtNw97eUYfBMCTlQSxRv7xz/Kd1w",
-	"eYlb/VakuKVoYRZuViL2AG64fUcCTRXabfGNCxqd9UUcYLlVpAoXI6i0QVu5s7lWNyHCH1bgULD+jJuB",
-	"hpQHPr1vm04HiT0+L6ect6eOaDsCjDXaEQW4kPkjeQQISRM899sWVvAO5w63O3OQ7OF3T3g/B8+ThH7G",
-	"EOd6jXApFguB//7nv37CJEmZrPvREFG9f/XL7wWTGrk3L6+mb+kMtJ3+FrBB+j6pmUKnyROXChBJ4SJ5",
-	"LgnSGg2lER6ZQsLFy+kV/P3p+MlD8Io8LCsKZx554Xdqoe2NomBJNUMK2CCn9Sa4j93OaypSkTCXZzN4",
-	"314/G7lENQQVD2ZSq3dPruZTVcbqjcSlt2WYlipApifO1l3HfuVR04nM/pT2XrPxprj+rCYyYBazbS3z",
-	"Gv5L0E/RmF6MX4Dxr0Jg7i+vYo2Ule/sbhW0bhglye6bOznyALW99wvrR5RgyjxJQCyoDJBIGVx4eae+",
-	"3lDPsti46rcc3p9MmLHXBgd2oLf9gqVy7eDDPOrt/1V6rbHT13i6Nqj7wOP6EKEENhtjMe2CZ8XMxZpZ",
-	"prf39hyplS8OmVs/7nb3Wi3lpOyHbfOMocu19TaMdv/GuPuwg+JU+CApGmnVYYfEOHUuv98S6Y2rI0JP",
-	"3Mmk1tPzrjesE6ZRL8fovvSYj1dMLslXX9l6hT9XVBfX6yVXtBR1vzd/V2gLC2blSsU5VSiZDbvu1VYM",
-	"RzxJW/F2FBmMcy3sZuoKL4exOTKN+iIkar4iI9i4xxXLlOl7GiIU2aG/E5UbQsXUGrV3mtEDUp7KULJM",
-	"ROfRo/GD8YPAtdt+UqSImTLukIR/F22vOKmW3tJyzVK0qI0L5v0gBLakMj3YVCjaU/a5aCKHu+qxu/mi",
-	"IyHzPcggV4LY2QXRiEa1u/F2WJl5GKOxPyi+OeiavWndpoTzNhOsAb9tQYFA11yaC63O0T2ojQo8fPDg",
-	"Kzi36jPK7e7dL9kVlP2q/gO0Mso8jtGYRU6ZUKKWS1cgjCO3cMHyZFCQ5bknzfmIuj1E5+9no8jkacr0",
-	"JsCuMvSALslBzSn/BFYc0134LAmUziqjGRGdFHdD4cqJGFtiD7ibcwkUZr9KR/td0DbvrTq3szskr9Fq",
-	"gWvkPRdrp1HFL8JY13RiayYSNk86l7OmpgV/SVjoQVWdbUqduxp4liDTYQSiI/3HPXVNXRYxfYy8djn5",
-	"1TIoT+0YK4P7N6a4/SQ18tzf/7ePPBpAWXG8lhN1PvC3HPWmcoErf90/tUw3nWCPodMaoAyq8LjhY4qW",
-	"BUzcnXzwlv4CfZ9S5Xa0lbvnku/gDSU/EWezo/rRCqD7FapBlf1XdwEofmrHtgFT1Z5Flt/IHKUqP6BM",
-	"5XZUCPtQ5oqBka08hq0KtdwIuxKyHqPJqiiB15SLuQ40Cpfu1gFKJUsFCWDa9fIg02otOPLWHQode0z+",
-	"bW8P1xot8YJpWOlf0PbYqAsUmb+4T1ytLkpG++02y3vsdoq25pnulnDsA6Z9koVdrtCgPYkbnPYJeLu7",
-	"n1RTOP0+/0ell060rrDdwykSwY8ixOe6nEZ9wbd3+Afh6rKc6qvN5rieqmd0nzGdbrSeHayqoovkpWWO",
-	"p6tLRxjSPLEiSwosmOq6OihxuyX0VgFvMFaaX/oJm+Mk3ycdceqkuYNDQcfP1A+cztvpDUnyJVzaDtAr",
-	"BhhIvCmEVevd7tR2n997zoX9SlUfErAa0ugPWhlnlcU0Rutc2/Lq0l91pm7gjEnAL8K4NmZjCu8ojrbJ",
-	"y/GM99rRBVYcMoTj3Uokx+s7Q73J5zOfjbgm2AmBfV12OPaO7EWe5Nu2x5JjkRHUqfcXiSlOWNnb2yW7",
-	"0BjbKUGRUgT8v6bgSoc1F5J5Lba81SFyC5Ao+oynFFy5TVeCwzlTv9SG/MjdBXaslOlE8pweJs+AyKol",
-	"tQuRZaPyiOXQaRtihyK86NqeGOGmEOSQRlyjyWzLaH3m5eVStKX2yGvdPcZwRrvP1U2Vvu6TvX5FttrQ",
-	"i5fI0TNXJcuGQUdHQQk9fmi3oZTfnr67V+j/7m29kwra9fIOki9ZQWOubpLlZjWp35ZvNQ3SwLUsZ/Ve",
-	"52av64QwPHl1WQCiO7ppFeQVYVfllDcL7QKyulYeNrf9BxTuYEY1TsP8cN/E4tGSyZZcejarabr+fNii",
-	"SJHtOZI/xqYGp16OYmQ7xvlok8d96n3b7N5ZqCl4YCD12IFsrxNs1XRvDuecZstgT9H/6urzKGndH6aG",
-	"Z24CAZQORWExG1qX/rDwybHS8uI2t9fowqSrG6s+YfVW7nGYBfkx414E1oZWT3UvVVjBflxsV4TGpTDW",
-	"z4kMdcDCimP1v4bnOdw/y7ibEr+la8/vbHEN/IPx8ftb+/V2fENg9MdVGLP/+p11AZHQjQv/WNWTUjVp",
-	"NCdA3s8ou/CY9slRrpMw/mHOJ9V0yZhl2YRlwgnZr/E/Z7f/CQAA///UemUFpEAAAA==",
+	"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",
+	"+Zjm3ArZrXH/Trf/CQAA//8ue+16IEQAAA==",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

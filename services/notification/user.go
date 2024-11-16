@@ -105,15 +105,13 @@ func (s *UserNotificationService) SubscribeWebPush(ctx context.Context, secret u
 	return s.userNotifications.SetUserPreferencesTx(ctx, secret, func(p *UserPreferences) error {
 		ix := slices.IndexFunc(p.NotificationConfigs.WebPush,
 			func(c WebPushNotificationConfig) bool {
-				return c.Subscription.DeviceID == subscription.DeviceID
+				return c.DeviceID == subscription.DeviceID
 			},
 		)
 		if ix != -1 {
-			p.NotificationConfigs.WebPush[ix].Subscription = subscription
+			p.NotificationConfigs.WebPush[ix] = subscription
 		} else {
-			p.NotificationConfigs.WebPush = append(p.NotificationConfigs.WebPush, WebPushNotificationConfig{
-				Subscription: subscription,
-			})
+			p.NotificationConfigs.WebPush = append(p.NotificationConfigs.WebPush, subscription)
 		}
 		return nil
 	})
@@ -123,9 +121,7 @@ func (s *UserNotificationService) SubscribeWebPush(ctx context.Context, secret u
 func (s *UserNotificationService) UnsubscribeWebPush(ctx context.Context, secret user.Secret, deviceID string) error {
 	return s.userNotifications.SetUserPreferencesTx(ctx, secret, func(p *UserPreferences) error {
 		p.NotificationConfigs.WebPush = slices.DeleteFunc(p.NotificationConfigs.WebPush,
-			func(c WebPushNotificationConfig) bool {
-				return c.Subscription.DeviceID == deviceID
-			},
+			func(c WebPushNotificationConfig) bool { return c.DeviceID == deviceID },
 		)
 		return nil
 	})

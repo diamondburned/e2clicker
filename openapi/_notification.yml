@@ -22,10 +22,10 @@ paths:
         default:
           $ref: "./_base.yml#/components/responses/ErrorResponse"
 
-  /notifications/push/subscriptions:
+  /notifications/methods:
     get:
-      summary: Get the user's push notification subscriptions
-      operationId: userPushSubscriptions
+      summary: Get the user's notification methods
+      operationId: userNotificationMethods
       responses:
         "200":
           description: >-
@@ -33,14 +33,60 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/ReturnedPushSubscription"
-        "404":
-          description: >-
-            The user has not subscribed to push notifications.
+                $ref: "#/components/schemas/ReturnedNotificationMethods"
         default:
           $ref: "./_base.yml#/components/responses/ErrorResponse"
+
+  /notifications/methods/push/{deviceID}:
+    get:
+      summary: Get the user's push notification subscription
+      operationId: userPushSubscription
+      parameters:
+        - name: deviceID
+          in: path
+          schema:
+            $ref: "#/components/schemas/PushDeviceID"
+          required: true
+          description: >-
+            The device ID of the push subscription to retrieve.
+      responses:
+        "200":
+          description: >-
+            Successfully retrieved the user's push notification subscription.
+            The returned object will contain secrets.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PushSubscription"
+        "404":
+          description: >-
+            The user does not have a push notification subscription for the
+            specified device ID.
+          content:
+            application/json:
+              schema:
+                $ref: "./_base.yml#/components/schemas/Error"
+        default:
+          $ref: "./_base.yml#/components/responses/ErrorResponse"
+    delete:
+      summary: Unsubscribe from push notifications
+      operationId: userUnsubscribePush
+      parameters:
+        - name: deviceID
+          in: path
+          schema:
+            $ref: "#/components/schemas/PushDeviceID"
+          required: true
+          description: >-
+            The device ID of the push subscription to unsubscribe from.
+      responses:
+        "204":
+          description: >-
+            Successfully unsubscribed from push notifications.
+        default:
+          $ref: "./_base.yml#/components/responses/ErrorResponse"
+
+  /notifications/methods/push:
     put:
       summary: Create or update a push subscription
       operationId: userSubscribePush
@@ -54,23 +100,6 @@ paths:
         "204":
           description: >-
             Successfully subscribed to push notifications.
-        default:
-          $ref: "./_base.yml#/components/responses/ErrorResponse"
-    delete:
-      summary: Unsubscribe from push notifications
-      operationId: userUnsubscribePush
-      parameters:
-        - name: deviceID
-          in: query
-          required: true
-          schema:
-            $ref: "#/components/schemas/PushDeviceID"
-          description: >-
-            The device ID of the push subscription to unsubscribe from.
-      responses:
-        "204":
-          description: >-
-            Successfully unsubscribed from push notifications.
         default:
           $ref: "./_base.yml#/components/responses/ErrorResponse"
 
@@ -197,6 +226,16 @@ components:
                 Web Push.
               x-order: 2
           x-order: 3
+
+    ReturnedNotificationMethods:
+      properties:
+        webPush:
+          type: array
+          items:
+            $ref: "#/components/schemas/ReturnedPushSubscription"
+        # TODO: email
+        # TODO: gotify
+        # TODO: pushover
 
     ReturnedPushSubscription:
       description: >-

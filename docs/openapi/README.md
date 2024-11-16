@@ -348,43 +348,114 @@ bearerAuth
 This operation does not require authentication
 </aside>
 
-## Get the user's push notification subscriptions
+## Get the user's notification methods
 
-<a id="opIduserPushSubscriptions"></a>
+<a id="opIduserNotificationMethods"></a>
 
-`GET /notifications/push/subscriptions`
+`GET /notifications/methods`
 
 > Example responses
 
 > 200 Response
 
 ```json
-[
-  {
-    "deviceID": "7996e974",
-    "expirationTime": "2019-08-24T14:15:22Z",
-    "keys": {
-      "p256dh": "string"
+{
+  "webPush": [
+    {
+      "deviceID": "7996e974",
+      "expirationTime": "2019-08-24T14:15:22Z",
+      "keys": {
+        "p256dh": "string"
+      }
     }
-  }
-]
+  ]
+}
 ```
 
-<h3 id="get-the-user's-push-notification-subscriptions-responses">Responses</h3>
+<h3 id="get-the-user's-notification-methods-responses">Responses</h3>
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Successfully retrieved the user's push notification subscription.|Inline|
-|404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|The user has not subscribed to push notifications.|None|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Successfully retrieved the user's push notification subscription.|[ReturnedNotificationMethods](#schemareturnednotificationmethods)|
 |default|Default|The request is invalid.|[Error](#schemaerror)|
 
-<h3 id="get-the-user's-push-notification-subscriptions-responseschema">Response Schema</h3>
+<aside class="warning">
+To perform this operation, you must be authenticated by means of one of the following methods:
+bearerAuth
+</aside>
 
-Status Code **200**
+## Get the user's push notification subscription
 
-|Name|Type|Required|Restrictions|Description|
+<a id="opIduserPushSubscription"></a>
+
+`GET /notifications/methods/push/{deviceID}`
+
+<h3 id="get-the-user's-push-notification-subscription-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
 |---|---|---|---|---|
-|*anonymous*|[[ReturnedPushSubscription](#schemareturnedpushsubscription)]|false|none|[Similar to a [PushSubscription], but specifically for returning to the user. This type contains no secrets.]|
+|deviceID|path|[PushDeviceID](#schemapushdeviceid)|true|The device ID of the push subscription to retrieve.|
+
+> Example responses
+
+> 200 Response
+
+```json
+{
+  "deviceID": "7996e974",
+  "endpoint": "string",
+  "expirationTime": "2019-08-24T14:15:22Z",
+  "keys": {
+    "p256dh": "string",
+    "auth": "string"
+  }
+}
+```
+
+<h3 id="get-the-user's-push-notification-subscription-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Successfully retrieved the user's push notification subscription. The returned object will contain secrets.|[PushSubscription](#schemapushsubscription)|
+|404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|The user does not have a push notification subscription for the specified device ID.|[Error](#schemaerror)|
+|default|Default|The request is invalid.|[Error](#schemaerror)|
+
+<aside class="warning">
+To perform this operation, you must be authenticated by means of one of the following methods:
+bearerAuth
+</aside>
+
+## Unsubscribe from push notifications
+
+<a id="opIduserUnsubscribePush"></a>
+
+`DELETE /notifications/methods/push/{deviceID}`
+
+<h3 id="unsubscribe-from-push-notifications-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|deviceID|path|[PushDeviceID](#schemapushdeviceid)|true|The device ID of the push subscription to unsubscribe from.|
+
+> Example responses
+
+> default Response
+
+```json
+{
+  "message": "string",
+  "details": null,
+  "internal": true,
+  "internalCode": "string"
+}
+```
+
+<h3 id="unsubscribe-from-push-notifications-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|204|[No Content](https://tools.ietf.org/html/rfc7231#section-6.3.5)|Successfully unsubscribed from push notifications.|None|
+|default|Default|The request is invalid.|[Error](#schemaerror)|
 
 <aside class="warning">
 To perform this operation, you must be authenticated by means of one of the following methods:
@@ -395,7 +466,7 @@ bearerAuth
 
 <a id="opIduserSubscribePush"></a>
 
-`PUT /notifications/push/subscriptions`
+`PUT /notifications/methods/push`
 
 > Body parameter
 
@@ -435,43 +506,6 @@ bearerAuth
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
 |204|[No Content](https://tools.ietf.org/html/rfc7231#section-6.3.5)|Successfully subscribed to push notifications.|None|
-|default|Default|The request is invalid.|[Error](#schemaerror)|
-
-<aside class="warning">
-To perform this operation, you must be authenticated by means of one of the following methods:
-bearerAuth
-</aside>
-
-## Unsubscribe from push notifications
-
-<a id="opIduserUnsubscribePush"></a>
-
-`DELETE /notifications/push/subscriptions`
-
-<h3 id="unsubscribe-from-push-notifications-parameters">Parameters</h3>
-
-|Name|In|Type|Required|Description|
-|---|---|---|---|---|
-|deviceID|query|[PushDeviceID](#schemapushdeviceid)|true|The device ID of the push subscription to unsubscribe from.|
-
-> Example responses
-
-> default Response
-
-```json
-{
-  "message": "string",
-  "details": null,
-  "internal": true,
-  "internalCode": "string"
-}
-```
-
-<h3 id="unsubscribe-from-push-notifications-responses">Responses</h3>
-
-|Status|Meaning|Description|Schema|
-|---|---|---|---|
-|204|[No Content](https://tools.ietf.org/html/rfc7231#section-6.3.5)|Successfully unsubscribed from push notifications.|None|
 |default|Default|The request is invalid.|[Error](#schemaerror)|
 
 <aside class="warning">
@@ -1048,6 +1082,34 @@ This is the object that is returned by calling PushSubscription.toJSON(). More i
 ### Properties
 
 *None*
+
+<h2 id="tocS_ReturnedNotificationMethods">ReturnedNotificationMethods</h2>
+<!-- backwards compatibility -->
+<a id="schemareturnednotificationmethods"></a>
+<a id="schema_ReturnedNotificationMethods"></a>
+<a id="tocSreturnednotificationmethods"></a>
+<a id="tocsreturnednotificationmethods"></a>
+
+```json
+{
+  "webPush": [
+    {
+      "deviceID": "7996e974",
+      "expirationTime": "2019-08-24T14:15:22Z",
+      "keys": {
+        "p256dh": "string"
+      }
+    }
+  ]
+}
+
+```
+
+### Properties
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|webPush|[[ReturnedPushSubscription](#schemareturnedpushsubscription)]|false|none|[Similar to a [PushSubscription], but specifically for returning to the user. This type contains no secrets.]|
 
 <h2 id="tocS_ReturnedPushSubscription">ReturnedPushSubscription</h2>
 <!-- backwards compatibility -->

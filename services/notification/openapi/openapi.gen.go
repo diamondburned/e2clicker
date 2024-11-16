@@ -75,6 +75,11 @@ type PushSubscription struct {
 	} `json:"keys"`
 }
 
+// ReturnedNotificationMethods defines model for ReturnedNotificationMethods.
+type ReturnedNotificationMethods struct {
+	WebPush *[]ReturnedPushSubscription `json:"webPush,omitempty"`
+}
+
 // ReturnedPushSubscription Similar to a [PushSubscription], but specifically for returning to the user. This type contains no secrets.
 type ReturnedPushSubscription struct {
 	DeviceID PushDeviceID `json:"deviceID"`
@@ -85,12 +90,6 @@ type ReturnedPushSubscription struct {
 
 	// ExpirationTime The time at which the subscription expires. This is the time when the subscription will be automatically deleted by the browser.
 	ExpirationTime *time.Time `json:"expirationTime,omitempty"`
-}
-
-// UserUnsubscribePushParams defines parameters for UserUnsubscribePush.
-type UserUnsubscribePushParams struct {
-	// DeviceID The device ID of the push subscription to unsubscribe from.
-	DeviceID PushDeviceID `form:"deviceID" json:"deviceID"`
 }
 
 // UserSubscribePushJSONRequestBody defines body for UserSubscribePush for application/json ContentType.
