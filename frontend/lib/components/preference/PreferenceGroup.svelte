@@ -1,32 +1,43 @@
 <script lang="ts">
+  import PreferenceLoader from "./PreferenceLoader.svelte";
+  import type { Props as LoaderProps } from "./PreferenceLoader.svelte";
+
   import type { Snippet } from "svelte";
 
   let {
     name,
     description,
     children,
+    header,
     misc,
+    loader,
   }: {
     name: string;
     description?: Snippet;
     children?: Snippet;
+    header?: Snippet;
     misc?: Snippet;
+    loader?: LoaderProps;
   } = $props();
 </script>
 
 <section class="preference-group">
   <header>
-    <hgroup>
-      <h2>{name}</h2>
-      {#if description}
-        <p>{@render description()}</p>
-      {/if}
-    </hgroup>
-    {#if misc}
+    <div class="top-header">
+      <hgroup class="m-0">
+        <h2>{name}</h2>
+        {#if description}
+          <p>{@render description()}</p>
+        {/if}
+      </hgroup>
       <div class="misc">
-        {@render misc()}
+        {@render misc?.()}
+        {#if loader}
+          <PreferenceLoader {...loader} />
+        {/if}
       </div>
-    {/if}
+    </div>
+    {@render header?.()}
   </header>
 
   <div class="preferences" role="list">
@@ -45,7 +56,7 @@
       --pico-block-spacing-vertical: var(--pico-spacing);
     }
 
-    header {
+    .top-header {
       display: flex;
       align-items: center;
       gap: calc(var(--pico-spacing) / 2);

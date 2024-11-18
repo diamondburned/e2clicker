@@ -41,7 +41,7 @@ func convertSession(s user.Session) openapi.Session {
 		ID:        s.ID,
 		CreatedAt: s.CreatedAt,
 		LastUsed:  s.LastUsed,
-		ExpiresAt: maybeNil(s.ExpiresAt, !s.ExpiresAt.IsZero()),
+		ExpiresAt: s.ExpiresAt,
 	}
 }
 

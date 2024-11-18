@@ -5,6 +5,12 @@
   ...
 }@inputs:
 
+let
+  devFlags = lib.splitString " " (builtins.getEnv "E2CLICKER_DEVFLAGS");
+  hasFlag = flag: lib.elem flag devFlags;
+  noFlag = flag: !(hasFlag flag);
+in
+
 {
   imports = [
     inputs.self.nixosModules.e2clicker
@@ -39,11 +45,11 @@
 
   services.e2clicker = {
     frontend = {
-      enable = true;
+      enable = noFlag "no-frontend";
       socket = true;
     };
     backend = {
-      enable = true;
+      enable = noFlag "no-backend";
       debug = true;
       api = {
         listenAddress = ":36001";
@@ -53,33 +59,40 @@
       };
       notification = {
         clientTimeout = "15s";
-        webPushKeys =
+        webPush =
           let
             path = ../../vapid-keys.json;
           in
-          if builtins.pathExists path then path else null;
+          lib.optionalAttrs (builtins.pathExists path) {
+            enable = true;
+            vapidKeys = path;
+          };
       };
     };
   };
 
   services.caddy = {
     enable = true;
-    virtualHosts.":80".extraConfig = ''
-      handle /_app/immutable* {
-        header Cache-Control "public, immutable, max-age=31536000"
-        file_server {
-          root ${config.services.e2clicker.frontend.package.assets}
-          precompressed gzip br
-          pass_thru
+    virtualHosts.":80".extraConfig =
+      ""
+      + (lib.optionalString (noFlag "no-frontend")) ''
+        handle /_app/immutable* {
+          header Cache-Control "public, immutable, max-age=31536000"
+          file_server {
+            root ${config.services.e2clicker.frontend.package.assets}
+            precompressed gzip br
+            pass_thru
+          }
         }
-      }
-      handle /api* {
-        reverse_proxy * localhost:36001
-      }
-      handle {
-        reverse_proxy * unix/${config.services.e2clicker.frontend.socketPath}
-      }
-    '';
+        handle {
+          reverse_proxy * unix/${config.services.e2clicker.frontend.socketPath}
+        }
+      ''
+      + (lib.optionalString (noFlag "no-backend")) ''
+        handle /api* {
+          reverse_proxy * localhost:36001
+        }
+      '';
   };
 
   environment.systemPackages = with pkgs; [

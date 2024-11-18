@@ -29,28 +29,33 @@ func convertSubscription(subscription openapi.PushSubscription) *webpush.Subscri
 
 // WebPushService is a service for sending notifications via the Push API.
 type WebPushService struct {
-	http http.Client
-	keys e2clickermodule.WebPushKeysSubmodule
+	http *http.Client
+	keys *e2clickermodule.VAPIDKeysSubmodule
 }
 
-// NewWebPushSevice creates a new Push API service.;
+// NewWebPushSevice creates a new Push API service.
 func NewWebPushSevice(config e2clickermodule.Notification) (*WebPushService, error) {
+	if !config.WebPush.Enable {
+		return nil, nil
+	}
+
 	timeout, err := time.ParseDuration(config.ClientTimeout)
 	if err != nil {
 		return nil, fmt.Errorf("invalid client timeout %q: %w", config.ClientTimeout, err)
 	}
 
-	var keys e2clickermodule.WebPushKeysSubmodule
+	var keys *e2clickermodule.VAPIDKeysSubmodule
 
-	switch value := config.WebPushKeys.Value.(type) {
-	case e2clickermodule.WebPushKeysSubmodule:
-		keys = value
-	case e2clickermodule.WebPushKeysPath:
+	switch value := config.WebPush.VAPIDKeys.Value.(type) {
+	case e2clickermodule.VAPIDKeysSubmodule:
+		keys = &value
+	case e2clickermodule.VAPIDKeysPath:
 		b, err := os.ReadFile(string(value))
 		if err != nil {
 			return nil, fmt.Errorf("cannot read WebPushKeys file at %s: %w", value, err)
 		}
-		if err := json.Unmarshal(b, &keys); err != nil {
+		keys = new(e2clickermodule.VAPIDKeysSubmodule)
+		if err := json.Unmarshal(b, keys); err != nil {
 			return nil, fmt.Errorf("cannot unmarshal WebPushKeys at %s: %w", value, err)
 		}
 	default:
@@ -58,7 +63,7 @@ func NewWebPushSevice(config e2clickermodule.Notification) (*WebPushService, err
 	}
 
 	return &WebPushService{
-		http: http.Client{Timeout: timeout},
+		http: &http.Client{Timeout: timeout},
 		keys: keys,
 	}, nil
 }
@@ -69,10 +74,8 @@ func (s WebPushService) VAPIDPublicKey() string {
 }
 
 func (s WebPushService) Notify(ctx context.Context, n Notification, config WebPushNotificationConfig) error {
-	if config.ExpirationTime != nil {
-		if config.ExpirationTime.Before(time.Now()) {
-			return &WebPushSubscriptionExpired{*config.ExpirationTime}
-		}
+	if !config.ExpirationTime.IsZero() && config.ExpirationTime.Before(time.Now()) {
+		return &WebPushSubscriptionExpired{config.ExpirationTime}
 	}
 
 	m, err := json.Marshal(n)
@@ -80,16 +83,15 @@ func (s WebPushService) Notify(ctx context.Context, n Notification, config WebPu
 		return fmt.Errorf("cannot marshal notification: %w", err)
 	}
 
-	resp, err := webpush.SendNotificationWithContext(
-		ctx, m,
-		convertSubscription(config),
-		&webpush.Options{
-			HTTPClient:      &s.http,
-			Urgency:         webpush.UrgencyHigh,
-			VAPIDPublicKey:  s.keys.PublicKey,
-			VAPIDPrivateKey: s.keys.PrivateKey,
-		},
-	)
+	opts := &webpush.Options{
+		HTTPClient:      s.http,
+		Urgency:         webpush.UrgencyHigh,
+		Subscriber:      n.Username,
+		VAPIDPublicKey:  s.keys.PublicKey,
+		VAPIDPrivateKey: s.keys.PrivateKey,
+	}
+
+	resp, err := webpush.SendNotificationWithContext(ctx, m, convertSubscription(config), opts)
 	if err != nil {
 		return fmt.Errorf("cannot send notification: %w", err)
 	}

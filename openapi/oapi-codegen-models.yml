@@ -5,6 +5,7 @@ generate:
   models: true
 output-options:
   skip-prune: true
+  exclude-tags: [ignore]
   name-normalizer: ToCamelCaseWithInitialisms
   response-type-suffix: Response
 # TODO: This works, but oapi-codegen really dies with PathToRawSpec.

@@ -11,9 +11,10 @@ import (
 )
 
 type DeliveryMethod struct {
-	ID    string
-	Units string
-	Name  string
+	ID          string
+	Units       string
+	Name        string
+	Description string
 }
 
 type DosageHistory struct {
@@ -51,7 +52,7 @@ type User struct {
 	Name                    string
 	Locale                  userservice.Locale
 	RegisteredAt            pgtype.Timestamp
-	NotificationPreferences *notificationservice.UserPreferences
+	NotificationPreferences notificationservice.UserPreferences
 }
 
 type UserAvatar struct {

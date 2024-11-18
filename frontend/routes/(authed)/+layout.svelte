@@ -4,7 +4,9 @@
 
   import { goto } from "$app/navigation";
   import { onMount } from "svelte";
-  import { isLoggedIn } from "$lib/api";
+  import { isLoggedIn } from "$lib/api.svelte";
+  import { updateDeliveryMethods } from "$lib/e2/methods.svelte";
+  import LoadingPage from "$lib/components/LoadingPage.svelte";
 
   let { children } = $props();
 
@@ -13,12 +15,23 @@
       goto("/");
     }
   });
+
+  async function init() {
+    await updateDeliveryMethods();
+  }
+
+  let promise = $state(new Promise(() => {}));
+  onMount(() => {
+    promise = init();
+  });
 </script>
 
 <Header />
 
 <main class="flex-1 container spaced-2">
-  {@render children()}
+  <LoadingPage {promise}>
+    {@render children()}
+  </LoadingPage>
 </main>
 
 <Footer />

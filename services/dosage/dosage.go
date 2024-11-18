@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"libdb.so/e2clicker/internal/publicerrors"
+	"libdb.so/e2clicker/services/dosage/openapi"
 	"libdb.so/e2clicker/services/user"
 )
 
@@ -42,15 +43,7 @@ type DosageStorage interface {
 }
 
 // DeliveryMethod describes a method of delivery for medication.
-type DeliveryMethod struct {
-	// ID is a short string representing the delivery method.
-	// This is what goes into the DeliveryMethod fields.
-	ID string
-	// Units is the units of the dose.
-	Units string
-	// Name is the full name of the delivery method.
-	Name string
-}
+type DeliveryMethod = openapi.DeliveryMethod
 
 // Dosage describes a dosage schedule.
 type Dosage struct {

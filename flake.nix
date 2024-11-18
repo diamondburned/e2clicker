@@ -84,13 +84,6 @@
 
         lib = pkgs.lib;
 
-        stub =
-          name:
-          pkgs.writeShellScriptBin name ''
-            echo "This command should not be run."
-            exit 1
-          '';
-
         hashes = {
           goModules = "sha256-5pWXRiZcnhk4N7wQYyiHGfOVhqUplyeiIJs9+PLn8fc=";
           pnpmPackages = "sha256-Qioex2l82EeJAQTaFQX/cT+ZFLJeT6ULI/+UfxaE9tk=";
@@ -109,8 +102,6 @@
             gomod2nix
             moq
 
-            (stub "npm")
-            (stub "npx")
             nodejs
             nodePackages.pnpm
 
@@ -132,6 +123,9 @@
 
             # Set up autocompletion for just in bash.
             [[ $SHELL == bash ]] && complete -W '$(just --summary)' just
+
+            alias npm="echo Use pnpm instead of npm."
+            alias npx="echo Use pnpx instead of npx."
           '';
 
           NO_UPDATE_NOTIFIER = "1";

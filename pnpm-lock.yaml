@@ -112,7 +112,7 @@ importers:
         version: 0.20.5(vite@5.4.10(@types/node@22.9.0)(sass@1.71.1)(terser@5.36.0))(workbox-build@7.3.0)(workbox-window@7.3.0)
       widdershins:
         specifier: ^4.0.1
-        version: 4.0.1(ajv@5.5.2)(mkdirp@0.5.6)
+        version: 4.0.1(ajv@5.5.2)(mkdirp@1.0.4)
       workbox-precaching:
         specifier: ^7.3.0
         version: 7.3.0
@@ -2479,8 +2479,9 @@ packages:
     peerDependencies:
       mkdirp: '>=0.5.0'
 
-  mkdirp@0.5.6:
-    resolution: {integrity: sha512-FP+p8RB8OWpF3YZBCrP5gtADmtXApB5AMLn+vdyA+PyxCjrCs00mjyUozssO33cwDeT3wNGdLxJ5M//YqtHAJw==}
+  mkdirp@1.0.4:
+    resolution: {integrity: sha512-vVqVZQyf3WLx2Shd0qJ9xuvqgAyKPLAiqITEtqW0oIUjzo3PePDd6fW9iFz30ef7Ysp/oiWqbhszeGWW2T6Gzw==}
+    engines: {node: '>=10'}
     hasBin: true
 
   mlly@1.7.2:
@@ -5597,9 +5598,9 @@ snapshots:
     dependencies:
       graceful-fs: 4.2.11
 
-  fs-writefile-promise@1.0.3(mkdirp@0.5.6):
+  fs-writefile-promise@1.0.3(mkdirp@1.0.4):
     dependencies:
-      mkdirp-promise: 1.1.0(mkdirp@0.5.6)
+      mkdirp-promise: 1.1.0(mkdirp@1.0.4)
       pinkie-promise: 1.0.0
     transitivePeerDependencies:
       - mkdirp
@@ -5723,7 +5724,7 @@ snapshots:
 
   http2-client@1.3.5: {}
 
-  httpsnippet@1.25.0(mkdirp@0.5.6):
+  httpsnippet@1.25.0(mkdirp@1.0.4):
     dependencies:
       chalk: 1.1.3
       commander: 2.20.3
@@ -5731,7 +5732,7 @@ snapshots:
       event-stream: 3.3.4
       form-data: 3.0.0
       fs-readfile-promise: 2.0.1
-      fs-writefile-promise: 1.0.3(mkdirp@0.5.6)
+      fs-writefile-promise: 1.0.3(mkdirp@1.0.4)
       har-validator: 5.1.5
       pinkie-promise: 2.0.1
       stringify-object: 3.3.0
@@ -6044,13 +6045,11 @@ snapshots:
 
   minimist@1.2.8: {}
 
-  mkdirp-promise@1.1.0(mkdirp@0.5.6):
+  mkdirp-promise@1.1.0(mkdirp@1.0.4):
     dependencies:
-      mkdirp: 0.5.6
+      mkdirp: 1.0.4
 
-  mkdirp@0.5.6:
-    dependencies:
-      minimist: 1.2.8
+  mkdirp@1.0.4: {}
 
   mlly@1.7.2:
     dependencies:
@@ -7032,12 +7031,12 @@ snapshots:
     dependencies:
       isexe: 2.0.0
 
-  widdershins@4.0.1(ajv@5.5.2)(mkdirp@0.5.6):
+  widdershins@4.0.1(ajv@5.5.2)(mkdirp@1.0.4):
     dependencies:
       dot: 1.1.3
       fast-safe-stringify: 2.1.1
       highlightjs: 9.16.2
-      httpsnippet: 1.25.0(mkdirp@0.5.6)
+      httpsnippet: 1.25.0(mkdirp@1.0.4)
       jgexml: 0.4.4
       markdown-it: 10.0.0
       markdown-it-emoji: 1.4.0

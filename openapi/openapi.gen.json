@@ -392,6 +392,31 @@
         ]
       }
     },
+    "/_ignore/notification/_haha_anything_can_go_here_lol": {
+      "get": {
+        "tags": [
+          "ignore",
+          "notification"
+        ],
+        "responses": {
+          "500": {
+            "description": "This endpoint is not used and should not be called.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "These fields aren't used for any API routes. They're just here to make oazapfts happy :) See https://github.com/oazapfts/oazapfts/issues/325.",
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/Notification"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/register": {
       "post": {
         "summary": "Register a new account",
@@ -524,7 +549,22 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/User"
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/User"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "secret"
+                      ],
+                      "properties": {
+                        "secret": {
+                          "$ref": "#/components/schemas/UserSecret"
+                        }
+                      }
+                    }
+                  ]
                 }
               }
             }
@@ -579,38 +619,6 @@
         "responses": {
           "204": {
             "description": "Successfully set the user's avatar."
-          },
-          "default": {
-            "$ref": "#/components/responses/ErrorResponse"
-          }
-        },
-        "tags": [
-          "user"
-        ]
-      }
-    },
-    "/me/secret": {
-      "get": {
-        "summary": "Get the current user's secret",
-        "operationId": "currentUserSecret",
-        "responses": {
-          "200": {
-            "description": "Successfully retrieved the user's secret.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "secret"
-                  ],
-                  "properties": {
-                    "secret": {
-                      "$ref": "#/components/schemas/UserSecret"
-                    }
-                  }
-                }
-              }
-            }
           },
           "default": {
             "$ref": "#/components/responses/ErrorResponse"
@@ -729,6 +737,12 @@
             "type": "string",
             "description": "The full name of the delivery method.",
             "x-order": 3
+          },
+          "description": {
+            "type": "string",
+            "description": "A description of the delivery method.",
+            "x-order": 4,
+            "x-go-type-skip-optional-pointer": true
           }
         }
       },
@@ -823,14 +837,7 @@
         ],
         "properties": {
           "type": {
-            "type": "string",
-            "enum": [
-              "reminder",
-              "account_notice",
-              "web_push_expiring"
-            ],
-            "description": "The type of notification.",
-            "x-order": 1
+            "$ref": "#/components/schemas/NotificationType"
           },
           "message": {
             "description": "The message of the notification.",
@@ -847,6 +854,17 @@
             "x-order": 3
           }
         }
+      },
+      "NotificationType": {
+        "type": "string",
+        "enum": [
+          "welcome_message",
+          "reminder_message",
+          "account_notice_message",
+          "web_push_expiring_message"
+        ],
+        "description": "The type of notification:\n\n  - `welcome_message` is sent to welcome the user. Realistically, it is\n    used as a test message.\n  - `reminder_message` is sent to remind the user of their hormone dose.\n  - `account_notice_message` is sent to notify the user that they need\n    to check their account.\n  - `web_push_expiring_message` is sent to notify the user that their\n    web push subscription is expiring.",
+        "x-order": -50
       },
       "NotificationMessage": {
         "description": "The message of the notification. This is derived from the notification type but can be overridden by the user.",
@@ -905,7 +923,8 @@
             "type": "string",
             "format": "date-time",
             "description": "The time at which the subscription expires. This is the time when the subscription will be automatically deleted by the browser.",
-            "x-order": 2
+            "x-order": 2,
+            "x-go-type-skip-optional-pointer": true
           },
           "keys": {
             "type": "object",
@@ -958,7 +977,8 @@
           "expirationTime": {
             "type": "string",
             "format": "date-time",
-            "description": "The time at which the subscription expires. This is the time when the subscription will be automatically deleted by the browser."
+            "description": "The time at which the subscription expires. This is the time when the subscription will be automatically deleted by the browser.",
+            "x-go-type-skip-optional-pointer": true
           },
           "keys": {
             "required": [
@@ -972,6 +992,13 @@
             },
             "x-order": 2
           }
+        }
+      },
+      "CustomNotifications": {
+        "description": "Custom notifications that the user can override with. The object keys are the notification types.",
+        "type": "object",
+        "additionalProperties": {
+          "$ref": "#/components/schemas/NotificationMessage"
         }
       },
       "UserSecret": {
@@ -1036,19 +1063,22 @@
             "type": "string",
             "format": "date-time",
             "description": "The time the session was created",
-            "x-order": 2
+            "x-order": 2,
+            "x-go-type-skip-optional-pointer": true
           },
           "lastUsed": {
             "type": "string",
             "format": "date-time",
             "description": "The last time the session was used",
-            "x-order": 3
+            "x-order": 3,
+            "x-go-type-skip-optional-pointer": true
           },
           "expiresAt": {
             "type": "string",
             "format": "date-time",
             "description": "The time the session expires, or null if it never expires",
-            "x-order": 4
+            "x-order": 4,
+            "x-go-type-skip-optional-pointer": true
           }
         }
       }

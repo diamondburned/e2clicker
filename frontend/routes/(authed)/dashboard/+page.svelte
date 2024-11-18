@@ -89,7 +89,7 @@
   <title>Dashboard - e2clicker</title>
 </svelte:head>
 
-<LoadingPage no-darken promise={dosageLoader.promise}>
+<LoadingPage promise={dosageLoader.promise}>
   <section class="dashboard-grid">
     <div id="next-dose">
       <NextDoseCountdown {now} {doses} onsubmit={() => update()}>

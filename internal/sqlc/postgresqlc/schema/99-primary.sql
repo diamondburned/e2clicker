@@ -1,12 +1,14 @@
--- Language: postgresql
---
-CREATE TABLE meta (
+-- Version 0:
+-- This can be run for as many time as is needed.
+CREATE TABLE IF NOT EXISTS meta (
   x bool PRIMARY KEY DEFAULT TRUE CHECK (x), -- force only 1 row
   v smallint NOT NULL
 );
 
 INSERT INTO meta (v)
-  VALUES (1);
+  VALUES (1)
+ON CONFLICT
+  DO NOTHING;
 
 -- NEW VERSION
 UPDATE
@@ -19,19 +21,6 @@ CREATE DOMAIN notificationpreferences AS jsonb;
 
 CREATE DOMAIN locale AS text;
 
-CREATE TABLE delivery_methods (
-  id text PRIMARY KEY, units text NOT NULL, name text NOT NULL
-);
-
-INSERT INTO delivery_methods (id, units, name)
-  VALUES ('EB im', 'mg', 'Estradiol Benzoate, Intramuscular'),
-  ('EV im', 'mg', 'Estradiol Valerate, Intramuscular'),
-  ('EEn im', 'mg', 'Estradiol Enanthate, Intramuscular'),
-  ('EC im', 'mg', 'Estradiol Cypionate, Intramuscular'),
-  ('EUn im', 'mg', 'Estradiol Undecylate, Intramuscular'),
-  ('EUn casubq', 'mg', 'Estradiol Undecylate in Castor oil, Subcutaneous'),
-  ('patch', 'mcg/day', 'Patch');
-
 CREATE TABLE users (
   -- The user's secret (a random string).
   secret usersecret PRIMARY KEY,
@@ -42,7 +31,7 @@ CREATE TABLE users (
   -- The time the user was created.
   registered_at timestamp NOT NULL DEFAULT now(),
   -- The [notification.UserPreferences] type in the Go codebase.
-  notification_preferences notificationpreferences
+  notification_preferences notificationpreferences NOT NULL DEFAULT cast('{}' AS jsonb)
 );
 
 CREATE INDEX users_secret ON users USING HASH (secret);

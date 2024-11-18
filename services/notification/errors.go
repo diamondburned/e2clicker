@@ -1,6 +1,7 @@
 package notification
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -14,7 +15,12 @@ func init() {
 	publicerrors.MarkTypePublic[HTTPUnknownStatusError]()
 	publicerrors.MarkTypePublic[ConfigError]()
 	publicerrors.MarkTypePublic[WebPushSubscriptionExpired]()
+	publicerrors.MarkValuesPublic(ErrWebPushNotAvailable)
+	publicerrors.MarkValuesPublic(ErrUnknownNotificationType)
 }
+
+// ErrUnknownNotificationType is returned when the notification type is unknown.
+var ErrUnknownNotificationType = errors.New("unknown notification type")
 
 // UnknownServiceError is returned when an unknown service is requested.
 type UnknownServiceError struct {
@@ -78,3 +84,6 @@ type WebPushSubscriptionExpired struct {
 func (e WebPushSubscriptionExpired) Error() string {
 	return fmt.Sprintf("push subscription expired at %s", e.ExpiredAt.Format(time.RFC3339))
 }
+
+// ErrWebPushNotAvailable is returned when WebPush is not available.
+var ErrWebPushNotAvailable = fmt.Errorf("WebPush is not available")

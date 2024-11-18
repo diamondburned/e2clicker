@@ -175,6 +175,12 @@ components:
           description: >-
             The full name of the delivery method.
           x-order: 3
+        description:
+          type: string
+          description: >-
+            A description of the delivery method.
+          x-order: 4
+          x-go-type-skip-optional-pointer: true
 
     Dosage:
       type: object

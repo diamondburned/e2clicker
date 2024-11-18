@@ -7,8 +7,8 @@
   import TextHorizontalRule from "$lib/components/TextHorizontalRule.svelte";
 
   import { fade } from "svelte/transition";
-  import { auth } from "$lib/openapi.gen";
-  import { setToken, secretQRRegex } from "$lib/api";
+  import { user, auth, secretQRRegex } from "$lib/api.svelte";
+  import { get } from "svelte/store";
 
   let {
     screen = $bindable(),
@@ -19,14 +19,13 @@
   } = $props();
 
   let error = $state<any>();
-  let loginSecret = $state("");
+  let loginSecret = $state(get(user)?.secret ?? ""); // do not bind or the user will lose this!
   let showQRDialog = $state(false);
 
   async function submitLogin() {
-    console.log("Submitting login with secret", loginSecret);
+    const secret = loginSecret.replace(/\s*/g, "").toUpperCase();
     try {
-      const r = await auth({ secret: loginSecret });
-      setToken(r.token);
+      await auth(secret);
     } catch (err) {
       error = err;
     }

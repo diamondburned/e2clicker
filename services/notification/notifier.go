@@ -9,13 +9,14 @@ import (
 
 	"go.uber.org/fx"
 	"libdb.so/e2clicker/internal/validating"
+	"libdb.so/e2clicker/services/notification/openapi"
 )
 
 // NotificationConfigs contains all the configurations for a notification.
 type NotificationConfigs struct {
 	Gotify   []GotifyNotificationConfig   `json:"gotify,omitempty"`
 	Pushover []PushoverNotificationConfig `json:"pushover,omitempty"`
-	WebPush  []WebPushNotificationConfig  `json:"webPush,omitempty"`
+	WebPush  []openapi.PushSubscription   `json:"webPush,omitempty"`
 }
 
 // IsEmpty returns true if the notification configs are empty.

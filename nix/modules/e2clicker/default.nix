@@ -15,6 +15,8 @@ let
   backendConfigFile = pkgs.writeText "e2clicker-backend.json" (builtins.toJSON e2clicker.backend);
 
   submoduleOptions = options: types.submodule { inherit options; };
+  typeNullableSubmodule = { options }: types.nullOr (submoduleOptions options);
+  typeJSONFile = { options }: types.either types.path (submoduleOptions options);
 in
 
 {
@@ -47,29 +49,34 @@ in
         description = "configuration for the notification service";
         type = submoduleOptions {
           clientTimeout = mkOption {
+            description = "The HTTP timeout when making requests to notification servers.";
             type = types.str;
             default = "2m";
-            description = "The HTTP timeout when making requests to notification servers.";
           };
 
-          webPushKeys = mkOption {
-            type =
-              let
-                schema = types.submodule {
-                  options = {
-                    privateKey = mkOption {
-                      type = types.str;
-                      description = "The VAPID private key.";
-                    };
-                    publicKey = mkOption {
-                      type = types.str;
-                      description = "The VAPID public key.";
+          webPush = mkOption {
+            description = "The path to the file containing the VAPID keys encoded in JSON";
+            type = types.submodule {
+              options = {
+                enable = mkEnableOption "VAPID-encrypted Web Push notifications support";
+
+                vapidKeys = mkOption {
+                  description = "The VAPID keys to use for sending notifications.";
+                  type = typeJSONFile {
+                    options = {
+                      privateKey = mkOption {
+                        type = types.str;
+                        description = "The VAPID private key.";
+                      };
+                      publicKey = mkOption {
+                        type = types.str;
+                        description = "The VAPID public key.";
+                      };
                     };
                   };
                 };
-              in
-              types.nullOr (types.either types.path schema);
-            description = "The path to the file containing the VAPID keys encoded in JSON";
+              };
+            };
           };
         };
       };

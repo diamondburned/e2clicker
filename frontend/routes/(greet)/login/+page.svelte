@@ -7,7 +7,7 @@
 
   import { slide } from "svelte/transition";
   import { page } from "$app/stores";
-  import { isLoggedIn } from "$lib/api";
+  import { isLoggedIn } from "$lib/api.svelte";
   import { goto } from "$app/navigation";
 
   let screen = $state<"login" | "register">(

@@ -4,12 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/go-chi/chi/v5/middleware"
 	"libdb.so/e2clicker/internal/publicerrors"
+	"libdb.so/e2clicker/internal/slogutil"
 	"libdb.so/e2clicker/services/api/openapi"
 )
 
@@ -86,14 +88,23 @@ func recovererMiddleware(next http.Handler) http.Handler {
 		ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
 
 		defer func() {
-			if v := recover(); v != nil {
-				if r.Header.Get("Connection") == "Upgrade" || ww.Status() != 0 {
-					// Status code has already been written. Don't write
-					// anything else.
-					ww.Discard()
-				}
-				writeError(w, r, fmt.Errorf("%v", v), http.StatusInternalServerError)
+			v := recover()
+			if v == nil {
+				return
 			}
+
+			slog.ErrorContext(r.Context(),
+				"panic recovered while handling request",
+				"panic", v,
+				slogutil.StackTrace(2))
+
+			if r.Header.Get("Connection") == "Upgrade" || ww.Status() != 0 {
+				// Status code has already been written. Don't write
+				// anything else.
+				ww.Discard()
+			}
+
+			writeError(w, r, fmt.Errorf("%v", v), http.StatusInternalServerError)
 		}()
 
 		next.ServeHTTP(ww, r)

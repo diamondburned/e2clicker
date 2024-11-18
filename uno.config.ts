@@ -19,7 +19,6 @@ export default defineConfig({
       md: "768px",
       lg: "1024px",
       xl: "1280px",
-      xxl: "1536px",
     },
     fontSize: {
       xs: ["var(--font-size-xs)", "var(--line-height-xs)"],

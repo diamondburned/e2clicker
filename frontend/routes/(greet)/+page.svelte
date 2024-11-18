@@ -2,7 +2,7 @@
   import Icon from "$lib/components/Icon.svelte";
   import Footer from "$lib/components/Footer.svelte";
 
-  import { isLoggedIn } from "$lib/api.js";
+  import { isLoggedIn } from "$lib/api.svelte";
   import { dev } from "$app/environment";
 </script>
 

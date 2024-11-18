@@ -17,6 +17,9 @@ type DeliveryMethod struct {
 
 	// Name The full name of the delivery method.
 	Name string `json:"name"`
+
+	// Description A description of the delivery method.
+	Description string `json:"description,omitempty"`
 }
 
 // Dosage defines model for Dosage.

@@ -24,7 +24,7 @@ type Session struct {
 	LastUsed time.Time `json:"lastUsed"`
 
 	// ExpiresAt The time the session expires, or null if it never expires
-	ExpiresAt *time.Time `json:"expiresAt,omitempty"`
+	ExpiresAt time.Time `json:"expiresAt,omitempty"`
 }
 
 // User A user of the system.

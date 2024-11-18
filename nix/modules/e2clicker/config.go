@@ -33,8 +33,16 @@ type PostgreSQL struct {
 type Notification struct {
 	// ClientTimeout: HTTP timeout when making requests to notification servers.
 	ClientTimeout string `json:"clientTimeout"`
-	// WebPushKeys: path to the file containing the VAPID keys encoded in JSON.
-	WebPushKeys *WebPushKeysJSON `json:"webPushKeys"`
+	// WebPush: path to the file containing the VAPID keys encoded in JSON.
+	WebPush WebPush `json:"webPush"`
+}
+
+// WebPush is the struct type for `config.notification.webPush`.
+type WebPush struct {
+	// Enable: whether to enable VAPID-encrypted Web Push notifications support.
+	Enable bool `json:"enable"`
+	// VAPIDKeys: VAPID keys to use for sending notifications.
+	VAPIDKeys VAPIDKeysJSON `json:"vapidKeys"`
 }
 
 // API is the struct type for `config.api`.
@@ -52,65 +60,65 @@ const (
 	LogFormatText  LogFormat = "text"
 )
 
-// WebPushKeys describes the `either` type for `config.notification.webPushKeys`.
-type WebPushKeys interface {
-	isWebPushKeys()
+// VAPIDKeys describes the `either` type for `config.notification.webPush.vapidKeys`.
+type VAPIDKeys interface {
+	isVAPIDKeys()
 }
 
-// WebPushKeysPath is one of the types that satisfy [WebPushKeys].
-type WebPushKeysPath string
+// VAPIDKeysPath is one of the types that satisfy [VAPIDKeys].
+type VAPIDKeysPath string
 
-// WebPushKeysSubmodule is one of the types that satisfy [WebPushKeys].
-type WebPushKeysSubmodule struct {
+// VAPIDKeysSubmodule is one of the types that satisfy [VAPIDKeys].
+type VAPIDKeysSubmodule struct {
 	// PrivateKey: VAPID private key.
 	PrivateKey string `json:"privateKey"`
 	// PublicKey: VAPID public key.
 	PublicKey string `json:"publicKey"`
 }
 
-func (w WebPushKeysPath) isWebPushKeys() {
+func (v VAPIDKeysPath) isVAPIDKeys() {
 }
-func (w WebPushKeysSubmodule) isWebPushKeys() {
-}
-
-// NewWebPushKeysPath constructs a value of type `path` that satisfies [WebPushKeys].
-func NewWebPushKeysPath(w string) WebPushKeys {
-	return WebPushKeysPath(w)
+func (v VAPIDKeysSubmodule) isVAPIDKeys() {
 }
 
-// NewWebPushKeysSubmodule constructs a value of type `submodule` that satisfies [WebPushKeys].
-func NewWebPushKeysSubmodule(w struct {
+// NewVAPIDKeysPath constructs a value of type `path` that satisfies [VAPIDKeys].
+func NewVAPIDKeysPath(v string) VAPIDKeys {
+	return VAPIDKeysPath(v)
+}
+
+// NewVAPIDKeysSubmodule constructs a value of type `submodule` that satisfies [VAPIDKeys].
+func NewVAPIDKeysSubmodule(v struct {
 	// PrivateKey: VAPID private key.
 	PrivateKey string `json:"privateKey"`
 	// PublicKey: VAPID public key.
 	PublicKey string `json:"publicKey"`
-}) WebPushKeys {
-	return WebPushKeysSubmodule(w)
+}) VAPIDKeys {
+	return VAPIDKeysSubmodule(v)
 }
 
-// WebPushKeysJSON wraps [WebPushKeys] and implements the json.Unmarshaler interface.
-type WebPushKeysJSON struct{ Value WebPushKeys }
+// VAPIDKeysJSON wraps [VAPIDKeys] and implements the json.Unmarshaler interface.
+type VAPIDKeysJSON struct{ Value VAPIDKeys }
 
-// UnmarshalJSON implements the [json.Unmarshaler] interface for [WebPushKeys].
-func (w *WebPushKeysJSON) UnmarshalJSON(data []byte) error {
-	v, err := unmarshalWebPushKeys(data)
+// UnmarshalJSON implements the [json.Unmarshaler] interface for [VAPIDKeys].
+func (v *VAPIDKeysJSON) UnmarshalJSON(data []byte) error {
+	_v, err := unmarshalVAPIDKeys(data)
 	if err != nil {
 		return err
 	}
-	w.Value = v
+	v.Value = _v
 	return nil
 }
 
-// MarshalJSON implements the [json.Marshaler] interface for [WebPushKeys].
-func (w WebPushKeysJSON) MarshalJSON() ([]byte, error) {
-	return json.Marshal(w.Value)
+// MarshalJSON implements the [json.Marshaler] interface for [VAPIDKeys].
+func (v VAPIDKeysJSON) MarshalJSON() ([]byte, error) {
+	return json.Marshal(v.Value)
 }
 
-func unmarshalWebPushKeys(data json.RawMessage) (WebPushKeys, error) {
+func unmarshalVAPIDKeys(data json.RawMessage) (VAPIDKeys, error) {
 
 	var v0 string
 	if err := json.Unmarshal(data, &v0); err == nil {
-		return WebPushKeysPath(v0), nil
+		return VAPIDKeysPath(v0), nil
 	}
 
 	var v1 struct {
@@ -120,8 +128,8 @@ func unmarshalWebPushKeys(data json.RawMessage) (WebPushKeys, error) {
 		PublicKey string `json:"publicKey"`
 	}
 	if err := json.Unmarshal(data, &v1); err == nil {
-		return WebPushKeysSubmodule(v1), nil
+		return VAPIDKeysSubmodule(v1), nil
 	}
 
-	return nil, errors.New("failed to unmarshal WebPushKeys: unknown type received")
+	return nil, errors.New("failed to unmarshal VAPIDKeys: unknown type received")
 }

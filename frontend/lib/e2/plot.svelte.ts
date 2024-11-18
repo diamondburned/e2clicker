@@ -8,7 +8,7 @@ import {
   PKParameters,
   PKRandomFunctions,
 } from "estrannaise/src/models";
-import { deliveryMethod, estrannaiseDeliveryMethod } from "./methods";
+import { deliveryMethod, estrannaiseDeliveryMethod } from "./methods.svelte";
 import type { DosageObservation, PlotStyles } from "./plot";
 import type { LevelUnits } from "estrannaise/src/modeldata";
 import { DateTime, Duration, Interval } from "luxon";

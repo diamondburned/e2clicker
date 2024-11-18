@@ -16,27 +16,28 @@
     tiny?: boolean;
   } = $props();
 
-  let errorString = $derived.by(() => {
+  let errorThing = $derived.by(() => {
+    const cleanError = (e: string) => e.replaceAll(/(^| )Error: /g, "$1").trim();
     switch (typeof error) {
       case "function":
         return error as Snippet;
       case "string":
-        return error;
+        return cleanError(error);
       case "object":
-        return error.data?.message ?? error.message ?? `${error}`;
+        return cleanError(error.data?.message ?? error.message ?? `${error}`);
       default:
-        return `${error}`;
+        return cleanError(`${error}`);
     }
   });
 
-  let errorPrefix = $derived(prefix ? `Error: ${prefix}: ` : "Error: ");
+  let errorPrefix = $derived(prefix ? `${prefix}: ` : "");
 </script>
 
 {#snippet message()}
-  {#if children}
-    {@render children(errorString)}
+  {#if children && typeof errorThing == "string"}
+    {@render children(errorThing)}
   {:else}
-    {errorString}
+    {errorThing}
   {/if}
 {/snippet}
 
@@ -58,7 +59,7 @@
     </span>
   {:else}
     <blockquote
-      class="error-box"
+      class="error-box popping"
       class:tiny
       transition:slide={{ duration: 200 }}
       data-error-prefix={errorPrefix}
@@ -67,16 +68,14 @@
         <Icon name="error" />
       </span>
       <b class="error-text error-prefix">{errorPrefix}</b>
-      <span class="error-text">{@render message()}</span>
+      <div class="error-text inline">{@render message()}</div>
     </blockquote>
   {/if}
 {/if}
 
 <style lang="scss" global>
   .error-box {
-    border: var(--pico-border-width) solid var(--pico-color-red);
-    border-radius: var(--pico-border-radius);
-    background-color: color-mix(in srgb, var(--pico-color-red), transparent 90%);
+    --pico-primary: var(--pico-color-red);
   }
 
   .error-text,

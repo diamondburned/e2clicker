@@ -3,6 +3,7 @@ package notification
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"slices"
 
 	"go.uber.org/fx"
@@ -13,8 +14,8 @@ import (
 // UserPreferences is the preferences of a user.
 // It is JSON-serializable.
 type UserPreferences struct {
-	NotificationConfigs NotificationConfigs     `json:"notificationConfigs"`
-	CustomNotifications map[MessageType]Message `json:"customNotifications,omitempty"`
+	NotificationConfigs NotificationConfigs         `json:"notificationConfigs"`
+	CustomNotifications openapi.CustomNotifications `json:"customNotifications,omitempty"`
 }
 
 type UserNotificationStorage interface {
@@ -31,6 +32,7 @@ type UserNotificationService struct {
 	userNotifications UserNotificationStorage
 	users             *user.UserService
 	notification      *NotificationService
+	logger            *slog.Logger
 }
 
 // UserNotificationServiceConfig is the configuration for the user notification
@@ -41,6 +43,7 @@ type UserNotificationServiceConfig struct {
 	UserNotificationStorage
 	*NotificationService
 	*user.UserService
+	*slog.Logger
 }
 
 // NewUserNotificationService creates a new user notification service.
@@ -49,11 +52,12 @@ func NewUserNotificationService(s UserNotificationServiceConfig) *UserNotificati
 		userNotifications: s.UserNotificationStorage,
 		users:             s.UserService,
 		notification:      s.NotificationService,
+		logger:            s.Logger,
 	}
 }
 
 // NotifyUser sends a notification to a user.
-func (s *UserNotificationService) NotifyUser(ctx context.Context, secret user.Secret, t MessageType) error {
+func (s *UserNotificationService) NotifyUser(ctx context.Context, secret user.Secret, t openapi.NotificationType) error {
 	prefs, err := s.userNotifications.UserPreferences(ctx, secret)
 	if err != nil {
 		return err
@@ -72,7 +76,7 @@ func (s *UserNotificationService) NotifyUser(ctx context.Context, secret user.Se
 		Type:     t,
 		Username: u.Name,
 	}
-	if custom, ok := prefs.CustomNotifications[t]; ok {
+	if custom, ok := prefs.CustomNotifications[string(t)]; ok {
 		n.Message = custom
 	} else {
 		n.Message, err = LoadNotification(ctx, t)
@@ -87,7 +91,7 @@ func (s *UserNotificationService) NotifyUser(ctx context.Context, secret user.Se
 // WebPushInfo returns the web push information of the server.
 func (s *UserNotificationService) WebPushInfo(ctx context.Context) (openapi.PushInfo, error) {
 	if s.notification.services.WebPush == nil {
-		return openapi.PushInfo{}, UnknownServiceError{Service: "webPush"}
+		return openapi.PushInfo{}, ErrWebPushNotAvailable
 	}
 	return openapi.PushInfo{
 		ApplicationServerKey: s.notification.services.WebPush.VAPIDPublicKey(),
@@ -102,6 +106,11 @@ func (s *UserNotificationService) UserPreferences(ctx context.Context, secret us
 // SubscribeWebPush sets the web push subscription of a user.
 // The particular subscription is identified by the device ID.
 func (s *UserNotificationService) SubscribeWebPush(ctx context.Context, secret user.Secret, subscription openapi.PushSubscription) error {
+	s.logger.Debug(
+		"Updating Web Push subscription",
+		"endpoint", subscription.Endpoint,
+		"expirationTime", subscription.ExpirationTime)
+
 	return s.userNotifications.SetUserPreferencesTx(ctx, secret, func(p *UserPreferences) error {
 		ix := slices.IndexFunc(p.NotificationConfigs.WebPush,
 			func(c WebPushNotificationConfig) bool {

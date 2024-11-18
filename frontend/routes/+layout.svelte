@@ -2,6 +2,8 @@
   import "$lib/styles/google-fonts.css";
   import "$lib/styles/styles.scss";
 
+  import LoadingPage from "$lib/components/LoadingPage.svelte";
+
   import { onNavigate } from "$app/navigation";
 
   let { children } = $props();
@@ -16,7 +18,25 @@
       });
     });
   });
+
+  let errorPromise = $state<Promise<any> | null>(null);
 </script>
+
+<svelte:window
+  onerror={(ev) => {
+    ev.preventDefault();
+    errorPromise = new Promise((_, reject) => reject("An unknown browser error occured :("));
+  }}
+  onunhandledrejection={(ev) => {
+    ev.preventDefault();
+    errorPromise = ev.promise;
+    console.error("An unhandled exception occured:", ev.reason);
+  }}
+/>
+
+{#if errorPromise}
+  <LoadingPage promise={errorPromise} />
+{/if}
 
 <!--
   Force the browser to preload this font very early on.

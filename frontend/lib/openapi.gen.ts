@@ -22,6 +22,8 @@ export type DeliveryMethod = {
     units: string;
     /** The full name of the delivery method. */
     name: string;
+    /** A description of the delivery method. */
+    description?: string;
 };
 export type Error = {
     /** A message describing the error */
@@ -88,6 +90,20 @@ export type PushSubscription = {
         /** An authentication secret, as described in Message Encryption for Web Push. */
         auth: string;
     };
+};
+export type NotificationType = "welcome_message" | "reminder_message" | "account_notice_message" | "web_push_expiring_message";
+export type NotificationMessage = {
+    /** The title of the notification. */
+    title: string;
+    /** The message of the notification. */
+    message: string;
+};
+export type Notification = {
+    "type": NotificationType;
+    /** The message of the notification. */
+    message: NotificationMessage;
+    /** The username of the user to send the notification to. */
+    username: string;
 };
 export type Locale = string;
 export type User = {
@@ -294,6 +310,14 @@ export function userSubscribePush(pushSubscription: PushSubscription, opts?: Oaz
         body: pushSubscription
     })));
 }
+export function getIgnoreNotificationHahaAnythingCanGoHereLol(opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 500;
+        data: Notification;
+    }>("/_ignore/notification/_haha_anything_can_go_here_lol", {
+        ...opts
+    }));
+}
 /**
  * Register a new account
  */
@@ -347,7 +371,9 @@ export function auth(body: {
 export function currentUser(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
-        data: User;
+        data: User & {
+            secret: UserSecret;
+        };
     } | {
         status: number;
         data: Error;
@@ -382,22 +408,6 @@ export function setCurrentUserAvatar(body: Blob, opts?: Oazapfts.RequestOpts) {
         ...opts,
         method: "PUT",
         body
-    }));
-}
-/**
- * Get the current user's secret
- */
-export function currentUserSecret(opts?: Oazapfts.RequestOpts) {
-    return oazapfts.ok(oazapfts.fetchJson<{
-        status: 200;
-        data: {
-            secret: UserSecret;
-        };
-    } | {
-        status: number;
-        data: Error;
-    }>("/me/secret", {
-        ...opts
     }));
 }
 /**

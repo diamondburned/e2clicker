@@ -90,7 +90,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/User"
+                allOf:
+                  - $ref: "#/components/schemas/User"
+                  - type: object
+                    required: [secret]
+                    properties:
+                      secret:
+                        $ref: "#/components/schemas/UserSecret"
         default:
           $ref: "./_base.yml#/components/responses/ErrorResponse"
 
@@ -123,25 +129,6 @@ paths:
         "204":
           description: >-
             Successfully set the user's avatar.
-        default:
-          $ref: "./_base.yml#/components/responses/ErrorResponse"
-
-  /me/secret:
-    get:
-      summary: Get the current user's secret
-      operationId: currentUserSecret
-      responses:
-        "200":
-          description: >-
-            Successfully retrieved the user's secret.
-          content:
-            application/json:
-              schema:
-                type: object
-                required: [secret]
-                properties:
-                  secret:
-                    $ref: "#/components/schemas/UserSecret"
         default:
           $ref: "./_base.yml#/components/responses/ErrorResponse"
 
@@ -238,15 +225,18 @@ components:
           description: >-
             The time the session was created
           x-order: 2
+          x-go-type-skip-optional-pointer: true
         lastUsed:
           type: string
           format: date-time
           description: >-
             The last time the session was used
           x-order: 3
+          x-go-type-skip-optional-pointer: true
         expiresAt:
           type: string
           format: date-time
           description: >-
             The time the session expires, or null if it never expires
           x-order: 4
+          x-go-type-skip-optional-pointer: true

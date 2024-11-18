@@ -2,10 +2,26 @@
 @use "@picocss/pico/scss/pico" as * with (
   $theme-color: "pink",
   $enable-responsive-spacings: true,
-  $enable-semantic-container: true,
+  $enable-responsive-typography: true,
+  $enable-semantic-container: false,
   $modules: (
     "themes/default": false,
-  )
+  ),
+  // Font scaling is disabled in these breakpoints because we're handling them
+  // on our own with clamp().
+  $breakpoints:
+    (
+      // Small (landscape phones)
+      sm: (breakpoint: 576px, viewport: 510px, root-font-size: 100%),
+      // Medium (tablets)
+      md: (breakpoint: 768px, viewport: 700px, root-font-size: 100%),
+      // Large
+      lg: (breakpoint: 1024px, viewport: 950px, root-font-size: 100%),
+      // Extra large
+      xl: (breakpoint: 1280px, viewport: 1200px, root-font-size: 100%),
+      // Same as Extra large, but pico.css uses this.
+      xxl: (breakpoint: 1280px, viewport: 1200px, root-font-size: 100%),
+    )
 );
 @use "theme/styles";
 @use "theme/schemes";
@@ -209,4 +225,21 @@ section.as-card {
 article:target,
 section.as-card:target {
   border-color: var(--pico-primary);
+}
+
+blockquote.popping {
+  border: var(--pico-border-width) solid var(--pico-primary);
+  border-radius: var(--pico-border-radius);
+  background-color: color-mix(in srgb, var(--pico-primary), transparent 90%);
+  margin: var(--pico-block-spacing-vertical) 0;
+  box-shadow: var(--pico-card-box-shadow);
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    margin-bottom: 0.5em;
+  }
 }

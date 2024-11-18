@@ -87,7 +87,12 @@ func (h *OpenAPIHandler) CurrentUser(ctx context.Context, request openapi.Curren
 		return nil, err
 	}
 
-	return openapi.CurrentUser200JSONResponse(convertUser(u)), nil
+	return openapi.CurrentUser200JSONResponse{
+		Name:      u.Name,
+		Locale:    u.Locale,
+		HasAvatar: u.HasAvatar,
+		Secret:    session.UserSecret,
+	}, nil
 }
 
 // Get the current user's avatar
@@ -122,15 +127,6 @@ func (h *OpenAPIHandler) SetCurrentUserAvatar(ctx context.Context, request opena
 	}
 
 	return openapi.SetCurrentUserAvatar204Response{}, nil
-}
-
-// Get the current user's secret
-// (GET /me/secret)
-func (h *OpenAPIHandler) CurrentUserSecret(ctx context.Context, request openapi.CurrentUserSecretRequestObject) (openapi.CurrentUserSecretResponseObject, error) {
-	session := sessionFromCtx(ctx)
-	return openapi.CurrentUserSecret200JSONResponse{
-		Secret: session.UserSecret,
-	}, nil
 }
 
 // List the current user's sessions
@@ -264,7 +260,7 @@ func (h *OpenAPIHandler) SetDosage(ctx context.Context, request openapi.SetDosag
 	if !slices.ContainsFunc(methods, func(m dosage.DeliveryMethod) bool {
 		return m.ID == s.DeliveryMethod
 	}) {
-		return nil, publicerrors.Errorf("invalid delivery method %s", s.DeliveryMethod)
+		return nil, publicerrors.Errorf("invalid delivery method %q", s.DeliveryMethod)
 	}
 
 	if err := h.dosage.SetDosage(ctx, s); err != nil {

@@ -1,20 +1,20 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
-  import type { SvelteHTMLElements } from "svelte/elements";
+  import type { HTMLLabelAttributes } from "svelte/elements";
 
   let {
     name,
     description,
     children,
-    ...divAttrs
+    ...attrs
   }: {
     name: string | Snippet;
     description?: Snippet;
     children?: Snippet;
-  } & SvelteHTMLElements["div"] = $props();
+  } & HTMLLabelAttributes = $props();
 </script>
 
-<div class="preference" {...divAttrs}>
+<label class="preference" {...attrs}>
   <hgroup class="preference-info">
     <h4 class="title">
       {#if typeof name === "string"}
@@ -30,7 +30,7 @@
   <div class="preference-content">
     {@render children?.()}
   </div>
-</div>
+</label>
 
 <style lang="scss">
   @use "sass:map";

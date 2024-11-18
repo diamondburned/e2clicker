@@ -3,8 +3,8 @@
   "sql": [
     {
       "engine": "postgresql",
-      "queries": "postgresqlc/queries.sql",
-      "schema": "postgresqlc/schema.sql",
+      "queries": "./postgresqlc/queries",
+      "schema": "./postgresqlc/schema",
       "gen": {
         "go": {
           "package": "postgresqlc",
@@ -36,10 +36,8 @@
               "go_type": {
                 "import": "libdb.so/e2clicker/services/notification",
                 "package": "notificationservice",
-                "type": "UserPreferences",
-                "pointer": true
-              },
-              "nullable": true
+                "type": "UserPreferences"
+              }
             }
           ]
         }

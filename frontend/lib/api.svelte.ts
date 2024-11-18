@@ -1,7 +1,59 @@
 import debounce_ from "debounce-promise";
 import { untrack } from "svelte";
+import { get, derived } from "svelte/store";
+import { goto } from "$app/navigation";
+import { DateTime } from "luxon";
+import { persisted } from "svelte-persisted-store";
 
+import * as api from "./api";
 export * from "./api";
+
+// token is the current session token.
+// It is persisted to the local storage automatically.
+const token = persisted<string | null>("e2clicker-token", null);
+
+// isLoggedIn is true if the user is logged in.
+export const isLoggedIn = derived(token, (token) => !!token);
+
+token.subscribe((token) => {
+  api.defaults.headers = { Authorization: token ? `Bearer ${token}` : undefined };
+  api.defaults.baseUrl = "/api";
+});
+
+export const user = persisted<(api.User & { secret: api.UserSecret }) | null>("e2clicker-me", null);
+let meLastUpdated: DateTime | undefined;
+
+export async function updateUser({ force = false }: { force?: boolean } = {}) {
+  if (!get(isLoggedIn)) {
+    return;
+  }
+
+  if (!force && meLastUpdated && meLastUpdated.diffNow().as("minutes") < 1) {
+    // Too soon to update again.
+    return;
+  }
+
+  try {
+    const v = await api.currentUser();
+    user.set(v);
+    meLastUpdated = DateTime.now();
+  } catch (err) {
+    // If unauthorized, then clear token and redirect to /login.
+    if (api.isStatus(err, 401)) {
+      token.set(null);
+      goto("/login");
+    }
+  }
+}
+
+export async function auth(secret: string, { redirect = true }: { redirect?: boolean } = {}) {
+  const resp = await api.auth({ secret });
+  token.set(resp.token);
+  await updateUser({ force: true });
+  if (redirect) {
+    goto("/");
+  }
+}
 
 export function ignoreFirstRun<T extends (...args: any[]) => any>(fn: T) {
   let first = true;

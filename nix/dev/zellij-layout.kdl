@@ -1,7 +1,7 @@
 layout {
 	pane split_direction="horizontal" {
-		just { args "dev-vm"; }
-		just { args "dev-frontend"; }
+		just size="80%" { args "dev-vm"; }
+		just size="20%" { args "dev-frontend"; }
 	}
 
 	pane_template name="just" {

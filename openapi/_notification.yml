@@ -103,20 +103,30 @@ paths:
         default:
           $ref: "./_base.yml#/components/responses/ErrorResponse"
 
+  /_ignore/notification/_haha_anything_can_go_here_lol:
+    get:
+      tags: [ignore]
+      responses:
+        "500":
+          description: >-
+            This endpoint is not used and should not be called.
+          content:
+            application/json:
+              schema:
+                description: >-
+                  These fields aren't used for any API routes.
+                  They're just here to make oazapfts happy :)
+                  See https://github.com/oazapfts/oazapfts/issues/325.
+                anyOf:
+                  - $ref: "#/components/schemas/Notification"
+
 components:
   schemas:
     Notification:
       required: [type, message, username]
       properties:
         type:
-          type: string
-          enum:
-            - reminder
-            - account_notice
-            - web_push_expiring
-          description: >-
-            The type of notification.
-          x-order: 1
+          $ref: "#/components/schemas/NotificationType"
         message:
           description: >-
             The message of the notification.
@@ -128,6 +138,24 @@ components:
           description: >-
             The username of the user to send the notification to.
           x-order: 3
+
+    NotificationType:
+      type: string
+      enum:
+        - welcome_message
+        - reminder_message
+        - account_notice_message
+        - web_push_expiring_message
+      description: >-
+        The type of notification:
+          - `welcome_message` is sent to welcome the user. Realistically, it is
+            used as a test message.
+          - `reminder_message` is sent to remind the user of their hormone dose.
+          - `account_notice_message` is sent to notify the user that they need
+            to check their account.
+          - `web_push_expiring_message` is sent to notify the user that their
+            web push subscription is expiring.
+      x-order: -50
 
     NotificationMessage:
       description: >-
@@ -206,6 +234,7 @@ components:
             The time at which the subscription expires. This is the time when
             the subscription will be automatically deleted by the browser.
           x-order: 2
+          x-go-type-skip-optional-pointer: true
         keys:
           type: object
           description: >-
@@ -253,6 +282,7 @@ components:
           description: >-
             The time at which the subscription expires. This is the time when
             the subscription will be automatically deleted by the browser.
+          x-go-type-skip-optional-pointer: true
         keys:
           required: [p256dh]
           properties:
@@ -263,3 +293,11 @@ components:
                 (that is, the NIST secp256r1 elliptic curve). The resulting key
                 is an uncompressed point in ANSI X9.62 format.
           x-order: 2
+
+    CustomNotifications:
+      description: >-
+        Custom notifications that the user can override with.
+        The object keys are the notification types.
+      type: object
+      additionalProperties:
+        $ref: "#/components/schemas/NotificationMessage"

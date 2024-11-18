@@ -9,9 +9,10 @@ import (
 
 // Defines values for NotificationType.
 const (
-	AccountNotice   NotificationType = "account_notice"
-	Reminder        NotificationType = "reminder"
-	WebPushExpiring NotificationType = "web_push_expiring"
+	AccountNoticeMessage   NotificationType = "account_notice_message"
+	ReminderMessage        NotificationType = "reminder_message"
+	WebPushExpiringMessage NotificationType = "web_push_expiring_message"
+	WelcomeMessage         NotificationType = "welcome_message"
 )
 
 // PushDeviceID A short ID associated with the device that the push subscription is for This is used to identify the device when updating its push subscription later on.
@@ -20,9 +21,29 @@ const (
 // ```js crypto.randomUUID().slice(0, 8) ```
 type PushDeviceID = string
 
+// NotificationType The type of notification:
+//   - `welcome_message` is sent to welcome the user. Realistically, it is
+//     used as a test message.
+//   - `reminder_message` is sent to remind the user of their hormone dose.
+//   - `account_notice_message` is sent to notify the user that they need
+//     to check their account.
+//   - `web_push_expiring_message` is sent to notify the user that their
+//     web push subscription is expiring.
+type NotificationType string
+
+// CustomNotifications Custom notifications that the user can override with. The object keys are the notification types.
+type CustomNotifications map[string]NotificationMessage
+
 // Notification defines model for Notification.
 type Notification struct {
-	// Type The type of notification.
+	// Type The type of notification:
+	//   - `welcome_message` is sent to welcome the user. Realistically, it is
+	//     used as a test message.
+	//   - `reminder_message` is sent to remind the user of their hormone dose.
+	//   - `account_notice_message` is sent to notify the user that they need
+	//     to check their account.
+	//   - `web_push_expiring_message` is sent to notify the user that their
+	//     web push subscription is expiring.
 	Type NotificationType `json:"type"`
 
 	// Message The message of the notification.
@@ -31,9 +52,6 @@ type Notification struct {
 	// Username The username of the user to send the notification to.
 	Username string `json:"username"`
 }
-
-// NotificationType The type of notification.
-type NotificationType string
 
 // NotificationMessage The message of the notification. This is derived from the notification type but can be overridden by the user.
 type NotificationMessage struct {
@@ -63,7 +81,7 @@ type PushSubscription struct {
 	Endpoint string `json:"endpoint"`
 
 	// ExpirationTime The time at which the subscription expires. This is the time when the subscription will be automatically deleted by the browser.
-	ExpirationTime *time.Time `json:"expirationTime,omitempty"`
+	ExpirationTime time.Time `json:"expirationTime,omitempty"`
 
 	// Keys The VAPID keys to encrypt the push notification.
 	Keys struct {
@@ -89,7 +107,7 @@ type ReturnedPushSubscription struct {
 	} `json:"keys"`
 
 	// ExpirationTime The time at which the subscription expires. This is the time when the subscription will be automatically deleted by the browser.
-	ExpirationTime *time.Time `json:"expirationTime,omitempty"`
+	ExpirationTime time.Time `json:"expirationTime,omitempty"`
 }
 
 // UserSubscribePushJSONRequestBody defines body for UserSubscribePush for application/json ContentType.

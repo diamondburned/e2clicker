@@ -29,7 +29,7 @@ mergeSchema() {
 		name="$(basename "$path" .yml)"
 		if [[ $name == _* ]]; then
 			name=${name/_/}
-			schema="$(yq e "(.paths // (.paths = {}))[].[].tags = [\"$name\"]" "$path")"
+			schema="$(yq e "(.paths // (.paths = {}))[].[].tags += [\"$name\"]" "$path")"
 		else
 			schema="$(cat "$path")"
 		fi

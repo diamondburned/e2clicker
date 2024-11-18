@@ -1,19 +1,21 @@
 <script lang="ts" generics="T">
   import { cubicInOut as easeFade } from "svelte/easing";
-  import { fade, fly } from "svelte/transition";
+  import { fade } from "svelte/transition";
   import ErrorBox from "./ErrorBox.svelte";
-  import { onDestroy, type Snippet } from "svelte";
+  import { type Snippet } from "svelte";
 
   let {
-    "no-darken": noDarken = true,
+    "no-darken": noDarken = false,
     promise = new Promise<T>(() => {}),
     children,
+    errorPrefix,
     errorHeader,
     errorFooter,
   }: {
     "no-darken"?: boolean;
     promise?: Promise<T>;
     children?: Snippet<[T]> | Snippet;
+    errorPrefix?: string;
     errorHeader?: Snippet;
     errorFooter?: Snippet;
   } = $props();
@@ -42,7 +44,7 @@
       {:else}
         <h3>ou nyow :(</h3>
       {/if}
-      <ErrorBox {error} />
+      <ErrorBox {error} prefix={errorPrefix} />
       {@render errorFooter?.()}
     </article>
   </div>

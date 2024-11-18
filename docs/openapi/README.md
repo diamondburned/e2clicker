@@ -31,7 +31,8 @@ Base URLs:
   {
     "id": "string",
     "units": "string",
-    "name": "string"
+    "name": "string",
+    "description": "string"
   }
 ]
 ```
@@ -513,6 +514,44 @@ To perform this operation, you must be authenticated by means of one of the foll
 bearerAuth
 </aside>
 
+<h1 id="e2clicker-service-ignore">ignore</h1>
+
+## get___ignore_notification__haha_anything_can_go_here_lol
+
+`GET /_ignore/notification/_haha_anything_can_go_here_lol`
+
+> Example responses
+
+> 500 Response
+
+```json
+{
+  "type": "welcome_message",
+  "message": null,
+  "username": "string"
+}
+```
+
+<h3 id="get___ignore_notification__haha_anything_can_go_here_lol-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|500|[Internal Server Error](https://tools.ietf.org/html/rfc7231#section-6.6.1)|This endpoint is not used and should not be called.|Inline|
+
+<h3 id="get___ignore_notification__haha_anything_can_go_here_lol-responseschema">Response Schema</h3>
+
+Status Code **500**
+
+*These fields aren't used for any API routes. They're just here to make oazapfts happy :) See https://github.com/oazapfts/oazapfts/issues/325.*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+
+<aside class="warning">
+To perform this operation, you must be authenticated by means of one of the following methods:
+bearerAuth
+</aside>
+
 <h1 id="e2clicker-service-user">user</h1>
 
 ## Register a new account
@@ -626,7 +665,8 @@ This operation does not require authentication
 {
   "name": "string",
   "locale": "string",
-  "hasAvatar": true
+  "hasAvatar": true,
+  "secret": "string"
 }
 ```
 
@@ -634,8 +674,10 @@ This operation does not require authentication
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Successfully retrieved the current user.|[User](#schemauser)|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Successfully retrieved the current user.|Inline|
 |default|Default|The request is invalid.|[Error](#schemaerror)|
+
+<h3 id="get-the-current-user-responseschema">Response Schema</h3>
 
 <aside class="warning">
 To perform this operation, you must be authenticated by means of one of the following methods:
@@ -708,36 +750,6 @@ bearerAuth
 |---|---|---|---|
 |204|[No Content](https://tools.ietf.org/html/rfc7231#section-6.3.5)|Successfully set the user's avatar.|None|
 |default|Default|The request is invalid.|[Error](#schemaerror)|
-
-<aside class="warning">
-To perform this operation, you must be authenticated by means of one of the following methods:
-bearerAuth
-</aside>
-
-## Get the current user's secret
-
-<a id="opIdcurrentUserSecret"></a>
-
-`GET /me/secret`
-
-> Example responses
-
-> 200 Response
-
-```json
-{
-  "secret": "string"
-}
-```
-
-<h3 id="get-the-current-user's-secret-responses">Responses</h3>
-
-|Status|Meaning|Description|Schema|
-|---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Successfully retrieved the user's secret.|Inline|
-|default|Default|The request is invalid.|[Error](#schemaerror)|
-
-<h3 id="get-the-current-user's-secret-responseschema">Response Schema</h3>
 
 <aside class="warning">
 To perform this operation, you must be authenticated by means of one of the following methods:
@@ -861,7 +873,8 @@ bearerAuth
 {
   "id": "string",
   "units": "string",
-  "name": "string"
+  "name": "string",
+  "description": "string"
 }
 
 ```
@@ -873,6 +886,7 @@ bearerAuth
 |id|string|true|none|A short string representing the delivery method. This is what goes into the DeliveryMethod fields.|
 |units|string|true|none|The units of the delivery method.|
 |name|string|true|none|The full name of the delivery method.|
+|description|string|false|none|A description of the delivery method.|
 
 <h2 id="tocS_Dosage">Dosage</h2>
 <!-- backwards compatibility -->
@@ -966,7 +980,7 @@ bearerAuth
 
 ```json
 {
-  "type": "reminder",
+  "type": "welcome_message",
   "message": null,
   "username": "string"
 }
@@ -975,17 +989,44 @@ bearerAuth
 
 ### Properties
 
+*None*
+
+<h2 id="tocS_NotificationType">NotificationType</h2>
+<!-- backwards compatibility -->
+<a id="schemanotificationtype"></a>
+<a id="schema_NotificationType"></a>
+<a id="tocSnotificationtype"></a>
+<a id="tocsnotificationtype"></a>
+
+```json
+"welcome_message"
+
+```
+
+The type of notification:
+
+  - `welcome_message` is sent to welcome the user. Realistically, it is
+    used as a test message.
+  - `reminder_message` is sent to remind the user of their hormone dose.
+  - `account_notice_message` is sent to notify the user that they need
+    to check their account.
+  - `web_push_expiring_message` is sent to notify the user that their
+    web push subscription is expiring.
+
+### Properties
+
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|type|string|true|none|The type of notification.|
+|*anonymous*|string|false|none|The type of notification:<br><br>  - `welcome_message` is sent to welcome the user. Realistically, it is<br>    used as a test message.<br>  - `reminder_message` is sent to remind the user of their hormone dose.<br>  - `account_notice_message` is sent to notify the user that they need<br>    to check their account.<br>  - `web_push_expiring_message` is sent to notify the user that their<br>    web push subscription is expiring.|
 
 #### Enumerated Values
 
 |Property|Value|
 |---|---|
-|type|reminder|
-|type|account_notice|
-|type|web_push_expiring|
+|*anonymous*|welcome_message|
+|*anonymous*|reminder_message|
+|*anonymous*|account_notice_message|
+|*anonymous*|web_push_expiring_message|
 
 <h2 id="tocS_NotificationMessage">NotificationMessage</h2>
 <!-- backwards compatibility -->
@@ -1130,6 +1171,33 @@ This is the object that is returned by calling PushSubscription.toJSON(). More i
 ```
 
 Similar to a [PushSubscription], but specifically for returning to the user. This type contains no secrets.
+
+### Properties
+
+*None*
+
+<h2 id="tocS_CustomNotifications">CustomNotifications</h2>
+<!-- backwards compatibility -->
+<a id="schemacustomnotifications"></a>
+<a id="schema_CustomNotifications"></a>
+<a id="tocScustomnotifications"></a>
+<a id="tocscustomnotifications"></a>
+
+```json
+{
+  "property1": {
+    "title": "string",
+    "message": "string"
+  },
+  "property2": {
+    "title": "string",
+    "message": "string"
+  }
+}
+
+```
+
+Custom notifications that the user can override with. The object keys are the notification types.
 
 ### Properties
 

@@ -2,7 +2,7 @@ import type * as api from "$lib/api";
 import type { LineData, UTCTimestamp } from "lightweight-charts";
 import { DateTime, Interval } from "luxon";
 import { fillTargetRange } from "estrannaise/src/models";
-import { deliveryMethod } from "./methods";
+import { deliveryMethod } from "./methods.svelte";
 
 // style variables used in the plot.
 export const picoVariables = {

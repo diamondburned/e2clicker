@@ -2,6 +2,7 @@ package postgresql
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"libdb.so/e2clicker/internal/sqlc/postgresqlc"
@@ -16,11 +17,7 @@ func (s *Storage) notificationUserStorage() notification.UserNotificationStorage
 type notificationUserStorage Storage
 
 func (s *notificationUserStorage) UserPreferences(ctx context.Context, userSecret user.Secret) (notification.UserPreferences, error) {
-	p, err := s.q.UserNotificationPreferences(ctx, userSecret)
-	if err != nil || p == nil {
-		return notification.UserPreferences{}, err
-	}
-	return *p, nil
+	return s.q.UserNotificationPreferences(ctx, userSecret)
 }
 
 func (s *notificationUserStorage) SetUserPreferencesTx(ctx context.Context, userSecret user.Secret, prefs func(*notification.UserPreferences) error) error {
@@ -37,13 +34,18 @@ func (s *notificationUserStorage) SetUserPreferencesTx(ctx context.Context, user
 		return fmt.Errorf("get user preferences: %w", err)
 	}
 
-	if err := prefs(p); err != nil {
+	if err := prefs(&p); err != nil {
 		return err
 	}
 
+	b, err := json.Marshal(p)
+	if err != nil {
+		return fmt.Errorf("cannot marshal UserPreferences as JSON: %w", err)
+	}
+
 	if err := q.SetUserNotificationPreferences(ctx, postgresqlc.SetUserNotificationPreferencesParams{
-		Secret:                  userSecret,
-		NotificationPreferences: p,
+		Secret:  userSecret,
+		Column2: b,
 	}); err != nil {
 		return fmt.Errorf("set user preferences: %w", err)
 	}

@@ -42,7 +42,7 @@ func NewServer(
 		return nil, fmt.Errorf("cannot get swagger schema: %w", err)
 	}
 
-	requestValidator := newRequestValidator(swaggerAPI, openapi3filter.Options{
+	requestValidatorMiddleware := newRequestValidator(swaggerAPI, openapi3filter.Options{
 		ExcludeResponseBody: true,
 		AuthenticationFunc:  inputs.Authenticator,
 	})
@@ -62,16 +62,15 @@ func NewServer(
 		),
 		openapi.StdHTTPServerOptions{
 			BaseURL: "/api",
-			Middlewares: []openapi.MiddlewareFunc{
-				logRequest(logger),
-				recovererMiddleware,
-				requestValidator,
-			},
 			ErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {
 				writeError(w, r, err, http.StatusBadRequest)
 			},
 		},
 	)
+
+	handler = logRequest(logger)(handler)
+	handler = requestValidatorMiddleware(handler)
+	handler = recovererMiddleware(handler)
 
 	mux := http.NewServeMux()
 	mountDocs(mux, swaggerAPI)

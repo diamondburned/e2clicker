@@ -1,33 +1,10 @@
 <script lang="ts">
   import Icon from "./Icon.svelte";
 
-  import * as api from "$lib/api";
-  import { isLoggedIn, token } from "$lib/api";
-  import { goto } from "$app/navigation";
-
-  let { fixed = false } = $props();
+  import { user, isLoggedIn } from "$lib/api.svelte";
 
   let header: HTMLElement;
   let scrolled = false;
-
-  let me = $state<api.User | null>(null);
-
-  $effect(() => {
-    if ($isLoggedIn) {
-      api
-        .currentUser()
-        .then((u) => {
-          me = u;
-        })
-        .catch((err) => {
-          if ("status" in err && err.status == 401) {
-            // Clear token and redirect to /login.
-            token.set(null);
-            goto("/login");
-          }
-        });
-    }
-  });
 </script>
 
 <svelte:window
@@ -36,7 +13,7 @@
   }}
 />
 
-<header id="header" bind:this={header} class:scrolled class:fixed>
+<header id="header" bind:this={header} class:scrolled>
   <nav class="container">
     <ul>
       <li class="brand">
@@ -45,10 +22,10 @@
       </li>
     </ul>
     <ul>
-      {#if me}
+      {#if $isLoggedIn && $user}
         <li class="current-user">
           <a href="/settings">
-            <span class="name">{me.name}</span>
+            <span class="name">{$user.name}</span>
             <div class="avatar">
               <Icon name="person" />
             </div>
