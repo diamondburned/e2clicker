@@ -227,10 +227,10 @@ section.as-card:target {
   border-color: var(--pico-primary);
 }
 
-blockquote.popping {
+.popping {
   border: var(--pico-border-width) solid var(--pico-primary);
   border-radius: var(--pico-border-radius);
-  background-color: color-mix(in srgb, var(--pico-primary), transparent 90%);
+  background-color: color-mix(in srgb, var(--pico-primary), var(--pico-background-color) 65%);
   margin: var(--pico-block-spacing-vertical) 0;
   box-shadow: var(--pico-card-box-shadow);
 

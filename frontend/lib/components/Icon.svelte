@@ -1,8 +1,17 @@
 <script lang="ts">
-  let { name }: { name: string } = $props();
+  import type { SvelteHTMLElements } from "svelte/elements";
+
+  let {
+    name,
+    class: klass = "",
+    ...attrs
+  }: {
+    name: string;
+    class?: string;
+  } & SvelteHTMLElements["span"] = $props();
 </script>
 
-<span class="material-symbols-rounded">{name.replaceAll("-", "_")}</span>
+<span class="material-symbols-rounded {klass}" {...attrs}>{name.replaceAll("-", "_")}</span>
 
 <style lang="scss">
   .material-symbols-rounded {

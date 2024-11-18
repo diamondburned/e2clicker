@@ -1,16 +1,26 @@
 <script lang="ts">
-  import { type AssignedToast, closeToast } from "$lib/toast.svelte";
+  import { type AssignedToast, closeToast } from "$lib/toasts";
   import { type Snippet } from "svelte";
   import Icon from "../Icon.svelte";
+  import { slide } from "svelte/transition";
 
   let {
     toast,
   }: {
     toast: AssignedToast;
   } = $props();
+
+  let isError = $derived(toast.urgency == "error");
 </script>
 
-<article class="toast flex">
+<article
+  class="toast flex items-center popping"
+  class:error-box={isError}
+  transition:slide={{ duration: 200 }}
+>
+  {#if toast.urgency == "error"}
+    <Icon name="error" class="mr-2 text-red" />
+  {/if}
   <div class="body flex-1">
     {@render render(toast.message)}
     {#if toast.description}
@@ -33,3 +43,10 @@
     {snippet}
   {/if}
 {/snippet}
+
+<style lang="scss">
+  .toast {
+    width: min(40ch, 100%);
+    margin-top: 0;
+  }
+</style>

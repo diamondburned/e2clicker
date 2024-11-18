@@ -5,6 +5,7 @@
   import LoadingPage from "$lib/components/LoadingPage.svelte";
 
   import { onNavigate } from "$app/navigation";
+  import ToastOverlay from "$lib/components/toast/ToastOverlay.svelte";
 
   let { children } = $props();
 
@@ -47,5 +48,7 @@
 <span class="material-symbols-rounded" style="position: fixed; top: -100px; left: -100px"
   >sentiment_satisfied</span
 >
+
+<ToastOverlay />
 
 {@render children()}
