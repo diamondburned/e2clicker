@@ -14,23 +14,7 @@ export type AssignedToast = Toast & {
   readonly deleteAt: DateTime;
 };
 
-export const toasts = writable<AssignedToast[]>([
-  {
-    message: "Hello, world!",
-    description: "This is a test toast.",
-    urgency: "info",
-    timeout: Duration.fromObject({ year: 5 }),
-    id: 0,
-    deleteAt: DateTime.now().plus(Duration.fromObject({ year: 5 })),
-  },
-  {
-    message: "Hello, world!",
-    urgency: "error",
-    timeout: Duration.fromObject({ year: 5 }),
-    id: 1,
-    deleteAt: DateTime.now().plus(Duration.fromObject({ year: 5 })),
-  },
-]);
+export const toasts = writable<AssignedToast[]>([]);
 
 let nextToastID = 0;
 
