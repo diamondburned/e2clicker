@@ -26,7 +26,7 @@ export default defineConfig({
     host: "0.0.0.0",
     port: 8000,
     watch: {
-      ignored: [".direnv/**", ".svelte-kit/**", "dist/**"],
+      ignored: ["**/.direnv/**", "**/dist/**", "**/result/**"],
     },
     proxy: (() => {
       if (devVMAddress) {
