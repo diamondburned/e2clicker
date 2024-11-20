@@ -143,7 +143,11 @@ func MarshalError(ctx context.Context, err error, hiddenMessage string) Marshale
 	initialError := err
 	marshaled := MarshaledError{Internal: true}
 
-	for err != nil {
+	var multiError []error
+	var multiErrorMode bool
+
+	stack := []error{err}
+	for len(stack) > 0 {
 		// Check for value.
 		public, isPublic := publicErrorValues[err]
 		if !isPublic {
@@ -164,14 +168,28 @@ func MarshalError(ctx context.Context, err error, hiddenMessage string) Marshale
 			}
 
 			if isValidErrorDetails(err) {
-				marshaled.Details = err
+				multiError = append(multiError, err)
 			}
 		}
 
 		// If there is no custom stringer, then keep looking for a deeper error.
 		// This allows us to use [ForcePublic] while still preserving the
 		// stringer of the underlying type.
-		err = errors.Unwrap(err)
+		switch v := err.(type) {
+		case interface{ Unwrap() error }:
+			stack = append(stack, v.Unwrap())
+		case interface{ Unwrap() []error }:
+			stack = append(stack, v.Unwrap()...)
+			multiErrorMode = true
+		}
+	}
+
+	if multiErrorMode {
+		marshaled.Details = map[string]any{
+			"errors": multiError,
+		}
+	} else if len(multiError) > 0 {
+		marshaled.Details = multiError[0]
 	}
 
 	if marshaled.Internal {
