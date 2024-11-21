@@ -20,6 +20,21 @@ token.subscribe((token) => {
   api.defaults.baseUrl = "/api";
 });
 
+api.defaults.fetch = async (input, init) => {
+  const resp = await fetch(input, init);
+  switch (resp.status) {
+    case 401:
+      // Unauthorized. Clear token and redirect to /login.
+      token.set(null);
+      goto("/login");
+      break;
+    case 500:
+      console.error("500 Internal Server Error", resp);
+      break;
+  }
+  return resp;
+};
+
 export const user = persisted<(api.User & { secret: api.UserSecret }) | null>("e2clicker-me", null);
 let meLastUpdated: DateTime | undefined;
 
@@ -51,7 +66,7 @@ export async function auth(secret: string, { redirect = true }: { redirect?: boo
   token.set(resp.token);
   await updateUser({ force: true });
   if (redirect) {
-    goto("/");
+    goto("/dashboard");
   }
 }
 
