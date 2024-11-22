@@ -29,14 +29,14 @@ paths:
       summary: Get the user's dosage and optionally their history
       operationId: dosage
       parameters:
-        - name: historyStart
+        - name: start
           in: query
           schema:
             type: string
             format: date-time
             description: >-
               The start date of the history to retrieve, if requested.
-        - name: historyEnd
+        - name: end
           in: query
           schema:
             type: string
@@ -92,19 +92,9 @@ paths:
     post:
       summary: Record a new dosage to the user's history
       operationId: recordDose
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [takenAt]
-              properties:
-                takenAt:
-                  type: string
-                  format: date-time
-                  description: >-
-                    The time the dosage was taken.
+      description: >-
+        This endpoint is used to record a new dosage observation to the user's
+        history. The current time is automatically used.
       responses:
         "200":
           description: >-
@@ -152,6 +142,97 @@ paths:
             Successfully deleted dosages.
         default:
           $ref: "./_base.yml#/components/responses/ErrorResponse"
+
+  /dosage/export:
+    get:
+      summary: Export the user's dosage history
+      operationId: exportDosageHistory
+      parameters:
+        - name: Accept
+          in: header
+          schema:
+            type: string
+            enum: [text/csv, application/json]
+            default: text/csv
+          required: true
+          description: >-
+            The format to export the dosage history in.
+        - name: start
+          in: query
+          schema:
+            type: string
+            format: date-time
+            description: >-
+              The start date of the history to retrieve.
+              If not provided, defaults to the beginning of time.
+        - name: end
+          in: query
+          schema:
+            type: string
+            format: date-time
+            description: >-
+              The end date of the history to retrieve.
+              If not provided, defaults to the current time.
+      responses:
+        "200":
+          description: >-
+            Successfully retrieved the dosage history.
+          content:
+            text/csv:
+              schema:
+                $ref: "#/components/schemas/DosageHistoryCSV"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DosageHistory"
+        "429":
+          $ref: "./_base.yml#/components/responses/RateLimitedResponse"
+        default:
+          $ref: "./_base.yml#/components/responses/ErrorResponse"
+
+  /dosage/import:
+    post:
+      summary: Import a CSV file of dosage history
+      operationId: importDosageHistory
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+            enum: [text/csv, application/json]
+            default: text/csv
+          required: true
+          description: >-
+            The format to import the dosage history as.
+      requestBody:
+        required: true
+        content:
+          text/csv:
+            schema:
+              $ref: "#/components/schemas/DosageHistoryCSV"
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DosageHistory"
+      responses:
+        "200":
+          description: >-
+            Successfully imported the dosage history.
+          content:
+            application/json:
+              schema:
+                required: [records, succeeded]
+                properties:
+                  records:
+                    type: integer
+                    description: >-
+                      The number of records in the file.
+                  succeeded:
+                    type: integer
+                    description: >-
+                      The number of records actually imported successfully. This
+                      is not equal to #records if there were errors or duplicate
+                      entries.
+                  error:
+                    $ref: "./_base.yml#/components/schemas/Error"
 
 components:
   schemas:
@@ -214,6 +295,17 @@ components:
       type: array
       items:
         $ref: "#/components/schemas/DosageObservation"
+
+    DosageHistoryCSV:
+      type: string
+      example: |-
+        dose,method,takenAt,takenOffAt,comment
+        100,patch tw,2020-01-01T00:00:00Z,,
+        100,patch tw,2020-01-02T12:00:00Z,,
+        100,patch tw,2020-01-04T00:00:00Z,,
+        100,patch tw,2020-01-05T12:00:00Z,,
+      description: >-
+        The CSV format of the user's dosage history.
 
     DosageObservation:
       type: object

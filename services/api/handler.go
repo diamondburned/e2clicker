@@ -4,8 +4,12 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"mime"
+	"net/http"
 	"slices"
+	"time"
 
+	"github.com/timewasted/go-accept-headers"
 	"go.uber.org/fx"
 	"libdb.so/e2clicker/internal/asset"
 	"libdb.so/e2clicker/internal/publicerrors"
@@ -20,10 +24,12 @@ import (
 // OpenAPIHandler is the handler for the OpenAPI service.
 // It implements the OpenAPI service interface.
 type OpenAPIHandler struct {
-	logger *slog.Logger
-	users  *user.UserService
-	notifs *notification.UserNotificationService
-	dosage dosage.DosageStorage
+	logger       *slog.Logger
+	users        *user.UserService
+	notifs       *notification.UserNotificationService
+	dosage       dosage.DosageStorage
+	doseHistory  dosage.DoseHistoryStorage
+	doseExporter *dosage.ExporterService
 }
 
 // OpenAPIHandlerServices is the set of service dependencies required by the
@@ -31,18 +37,22 @@ type OpenAPIHandler struct {
 type OpenAPIHandlerServices struct {
 	fx.In
 
-	*user.UserService
-	*notification.UserNotificationService
-	dosage.DosageStorage
+	Users             *user.UserService
+	UserNotifications *notification.UserNotificationService
+	Dosage            dosage.DosageStorage
+	DoseHistory       dosage.DoseHistoryStorage
+	DoseExporter      *dosage.ExporterService
 }
 
 // NewOpenAPIHandler creates a new OpenAPIHandler.
 func NewOpenAPIHandler(deps OpenAPIHandlerServices, logger *slog.Logger) *OpenAPIHandler {
 	return &OpenAPIHandler{
-		logger: logger,
-		users:  deps.UserService,
-		notifs: deps.UserNotificationService,
-		dosage: deps.DosageStorage,
+		logger:       logger,
+		users:        deps.Users,
+		notifs:       deps.UserNotifications,
+		dosage:       deps.Dosage,
+		doseHistory:  deps.DoseHistory,
+		doseExporter: deps.DoseExporter,
 	}
 }
 
@@ -170,77 +180,6 @@ func (h *OpenAPIHandler) DeliveryMethods(ctx context.Context, request openapi.De
 	), nil
 }
 
-func (h *OpenAPIHandler) RecordDose(ctx context.Context, request openapi.RecordDoseRequestObject) (openapi.RecordDoseResponseObject, error) {
-	session := sessionFromCtx(ctx)
-
-	o, err := h.dosage.RecordDose(ctx, session.UserSecret, request.Body.TakenAt)
-	if err != nil {
-		return nil, err
-	}
-
-	return openapi.RecordDose200JSONResponse(convertDosageObservation(o)), nil
-}
-
-func (h *OpenAPIHandler) EditDose(ctx context.Context, request openapi.EditDoseRequestObject) (openapi.EditDoseResponseObject, error) {
-	session := sessionFromCtx(ctx)
-
-	o := dosage.Observation{
-		DoseID:         request.Body.ID,
-		DeliveryMethod: request.Body.DeliveryMethod,
-		Dose:           request.Body.Dose,
-		TakenAt:        request.Body.TakenAt,
-		TakenOffAt:     request.Body.TakenOffAt,
-	}
-
-	if err := h.dosage.EditDose(ctx, session.UserSecret, o); err != nil {
-		return nil, err
-	}
-
-	return openapi.EditDose204Response{}, nil
-}
-
-func (h *OpenAPIHandler) ForgetDoses(ctx context.Context, request openapi.ForgetDosesRequestObject) (openapi.ForgetDosesResponseObject, error) {
-	session := sessionFromCtx(ctx)
-
-	if err := h.dosage.ForgetDoses(ctx, session.UserSecret, request.Params.DoseIds); err != nil {
-		return nil, err
-	}
-
-	return openapi.ForgetDoses204Response{}, nil
-}
-
-func (h *OpenAPIHandler) Dosage(ctx context.Context, request openapi.DosageRequestObject) (openapi.DosageResponseObject, error) {
-	session := sessionFromCtx(ctx)
-
-	var r openapi.Dosage200JSONResponse
-
-	dosage, err := h.dosage.Dosage(ctx, session.UserSecret)
-	if err != nil {
-		return nil, fmt.Errorf("cannot get dosage: %w", err)
-	}
-	if dosage != nil {
-		r.Dosage = &openapi.Dosage{
-			DeliveryMethod: dosage.DeliveryMethod,
-			Dose:           dosage.Dose,
-			Interval:       float64(dosage.Interval),
-			Concurrence:    dosage.Concurrence,
-		}
-	}
-
-	if request.Params.HistoryStart != nil && request.Params.HistoryEnd != nil {
-		history, err := h.dosage.DoseHistory(ctx, session.UserSecret,
-			*request.Params.HistoryStart,
-			*request.Params.HistoryEnd)
-		if err != nil {
-			return nil, fmt.Errorf("cannot get dosage history: %w", err)
-		}
-		list := convertList(history.Entries, convertDosageObservation)
-		r.History = &list
-	}
-
-	return r, nil
-}
-
 func (h *OpenAPIHandler) SetDosage(ctx context.Context, request openapi.SetDosageRequestObject) (openapi.SetDosageResponseObject, error) {
 	session := sessionFromCtx(ctx)
 
@@ -278,13 +217,188 @@ func (h *OpenAPIHandler) ClearDosage(ctx context.Context, request openapi.ClearD
 	return openapi.ClearDosage204Response{}, nil
 }
 
+func (h *OpenAPIHandler) RecordDose(ctx context.Context, request openapi.RecordDoseRequestObject) (openapi.RecordDoseResponseObject, error) {
+	session := sessionFromCtx(ctx)
+	now := time.Now()
+
+	d, err := h.dosage.Dosage(ctx, session.UserSecret)
+	if err != nil {
+		return nil, publicerrors.New("no dosage set")
+	}
+
+	dose := dosage.Dose{
+		DeliveryMethod: d.DeliveryMethod,
+		Dose:           d.Dose,
+		TakenAt:        now,
+	}
+
+	id, err := h.doseHistory.RecordDose(ctx, session.UserSecret, dose)
+	if err != nil {
+		return nil, err
+	}
+
+	return openapi.RecordDose200JSONResponse(
+		convertDosageObservation(dosage.Observation{
+			ID:   id,
+			Dose: dose,
+		}),
+	), nil
+}
+
+func (h *OpenAPIHandler) EditDose(ctx context.Context, request openapi.EditDoseRequestObject) (openapi.EditDoseResponseObject, error) {
+	session := sessionFromCtx(ctx)
+
+	o := dosage.Dose{
+		DeliveryMethod: request.Body.DeliveryMethod,
+		Dose:           request.Body.Dose,
+		TakenAt:        request.Body.TakenAt,
+		TakenOffAt:     request.Body.TakenOffAt,
+	}
+
+	if err := h.doseHistory.EditDose(ctx, session.UserSecret, request.Body.ID, o); err != nil {
+		return nil, err
+	}
+
+	return openapi.EditDose204Response{}, nil
+}
+
+func (h *OpenAPIHandler) ForgetDoses(ctx context.Context, request openapi.ForgetDosesRequestObject) (openapi.ForgetDosesResponseObject, error) {
+	session := sessionFromCtx(ctx)
+
+	if err := h.doseHistory.ForgetDoses(ctx, session.UserSecret, request.Params.DoseIds); err != nil {
+		return nil, err
+	}
+
+	return openapi.ForgetDoses204Response{}, nil
+}
+
+func (h *OpenAPIHandler) Dosage(ctx context.Context, request openapi.DosageRequestObject) (openapi.DosageResponseObject, error) {
+	session := sessionFromCtx(ctx)
+
+	var r openapi.Dosage200JSONResponse
+
+	dosage, err := h.dosage.Dosage(ctx, session.UserSecret)
+	if err != nil {
+		return nil, fmt.Errorf("cannot get dosage: %w", err)
+	}
+	if dosage != nil {
+		r.Dosage = &openapi.Dosage{
+			DeliveryMethod: dosage.DeliveryMethod,
+			Dose:           dosage.Dose,
+			Interval:       float64(dosage.Interval),
+			Concurrence:    dosage.Concurrence,
+		}
+	}
+
+	if request.Params.Start != nil && request.Params.End != nil {
+		const oneYear = 365 * 24 * time.Hour
+		if request.Params.End.Sub(*request.Params.Start) > oneYear {
+			return nil, publicerrors.New("" +
+				"requested history range is too large, must be 1 year or less " +
+				"(consider exporting instead)")
+		}
+
+		os := make([]openapi.DosageObservation, 0, 32)
+		r.History = &os
+
+		for dose, err := range h.doseHistory.DoseHistory(
+			ctx, session.UserSecret,
+			*request.Params.Start,
+			*request.Params.End) {
+
+			if err != nil {
+				return nil, fmt.Errorf("cannot get dosage history: %w", err)
+			}
+
+			os = append(os, convertDosageObservation(dose))
+		}
+	}
+
+	return r, nil
+}
+
+func (h *OpenAPIHandler) ExportDosageHistory(ctx context.Context, request openapi.ExportDosageHistoryRequestObject) (openapi.ExportDosageHistoryResponseObject, error) {
+	session := sessionFromCtx(ctx)
+
+	var format dosage.ExportFormat
+	for _, t := range accept.Parse(string(request.Params.Accept)) {
+		switch t.Type + "/" + t.Subtype {
+		case "text/csv":
+			format = dosage.ExportCSV
+		case "application/json":
+			format = dosage.ExportJSON
+		}
+	}
+
+	if format == "" {
+		return nil, ErrNoAcceptableContentType
+	}
+
+	return exportDosageHistoryResponse(func(w http.ResponseWriter) error {
+		_, err := h.doseExporter.ExportDoseHistory(ctx, w, session.UserSecret, dosage.ExportDoseHistoryOptions{
+			Begin:  optPtr(request.Params.Start),
+			End:    optPtr(request.Params.End),
+			Format: dosage.ExportFormat(request.Params.Accept),
+		})
+		return err
+	}), nil
+}
+
+type exportDosageHistoryResponse func(http.ResponseWriter) error
+
+func (f exportDosageHistoryResponse) VisitExportDosageHistoryResponse(w http.ResponseWriter) error {
+	return f(w)
+}
+
+func (h *OpenAPIHandler) ImportDosageHistory(ctx context.Context, request openapi.ImportDosageHistoryRequestObject) (openapi.ImportDosageHistoryResponseObject, error) {
+	session := sessionFromCtx(ctx)
+
+	contentType, params, err := mime.ParseMediaType(string(request.Params.ContentType))
+	if err != nil {
+		return nil, publicerrors.Errorf("invalid content type: %w", err)
+	}
+
+	if charset, ok := params["charset"]; ok && charset != "utf-8" {
+		return nil, publicerrors.Errorf("unsupported charset %q, UTF-8 only please", charset)
+	}
+
+	var format dosage.ExportFormat
+	switch contentType {
+	case "text/csv":
+		format = dosage.ExportCSV
+	case "application/json":
+		format = dosage.ExportJSON
+	default:
+		return nil, ErrNoAcceptableContentType
+	}
+
+	result, err := h.doseExporter.ImportDoseHistory(ctx, request.Body, session.UserSecret, dosage.ImportDoseHistoryOptions{
+		Format: format,
+	})
+	if result.Records == 0 && err != nil {
+		return nil, err
+	}
+
+	var oapiError *openapi.Error
+	if err != nil {
+		converted := convertError[errorResponse](ctx, err)
+		oapiError = &converted.Body
+	}
+
+	return openapi.ImportDosageHistory200JSONResponse{
+		Records:   int(result.Records),
+		Succeeded: int(result.Succeeded),
+		Error:     oapiError,
+	}, nil
+}
+
 func convertDosageObservation(o dosage.Observation) openapi.DosageObservation {
 	return openapi.DosageObservation{
-		ID:             o.DoseID,
-		DeliveryMethod: o.DeliveryMethod,
-		Dose:           o.Dose,
-		TakenAt:        o.TakenAt,
-		TakenOffAt:     o.TakenOffAt,
+		ID:             o.ID,
+		DeliveryMethod: o.Dose.DeliveryMethod,
+		Dose:           o.Dose.Dose,
+		TakenAt:        o.Dose.TakenAt,
+		TakenOffAt:     o.Dose.TakenOffAt,
 	}
 }
 

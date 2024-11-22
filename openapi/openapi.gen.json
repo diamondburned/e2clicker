@@ -52,7 +52,7 @@
         "operationId": "dosage",
         "parameters": [
           {
-            "name": "historyStart",
+            "name": "start",
             "in": "query",
             "schema": {
               "type": "string",
@@ -61,7 +61,7 @@
             }
           },
           {
-            "name": "historyEnd",
+            "name": "end",
             "in": "query",
             "schema": {
               "type": "string",
@@ -148,26 +148,7 @@
       "post": {
         "summary": "Record a new dosage to the user's history",
         "operationId": "recordDose",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "takenAt"
-                ],
-                "properties": {
-                  "takenAt": {
-                    "type": "string",
-                    "format": "date-time",
-                    "description": "The time the dosage was taken."
-                  }
-                }
-              }
-            }
-          }
-        },
+        "description": "This endpoint is used to record a new dosage observation to the user's history. The current time is automatically used.",
         "responses": {
           "200": {
             "description": "Successfully recorded dosage.",
@@ -238,6 +219,140 @@
           },
           "default": {
             "$ref": "#/components/responses/ErrorResponse"
+          }
+        },
+        "tags": [
+          "dosage"
+        ]
+      }
+    },
+    "/dosage/export": {
+      "get": {
+        "summary": "Export the user's dosage history",
+        "operationId": "exportDosageHistory",
+        "parameters": [
+          {
+            "name": "Accept",
+            "in": "header",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "text/csv",
+                "application/json"
+              ],
+              "default": "text/csv"
+            },
+            "required": true,
+            "description": "The format to export the dosage history in."
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "description": "The start date of the history to retrieve. If not provided, defaults to the beginning of time."
+            }
+          },
+          {
+            "name": "end",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "description": "The end date of the history to retrieve. If not provided, defaults to the current time."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved the dosage history.",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "$ref": "#/components/schemas/DosageHistoryCSV"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DosageHistory"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitedResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        },
+        "tags": [
+          "dosage"
+        ]
+      }
+    },
+    "/dosage/import": {
+      "post": {
+        "summary": "Import a CSV file of dosage history",
+        "operationId": "importDosageHistory",
+        "parameters": [
+          {
+            "name": "Content-Type",
+            "in": "header",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "text/csv",
+                "application/json"
+              ],
+              "default": "text/csv"
+            },
+            "required": true,
+            "description": "The format to import the dosage history as."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "text/csv": {
+              "schema": {
+                "$ref": "#/components/schemas/DosageHistoryCSV"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DosageHistory"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successfully imported the dosage history.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "required": [
+                    "records",
+                    "succeeded"
+                  ],
+                  "properties": {
+                    "records": {
+                      "type": "integer",
+                      "description": "The number of records in the file."
+                    },
+                    "succeeded": {
+                      "type": "integer",
+                      "description": "The number of records actually imported successfully. This is not equal to #records if there were errors or duplicate entries."
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -694,13 +809,24 @@
     "schemas": {
       "Error": {
         "type": "object",
+        "required": [
+          "message"
+        ],
         "properties": {
           "message": {
             "type": "string",
             "description": "A message describing the error"
           },
+          "errors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "description": "An array of errors that caused this error. If this is populated, then [details] is omitted.",
+            "x-go-type-skip-optional-pointer": true
+          },
           "details": {
-            "description": "Additional details about the error"
+            "description": "Additional details about the error. Ignored if [errors] is used."
           },
           "internal": {
             "type": "boolean",
@@ -710,10 +836,7 @@
             "type": "string",
             "description": "An internal code for the error (useless for clients)"
           }
-        },
-        "required": [
-          "message"
-        ]
+        }
       },
       "DeliveryMethod": {
         "type": "object",
@@ -783,6 +906,11 @@
         "items": {
           "$ref": "#/components/schemas/DosageObservation"
         }
+      },
+      "DosageHistoryCSV": {
+        "type": "string",
+        "example": "dose,method,takenAt,takenOffAt,comment\n100,patch tw,2020-01-01T00:00:00Z,,\n100,patch tw,2020-01-02T12:00:00Z,,\n100,patch tw,2020-01-04T00:00:00Z,,\n100,patch tw,2020-01-05T12:00:00Z,,",
+        "description": "The CSV format of the user's dosage history."
       },
       "DosageObservation": {
         "type": "object",
@@ -1083,9 +1211,34 @@
         }
       }
     },
+    "headers": {
+      "Retry-After": {
+        "description": "If the client should retry the request after a certain amount of time (in seconds), this header will be set. Often times, this will be set if the request is being rate limmmited.",
+        "schema": {
+          "type": "integer",
+          "format": "int32",
+          "minimum": 0
+        }
+      }
+    },
     "responses": {
       "ErrorResponse": {
         "description": "The request is invalid.\n",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "RateLimitedResponse": {
+        "description": "The request has been rate limited.\n",
+        "headers": {
+          "Retry-After": {
+            "$ref": "#/components/headers/Retry-After"
+          }
+        },
         "content": {
           "application/json": {
             "schema": {

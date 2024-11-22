@@ -18,11 +18,9 @@ DELETE FROM dosage_schedule
 WHERE user_secret = $1;
 
 -- name: RecordDose :one
-INSERT INTO dosage_history (user_secret, taken_at, delivery_method, dose) (
-  SELECT @user_secret::usersecret, @taken_at::timestamptz, delivery_method, dose
-  FROM dosage_schedule
-  WHERE dosage_schedule.user_secret = @user_secret::usersecret)
-RETURNING dosage_history.*;
+INSERT INTO dosage_history (user_secret, delivery_method, dose, taken_at, taken_off_at)
+  VALUES ($1, $2, $3, $4, $5)
+RETURNING dose_id;
 
 -- name: EditDose :execrows
 UPDATE
@@ -37,7 +35,7 @@ DELETE FROM dosage_history
 WHERE user_secret = $1
   AND dose_id = ANY (@dose_ids::bigint[]);
 
--- name: DoseHistory :many
+-- name: DoseHistory :iter
 SELECT *
 FROM dosage_history
 WHERE user_secret = $1

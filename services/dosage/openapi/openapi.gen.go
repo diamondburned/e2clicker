@@ -7,6 +7,18 @@ import (
 	"time"
 )
 
+// Defines values for ExportDosageHistoryParamsAccept.
+const (
+	ExportDosageHistoryParamsAcceptApplicationJSON ExportDosageHistoryParamsAccept = "application/json"
+	ExportDosageHistoryParamsAcceptTextCsv         ExportDosageHistoryParamsAccept = "text/csv"
+)
+
+// Defines values for ImportDosageHistoryParamsContentType.
+const (
+	ImportDosageHistoryParamsContentTypeApplicationJSON ImportDosageHistoryParamsContentType = "application/json"
+	ImportDosageHistoryParamsContentTypeTextCsv         ImportDosageHistoryParamsContentType = "text/csv"
+)
+
 // DeliveryMethod defines model for DeliveryMethod.
 type DeliveryMethod struct {
 	// ID A short string representing the delivery method. This is what goes into the DeliveryMethod fields.
@@ -40,6 +52,9 @@ type Dosage struct {
 // DosageHistory defines model for DosageHistory.
 type DosageHistory = []DosageObservation
 
+// DosageHistoryCSV The CSV format of the user's dosage history.
+type DosageHistoryCSV = string
+
 // DosageObservation defines model for DosageObservation.
 type DosageObservation struct {
 	// ID The unique identifier for the observation.
@@ -63,8 +78,8 @@ type DosageObservation struct {
 
 // DosageParams defines parameters for Dosage.
 type DosageParams struct {
-	HistoryStart *time.Time `form:"historyStart,omitempty" json:"historyStart,omitempty"`
-	HistoryEnd   *time.Time `form:"historyEnd,omitempty" json:"historyEnd,omitempty"`
+	Start *time.Time `form:"start,omitempty" json:"start,omitempty"`
+	End   *time.Time `form:"end,omitempty" json:"end,omitempty"`
 }
 
 // ForgetDosesParams defines parameters for ForgetDoses.
@@ -72,20 +87,35 @@ type ForgetDosesParams struct {
 	DoseIds []int64 `form:"dose_ids" json:"dose_ids"`
 }
 
-// RecordDoseJSONBody defines parameters for RecordDose.
-type RecordDoseJSONBody struct {
-	// TakenAt The time the dosage was taken.
-	TakenAt time.Time `json:"takenAt"`
-}
-
 // EditDoseJSONBody defines parameters for EditDose.
 type EditDoseJSONBody = DosageObservation
+
+// ExportDosageHistoryParams defines parameters for ExportDosageHistory.
+type ExportDosageHistoryParams struct {
+	Start *time.Time `form:"start,omitempty" json:"start,omitempty"`
+	End   *time.Time `form:"end,omitempty" json:"end,omitempty"`
+
+	// Accept The format to export the dosage history in.
+	Accept ExportDosageHistoryParamsAccept `json:"Accept"`
+}
+
+// ExportDosageHistoryParamsAccept defines parameters for ExportDosageHistory.
+type ExportDosageHistoryParamsAccept string
+
+// ImportDosageHistoryParams defines parameters for ImportDosageHistory.
+type ImportDosageHistoryParams struct {
+	// ContentType The format to import the dosage history as.
+	ContentType ImportDosageHistoryParamsContentType `json:"Content-Type"`
+}
+
+// ImportDosageHistoryParamsContentType defines parameters for ImportDosageHistory.
+type ImportDosageHistoryParamsContentType string
 
 // SetDosageJSONRequestBody defines body for SetDosage for application/json ContentType.
 type SetDosageJSONRequestBody = Dosage
 
-// RecordDoseJSONRequestBody defines body for RecordDose for application/json ContentType.
-type RecordDoseJSONRequestBody RecordDoseJSONBody
-
 // EditDoseJSONRequestBody defines body for EditDose for application/json ContentType.
 type EditDoseJSONRequestBody = EditDoseJSONBody
+
+// ImportDosageHistoryJSONRequestBody defines body for ImportDosageHistory for application/json ContentType.
+type ImportDosageHistoryJSONRequestBody = DosageHistory

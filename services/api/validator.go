@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -9,6 +10,7 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/getkin/kin-openapi/routers"
+	"libdb.so/ctxt"
 	"libdb.so/e2clicker/internal/publicerrors"
 	"libdb.so/e2clicker/services/user"
 
@@ -26,6 +28,26 @@ func init() {
 	)
 }
 
+// requestContextOverrider allows functions within [validateRequest] to override
+// the request's context using the parent context that it was given by providing
+// a pointer value that functions can mutate from within.
+//
+// This is a workaround for the fact that [openapi3filter.ValidateRequest] does
+// not allow functions to override the context.
+type requestContextOverrider struct {
+	old context.Context
+	new context.Context
+}
+
+func addToRequestContext[T any](ctx context.Context, v T) {
+	co, ok := ctxt.From[*requestContextOverrider](ctx)
+	if !ok {
+		panic("ctx is not used within the RequestValidator middleware")
+	}
+	co.old = co.new
+	co.new = ctxt.With[T](ctx, v)
+}
+
 func newRequestValidator(spec *openapi3.T, options openapi3filter.Options) func(next http.Handler) http.Handler {
 	router, err := legacyrouter.NewRouter(spec)
 	if err != nil {
@@ -34,11 +56,19 @@ func newRequestValidator(spec *openapi3.T, options openapi3filter.Options) func(
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			co := &requestContextOverrider{
+				old: r.Context(),
+				new: r.Context(),
+			}
+			r = r.WithContext(ctxt.With(r.Context(), co))
+
 			statusCode, err := validateRequest(r, router, options)
 			if err != nil {
 				writeError(w, r, err, statusCode)
 				return
 			}
+
+			r = r.WithContext(co.new)
 			next.ServeHTTP(w, r)
 		})
 	}

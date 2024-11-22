@@ -10,4 +10,7 @@ var Module = fx.Module("dosage",
 	fx.Decorate(func(slog *slog.Logger) *slog.Logger {
 		return slog.With("module", "dosage")
 	}),
+	fx.Provide(
+		NewExporterService,
+	),
 )

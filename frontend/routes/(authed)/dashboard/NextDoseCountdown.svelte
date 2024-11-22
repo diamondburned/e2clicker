@@ -38,7 +38,7 @@
   async function submitDose() {
     submittingDose = true;
     try {
-      await api.recordDose({ takenAt: DateTime.now().toISO() });
+      await api.recordDose();
       onsubmit();
     } finally {
       submittingDose = false;
@@ -79,7 +79,7 @@
   </p>
 {/snippet}
 
-<div class="flex flex-col items-center spaced-2">
+<div class="dose-countdown flex flex-col items-center">
   <div class="duration-container">
     {#if nextDoseAt}
       {#if isTimeForNextDose}
@@ -93,7 +93,7 @@
     {/if}
   </div>
 
-  <footer class="actions min-h-12">
+  <footer class="actions min-h-12 flex flex-row flex-wrap justify-center gap-2">
     <button
       class:outline={!isTimeForNextDose}
       onclick={() => submitDose()}
@@ -125,6 +125,7 @@
 
   .duration-display {
     text-align: center;
+    margin: 0;
 
     & > * {
       white-space: nowrap;

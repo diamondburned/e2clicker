@@ -120,6 +120,12 @@
     @include screen.article;
   }
 
+  .content {
+    button {
+      margin-top: calc(var(--pico-spacing) * 0.25);
+    }
+  }
+
   .login-tooltip {
     --pico-typography-spacing-vertical: 0.35em;
 

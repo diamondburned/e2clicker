@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"slices"
+	"time"
 
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"go.uber.org/fx"
@@ -68,9 +70,11 @@ func NewServer(
 		},
 	)
 
-	handler = logRequest(logger)(handler)
-	handler = requestValidatorMiddleware(handler)
-	handler = recovererMiddleware(handler)
+	handler = applyMiddleware(handler, []middlewareFunc{
+		logRequest(logger), // runs first
+		recovererMiddleware,
+		requestValidatorMiddleware,
+	})
 
 	mux := http.NewServeMux()
 	mountDocs(mux, swaggerAPI)
@@ -90,7 +94,16 @@ func NewServer(
 	return &Server{}, nil
 }
 
-func logRequest(slog *slog.Logger) func(next http.Handler) http.Handler {
+type middlewareFunc = func(http.Handler) http.Handler
+
+func applyMiddleware(next http.Handler, mws []middlewareFunc) http.Handler {
+	for _, mw := range slices.Backward(mws) {
+		next = mw(next)
+	}
+	return next
+}
+
+func logRequest(slog *slog.Logger) middlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			slog.DebugContext(r.Context(),
@@ -100,7 +113,17 @@ func logRequest(slog *slog.Logger) func(next http.Handler) http.Handler {
 				"query", r.URL.Query().Encode(),
 				"headers", r.Header)
 
+			start := time.Now()
 			next.ServeHTTP(w, r)
+			since := time.Since(start)
+
+			slog.DebugContext(r.Context(),
+				"finished API request",
+				"method", r.Method,
+				"path", r.URL.Path,
+				"query", r.URL.Query().Encode(),
+				"headers", r.Header,
+				"took", since)
 		})
 	}
 }

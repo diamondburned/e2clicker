@@ -156,7 +156,25 @@
         "nixos-shell": "nixos-shell",
         "nixpkgs": "nixpkgs_2",
         "oapi-codegen": "oapi-codegen",
+        "sqlc-iter-pr": "sqlc-iter-pr",
         "yaml-language-server": "yaml-language-server"
+      }
+    },
+    "sqlc-iter-pr": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1731158841,
+        "narHash": "sha256-e8extW+CXdF0GOvefsNAiYNXcnrycyf+BUCWAtqWNV0=",
+        "owner": "viewsharp",
+        "repo": "sqlc",
+        "rev": "ed3e34b3cf20ad6d7624029627791a04967b6422",
+        "type": "github"
+      },
+      "original": {
+        "owner": "viewsharp",
+        "ref": "main",
+        "repo": "sqlc",
+        "type": "github"
       }
     },
     "systems": {

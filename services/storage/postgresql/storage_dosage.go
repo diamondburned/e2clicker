@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"math"
-	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -13,9 +12,9 @@ import (
 	"libdb.so/e2clicker/services/user"
 )
 
-func (s *Storage) dosageStorage() dosage.DosageStorage { return (*dosageStorage)(s) }
-
 type dosageStorage Storage
+
+func (s *Storage) dosageStorage() dosage.DosageStorage { return (*dosageStorage)(s) }
 
 func (s *dosageStorage) DeliveryMethods(ctx context.Context) ([]dosage.DeliveryMethod, error) {
 	methods, err := s.q.DeliveryMethods(ctx)
@@ -71,72 +70,4 @@ func (s *dosageStorage) SetDosage(ctx context.Context, d dosage.Dosage) error {
 
 func (s *dosageStorage) ClearDosage(ctx context.Context, secret user.Secret) error {
 	return s.q.DeleteDosageSchedule(ctx, secret)
-}
-
-func (s *dosageStorage) RecordDose(ctx context.Context, userSecret user.Secret, takenAt time.Time) (dosage.Observation, error) {
-	o, err := s.q.RecordDose(ctx, postgresqlc.RecordDoseParams{
-		UserSecret: userSecret,
-		TakenAt:    pgtype.Timestamptz{Time: takenAt, Valid: true},
-	})
-	if err != nil {
-		return dosage.Observation{}, err
-	}
-	return convertObservation(o), nil
-}
-
-func (s *dosageStorage) EditDose(ctx context.Context, userSecret user.Secret, o dosage.Observation) error {
-	n, err := s.q.EditDose(ctx, postgresqlc.EditDoseParams{
-		UserSecret:     userSecret,
-		DoseID:         o.DoseID,
-		DeliveryMethod: pgtype.Text{String: o.DeliveryMethod, Valid: true},
-		Dose:           o.Dose,
-		TakenAt:        pgtype.Timestamptz{Time: o.TakenAt, Valid: true},
-		TakenOffAt:     pgtype.Timestamptz{Time: deref(o.TakenOffAt), Valid: o.TakenOffAt != nil},
-	})
-	if err != nil {
-		return err
-	}
-	if n == 0 {
-		return dosage.ErrNoDoseMatched
-	}
-	return nil
-}
-
-func (s *dosageStorage) ForgetDoses(ctx context.Context, userSecret user.Secret, doseIDs []int64) error {
-	n, err := s.q.ForgetDoses(ctx, postgresqlc.ForgetDosesParams{
-		UserSecret: userSecret,
-		DoseIDs:    doseIDs,
-	})
-	if err != nil {
-		return err
-	}
-	if len(doseIDs) > 0 && n == 0 {
-		return dosage.ErrNoDoseMatched
-	}
-	return nil
-}
-
-func (s *dosageStorage) DoseHistory(ctx context.Context, secret user.Secret, begin, end time.Time) (dosage.History, error) {
-	o, err := s.q.DoseHistory(ctx, postgresqlc.DoseHistoryParams{
-		UserSecret: secret,
-		Start:      pgtype.Timestamptz{Time: begin, Valid: true},
-		End:        pgtype.Timestamptz{Time: end, Valid: true},
-	})
-	if err != nil {
-		return dosage.History{}, err
-	}
-	return dosage.History{
-		UserSecret: secret,
-		Entries:    convertList(o, convertObservation),
-	}, nil
-}
-
-func convertObservation(o postgresqlc.DosageHistory) dosage.Observation {
-	return dosage.Observation{
-		DoseID:         o.DoseID,
-		DeliveryMethod: o.DeliveryMethod.String,
-		Dose:           o.Dose,
-		TakenAt:        o.TakenAt.Time,
-		TakenOffAt:     maybePtr(o.TakenOffAt.Time, o.TakenOffAt.Valid),
-	}
 }

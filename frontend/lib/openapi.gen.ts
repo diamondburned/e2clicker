@@ -28,7 +28,9 @@ export type DeliveryMethod = {
 export type Error = {
     /** A message describing the error */
     message: string;
-    /** Additional details about the error */
+    /** An array of errors that caused this error. If this is populated, then [details] is omitted. */
+    errors?: Error[];
+    /** Additional details about the error. Ignored if [errors] is used. */
     details?: any;
     /** Whether the error is internal */
     internal?: boolean;
@@ -60,6 +62,7 @@ export type DosageObservation = {
     comment?: string;
 };
 export type DosageHistory = DosageObservation[];
+export type DosageHistoryCsv = string;
 export type PushInfo = {
     /** A Base64-encoded string or ArrayBuffer containing an ECDSA P-256 public key that the push server will use to authenticate your application server. If specified, all messages from your application server must use the VAPID authentication scheme, and include a JWT signed with the corresponding private key. This key IS NOT the same ECDH key that you use to encrypt the data. For more information, see "Using VAPID with WebPush". */
     applicationServerKey: string;
@@ -141,9 +144,9 @@ export function deliveryMethods(opts?: Oazapfts.RequestOpts) {
 /**
  * Get the user's dosage and optionally their history
  */
-export function dosage({ historyStart, historyEnd }: {
-    historyStart?: string;
-    historyEnd?: string;
+export function dosage({ start, end }: {
+    start?: string;
+    end?: string;
 } = {}, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
@@ -154,8 +157,8 @@ export function dosage({ historyStart, historyEnd }: {
             history?: DosageHistory;
         };
     }>(`/dosage${QS.query(QS.explode({
-        historyStart,
-        historyEnd
+        start,
+        end
     }))}`, {
         ...opts
     }));
@@ -192,18 +195,14 @@ export function clearDosage(opts?: Oazapfts.RequestOpts) {
 /**
  * Record a new dosage to the user's history
  */
-export function recordDose(body: {
-    /** The time the dosage was taken. */
-    takenAt: string;
-}, opts?: Oazapfts.RequestOpts) {
+export function recordDose(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
         data: DosageObservation;
-    }>("/dosage/dose", oazapfts.json({
+    }>("/dosage/dose", {
         ...opts,
-        method: "POST",
-        body
-    })));
+        method: "POST"
+    }));
 }
 /**
  * Update a dosage in the user's history
@@ -235,6 +234,54 @@ export function forgetDoses(doseIds: number[], opts?: Oazapfts.RequestOpts) {
         ...opts,
         method: "DELETE"
     }));
+}
+/**
+ * Export the user's dosage history
+ */
+export function exportDosageHistory(accept: "text/csv" | "application/json", { start, end }: {
+    start?: string;
+    end?: string;
+} = {}, opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 200;
+        data: DosageHistoryCsv;
+    } | {
+        status: 429;
+        data: Error;
+    } | {
+        status: number;
+        data: Error;
+    }>(`/dosage/export${QS.query(QS.explode({
+        start,
+        end
+    }))}`, {
+        ...opts,
+        headers: oazapfts.mergeHeaders(opts?.headers, {
+            Accept: accept
+        })
+    }));
+}
+/**
+ * Import a CSV file of dosage history
+ */
+export function importDosageHistory(contentType: "text/csv" | "application/json", dosageHistoryCsv: DosageHistoryCsv, opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 200;
+        data: {
+            /** The number of records in the file. */
+            records: number;
+            /** The number of records actually imported successfully. This is not equal to #records if there were errors or duplicate entries. */
+            succeeded: number;
+            error?: Error;
+        };
+    }>("/dosage/import", oazapfts.json({
+        ...opts,
+        method: "POST",
+        body: dosageHistoryCsv,
+        headers: oazapfts.mergeHeaders(opts?.headers, {
+            "Content-Type": contentType
+        })
+    })));
 }
 /**
  * Get the server's push notification information

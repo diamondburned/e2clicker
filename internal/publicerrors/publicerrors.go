@@ -123,6 +123,9 @@ type MarshaledError struct {
 	// It is guaranteed to either be nil or a valid object containing at least 1
 	// key.
 	Details any `json:"details,omitempty"`
+	// Errors is a list of errors, if any.
+	// If this is set, then [Details] is ignored.
+	Errors []MarshaledError `json:"errors,omitempty"`
 	// Internal is true if the error is internal (not public).
 	Internal bool `json:"internal,omitempty"`
 	// InternalCode is the internal error code, if any.
@@ -140,7 +143,6 @@ func MarshalJSON(ctx context.Context, err error, hiddenMessage string) ([]byte, 
 // message is hidden and replaced with [hiddenMessage]. If err is nil, then the
 // error message is [HiddenMessage].
 func MarshalError(ctx context.Context, err error, hiddenMessage string) MarshaledError {
-	initialError := err
 	marshaled := MarshaledError{Internal: true}
 
 	var multiError []error
@@ -148,34 +150,37 @@ func MarshalError(ctx context.Context, err error, hiddenMessage string) Marshale
 
 	stack := []error{err}
 	for len(stack) > 0 {
+		curr := stack[len(stack)-1]
+		stack = stack[:len(stack)-1]
+
 		// Check for value.
-		public, isPublic := publicErrorValues[err]
+		public, isPublic := publicErrorValues[curr]
 		if !isPublic {
-			public, isPublic = publicErrorTypes[reflect.TypeOf(err)]
+			public, isPublic = publicErrorTypes[reflect.TypeOf(curr)]
 		}
 
 		if isPublic {
 			marshaled.Internal = false
 
 			if public.stringer != nil {
-				marshaled.Message = public.stringer(ctx, err, marshaled.Message)
+				marshaled.Message = public.stringer(ctx, curr, marshaled.Message)
 			} else {
 				if marshaled.Message != "" {
-					marshaled.Message = marshaled.Message + ": " + err.Error()
+					marshaled.Message = marshaled.Message + ": " + curr.Error()
 				} else {
-					marshaled.Message = err.Error()
+					marshaled.Message = curr.Error()
 				}
 			}
 
-			if isValidErrorDetails(err) {
-				multiError = append(multiError, err)
+			if isValidErrorDetails(curr) {
+				multiError = append(multiError, curr)
 			}
 		}
 
 		// If there is no custom stringer, then keep looking for a deeper error.
 		// This allows us to use [ForcePublic] while still preserving the
 		// stringer of the underlying type.
-		switch v := err.(type) {
+		switch v := curr.(type) {
 		case interface{ Unwrap() error }:
 			stack = append(stack, v.Unwrap())
 		case interface{ Unwrap() []error }:
@@ -185,15 +190,19 @@ func MarshalError(ctx context.Context, err error, hiddenMessage string) Marshale
 	}
 
 	if multiErrorMode {
-		marshaled.Details = map[string]any{
-			"errors": multiError,
+		marshaled.Errors = make([]MarshaledError, len(multiError))
+		for i, err := range multiError {
+			marshaled.Errors[i] = MarshaledError{
+				Message: err.Error(),
+				Details: err,
+			}
 		}
 	} else if len(multiError) > 0 {
 		marshaled.Details = multiError[0]
 	}
 
 	if marshaled.Internal {
-		marshaled.InternalCode = generateInternalCode(initialError)
+		marshaled.InternalCode = generateInternalCode(err)
 		if marshaled.Message == "" {
 			if hiddenMessage == "" {
 				marshaled.Message = HiddenMessage
@@ -206,7 +215,7 @@ func MarshalError(ctx context.Context, err error, hiddenMessage string) Marshale
 			"internal error occured",
 			"internal", true,
 			"internal_code", marshaled.InternalCode,
-			tint.Err(initialError))
+			tint.Err(err))
 	}
 
 	return marshaled

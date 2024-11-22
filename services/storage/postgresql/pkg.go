@@ -17,5 +17,6 @@ var Module = fx.Module("postgresql",
 		(*Storage).userSessionStorage,
 		(*Storage).notificationUserStorage,
 		(*Storage).dosageStorage,
+		(*Storage).doseHistoryStorage,
 	),
 )

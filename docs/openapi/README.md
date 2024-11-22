@@ -66,8 +66,8 @@ This operation does not require authentication
 
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
-|historyStart|query|string(date-time)|false|none|
-|historyEnd|query|string(date-time)|false|none|
+|start|query|string(date-time)|false|none|
+|end|query|string(date-time)|false|none|
 
 > Example responses
 
@@ -137,6 +137,15 @@ bearerAuth
 ```json
 {
   "message": "string",
+  "errors": [
+    {
+      "message": "string",
+      "errors": [],
+      "details": null,
+      "internal": true,
+      "internalCode": "string"
+    }
+  ],
   "details": null,
   "internal": true,
   "internalCode": "string"
@@ -168,6 +177,15 @@ bearerAuth
 ```json
 {
   "message": "string",
+  "errors": [
+    {
+      "message": "string",
+      "errors": [],
+      "details": null,
+      "internal": true,
+      "internalCode": "string"
+    }
+  ],
   "details": null,
   "internal": true,
   "internalCode": "string"
@@ -192,20 +210,7 @@ bearerAuth
 
 `POST /dosage/dose`
 
-> Body parameter
-
-```json
-{
-  "takenAt": "2019-08-24T14:15:22Z"
-}
-```
-
-<h3 id="record-a-new-dosage-to-the-user's-history-parameters">Parameters</h3>
-
-|Name|In|Type|Required|Description|
-|---|---|---|---|---|
-|body|body|object|true|none|
-|» takenAt|body|string(date-time)|true|The time the dosage was taken.|
+This endpoint is used to record a new dosage observation to the user's history. The current time is automatically used.
 
 > Example responses
 
@@ -265,6 +270,15 @@ bearerAuth
 ```json
 {
   "message": "string",
+  "errors": [
+    {
+      "message": "string",
+      "errors": [],
+      "details": null,
+      "internal": true,
+      "internalCode": "string"
+    }
+  ],
   "details": null,
   "internal": true,
   "internalCode": "string"
@@ -302,6 +316,15 @@ bearerAuth
 ```json
 {
   "message": "string",
+  "errors": [
+    {
+      "message": "string",
+      "errors": [],
+      "details": null,
+      "internal": true,
+      "internalCode": "string"
+    }
+  ],
   "details": null,
   "internal": true,
   "internalCode": "string"
@@ -314,6 +337,129 @@ bearerAuth
 |---|---|---|---|
 |204|[No Content](https://tools.ietf.org/html/rfc7231#section-6.3.5)|Successfully deleted dosages.|None|
 |default|Default|The request is invalid.|[Error](#schemaerror)|
+
+<aside class="warning">
+To perform this operation, you must be authenticated by means of one of the following methods:
+bearerAuth
+</aside>
+
+## Export the user's dosage history
+
+<a id="opIdexportDosageHistory"></a>
+
+`GET /dosage/export`
+
+<h3 id="export-the-user's-dosage-history-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|Accept|header|string|true|The format to export the dosage history in.|
+|start|query|string(date-time)|false|none|
+|end|query|string(date-time)|false|none|
+
+#### Enumerated Values
+
+|Parameter|Value|
+|---|---|
+|Accept|text/csv|
+|Accept|application/json|
+
+> Example responses
+
+> 200 Response
+
+```json
+[
+  {
+    "id": 0,
+    "deliveryMethod": "string",
+    "dose": 0.1,
+    "takenAt": "2019-08-24T14:15:22Z",
+    "takenOffAt": "2019-08-24T14:15:22Z",
+    "comment": "string"
+  }
+]
+```
+
+<h3 id="export-the-user's-dosage-history-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Successfully retrieved the dosage history.|[DosageHistory](#schemadosagehistory)|
+|429|[Too Many Requests](https://tools.ietf.org/html/rfc6585#section-4)|The request has been rate limited.|[Error](#schemaerror)|
+|default|Default|The request is invalid.|[Error](#schemaerror)|
+
+### Response Headers
+
+|Status|Header|Type|Format|Description|
+|---|---|---|---|---|
+|429|Retry-After|integer|int32|If the client should retry the request after a certain amount of time (in seconds), this header will be set. Often times, this will be set if the request is being rate limmmited.|
+
+<aside class="warning">
+To perform this operation, you must be authenticated by means of one of the following methods:
+bearerAuth
+</aside>
+
+## Import a CSV file of dosage history
+
+<a id="opIdimportDosageHistory"></a>
+
+`POST /dosage/import`
+
+> Body parameter
+
+```json
+"dose,method,takenAt,takenOffAt,comment\n100,patch tw,2020-01-01T00:00:00Z,,\n100,patch tw,2020-01-02T12:00:00Z,,\n100,patch tw,2020-01-04T00:00:00Z,,\n100,patch tw,2020-01-05T12:00:00Z,,"
+```
+
+<h3 id="import-a-csv-file-of-dosage-history-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|Content-Type|header|string|true|The format to import the dosage history as.|
+|body|body|[DosageHistoryCSV](#schemadosagehistorycsv)|true|none|
+
+#### Enumerated Values
+
+|Parameter|Value|
+|---|---|
+|Content-Type|text/csv|
+|Content-Type|application/json|
+
+> Example responses
+
+> 200 Response
+
+```json
+{
+  "records": 0,
+  "succeeded": 0,
+  "error": {
+    "message": "string",
+    "errors": [
+      {}
+    ],
+    "details": null,
+    "internal": true,
+    "internalCode": "string"
+  }
+}
+```
+
+<h3 id="import-a-csv-file-of-dosage-history-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Successfully imported the dosage history.|Inline|
+
+<h3 id="import-a-csv-file-of-dosage-history-responseschema">Response Schema</h3>
+
+Status Code **200**
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|» records|integer|true|none|The number of records in the file.|
+|» succeeded|integer|true|none|The number of records actually imported successfully. This is not equal to #records if there were errors or duplicate entries.|
 
 <aside class="warning">
 To perform this operation, you must be authenticated by means of one of the following methods:
@@ -445,6 +591,15 @@ bearerAuth
 ```json
 {
   "message": "string",
+  "errors": [
+    {
+      "message": "string",
+      "errors": [],
+      "details": null,
+      "internal": true,
+      "internalCode": "string"
+    }
+  ],
   "details": null,
   "internal": true,
   "internalCode": "string"
@@ -496,6 +651,15 @@ bearerAuth
 ```json
 {
   "message": "string",
+  "errors": [
+    {
+      "message": "string",
+      "errors": [],
+      "details": null,
+      "internal": true,
+      "internalCode": "string"
+    }
+  ],
   "details": null,
   "internal": true,
   "internalCode": "string"
@@ -699,6 +863,15 @@ bearerAuth
 ```json
 {
   "message": "string",
+  "errors": [
+    {
+      "message": "string",
+      "errors": [],
+      "details": null,
+      "internal": true,
+      "internalCode": "string"
+    }
+  ],
   "details": null,
   "internal": true,
   "internalCode": "string"
@@ -738,6 +911,15 @@ bearerAuth
 ```json
 {
   "message": "string",
+  "errors": [
+    {
+      "message": "string",
+      "errors": [],
+      "details": null,
+      "internal": true,
+      "internalCode": "string"
+    }
+  ],
   "details": null,
   "internal": true,
   "internalCode": "string"
@@ -816,6 +998,15 @@ bearerAuth
 ```json
 {
   "message": "string",
+  "errors": [
+    {
+      "message": "string",
+      "errors": [],
+      "details": null,
+      "internal": true,
+      "internalCode": "string"
+    }
+  ],
   "details": null,
   "internal": true,
   "internalCode": "string"
@@ -846,6 +1037,15 @@ bearerAuth
 ```json
 {
   "message": "string",
+  "errors": [
+    {
+      "message": "string",
+      "errors": [],
+      "details": null,
+      "internal": true,
+      "internalCode": "string"
+    }
+  ],
   "details": null,
   "internal": true,
   "internalCode": "string"
@@ -858,9 +1058,7 @@ bearerAuth
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
 |message|string|true|none|A message describing the error|
-|details|any|false|none|Additional details about the error|
-|internal|boolean|false|none|Whether the error is internal|
-|internalCode|string|false|none|An internal code for the error (useless for clients)|
+|errors|[[Error](#schemaerror)]|false|none|An array of errors that caused this error. If this is populated, then [details] is omitted.|
 
 <h2 id="tocS_DeliveryMethod">DeliveryMethod</h2>
 <!-- backwards compatibility -->
@@ -940,6 +1138,26 @@ bearerAuth
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
 |*anonymous*|[[DosageObservation](#schemadosageobservation)]|false|none|none|
+
+<h2 id="tocS_DosageHistoryCSV">DosageHistoryCSV</h2>
+<!-- backwards compatibility -->
+<a id="schemadosagehistorycsv"></a>
+<a id="schema_DosageHistoryCSV"></a>
+<a id="tocSdosagehistorycsv"></a>
+<a id="tocsdosagehistorycsv"></a>
+
+```json
+"dose,method,takenAt,takenOffAt,comment\n100,patch tw,2020-01-01T00:00:00Z,,\n100,patch tw,2020-01-02T12:00:00Z,,\n100,patch tw,2020-01-04T00:00:00Z,,\n100,patch tw,2020-01-05T12:00:00Z,,"
+
+```
+
+The CSV format of the user's dosage history.
+
+### Properties
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|*anonymous*|string|false|none|The CSV format of the user's dosage history.|
 
 <h2 id="tocS_DosageObservation">DosageObservation</h2>
 <!-- backwards compatibility -->

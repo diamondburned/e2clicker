@@ -65,8 +65,8 @@
 
   $effect(() => {
     dosageLoader.load({
-      historyStart: historyInterval.start.toISO(),
-      historyEnd: historyInterval.end.toISO(),
+      start: historyInterval.start.toISO(),
+      end: historyInterval.end.toISO(),
     });
   });
 
@@ -90,58 +90,58 @@
 </svelte:head>
 
 <LoadingPage promise={dosageLoader.promise}>
-  <section class="dashboard-grid">
-    <div id="next-dose">
-      <NextDoseCountdown {now} {doses} onsubmit={() => update()}>
-        {#snippet footer()}
-          <button
-            class="secondary outline ml-2"
-            onclick={() => {
-              editingDoses = true;
-              goto("#dose-history-anchor");
-            }}
-            disabled={editingDoses}
-          >
-            <Icon name="edit" />
-            Edit doses
-          </button>
-        {/snippet}
-      </NextDoseCountdown>
-    </div>
+  {#if doses?.dosage}
+    <section class="dashboard-grid">
+      <div id="next-dose">
+        <NextDoseCountdown {now} {doses} onsubmit={() => update()}>
+          {#snippet footer()}
+            <button
+              class="secondary outline"
+              onclick={() => {
+                editingDoses = true;
+                goto("#dose-history-anchor");
+              }}
+              disabled={editingDoses}
+            >
+              <Icon name="edit" />
+              Edit doses
+            </button>
+          {/snippet}
+        </NextDoseCountdown>
+      </div>
 
-    <article id="estrannaise-plot">
-      <h3>Estrogen Levels</h3>
-      <DosagePlot {doses} interval={historyInterval} />
-    </article>
+      <article id="estrannaise-plot">
+        <h3>Estrogen Levels</h3>
+        <DosagePlot {doses} interval={historyInterval} />
+      </article>
 
-    <article id="dose-info">
-      <DoseInfo dosage={doses?.dosage} />
-    </article>
+      <article id="dose-info">
+        <DoseInfo dosage={doses?.dosage} />
+      </article>
 
-    <article id="levels-info">
-      <h3>Current Levels</h3>
-    </article>
-  </section>
+      <article id="levels-info">
+        <h3>Current Levels</h3>
+      </article>
+    </section>
 
-  <section id="dose-history" class="as-card">
-    <h2>Dose History</h2>
-    <DoseHistoryTable {now} {doses} bind:editing={editingDoses} />
-  </section>
-
-  {#if doses && !doses.dosage}
-    <Dialog open>
-      <h3>Further setup required</h3>
+    <section id="dose-history" class="as-card">
+      <h2>Dose History</h2>
+      <DoseHistoryTable {now} {doses} bind:editing={editingDoses} />
+    </section>
+  {:else}
+    <section id="setup-required" class="w-fit mx-auto">
+      <h2>Further setup required</h2>
       <p>
         You don't currently have a dose schedule set up yet.
         <br />
         <span class="brand">Let's get that set up now!</span>
       </p>
-      <footer>
+      <footer class="text-center my-6">
         <a href="/settings" role="button">
           Head to settings <Icon name="arrow-forward" />
         </a>
       </footer>
-    </Dialog>
+    </section>
   {/if}
 </LoadingPage>
 
@@ -193,7 +193,8 @@
     }
   }
 
-  #next-dose {
+  #next-dose,
+  #setup-required {
     --y-margin: clamp(
       var(--pico-block-spacing-vertical),
       10vh,

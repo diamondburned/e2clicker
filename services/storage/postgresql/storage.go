@@ -6,6 +6,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"iter"
 	"log/slog"
 
 	"github.com/jackc/pgx/v5"
@@ -105,4 +107,45 @@ func deref[T any](v *T) T {
 		return zero
 	}
 	return *v
+}
+
+type copyFromIterator[T any] struct {
+	value T
+	error error
+
+	next func() (T, error, bool)
+	stop func()
+	rows func(T) ([]any, error)
+}
+
+var (
+	_ pgx.CopyFromSource = (*copyFromIterator[struct{}])(nil)
+	_ io.Closer          = (*copyFromIterator[struct{}])(nil)
+)
+
+func newCopyFromIterator[T any](seq iter.Seq2[T, error], rows func(T) ([]any, error)) *copyFromIterator[T] {
+	next, stop := iter.Pull2(seq)
+	return &copyFromIterator[T]{
+		next: next,
+		stop: stop,
+		rows: rows,
+	}
+}
+
+func (i *copyFromIterator[T]) Next() (ok bool) {
+	i.value, i.error, ok = i.next()
+	return
+}
+
+func (i *copyFromIterator[T]) Values() ([]any, error) {
+	return i.rows(i.value)
+}
+
+func (i *copyFromIterator[T]) Err() error {
+	return i.error
+}
+
+func (i *copyFromIterator[T]) Close() error {
+	i.stop()
+	return nil
 }

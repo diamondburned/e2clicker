@@ -31,6 +31,12 @@
       url = "github:okybr/yaml-language-server";
       flake = false;
     };
+
+    sqlc-iter-pr = {
+      # https://github.com/sqlc-dev/sqlc/pull/3631
+      url = "github:viewsharp/sqlc/main";
+      flake = false;
+    };
   };
 
   outputs =
@@ -75,6 +81,14 @@
                   yarnLock = "${src}/yarn.lock";
                   hash = "sha256-thJ3aU52yCusfjBCD2QvLynwiM32lq0IT9WaNJjfu6E=";
                 };
+              });
+
+              sqlc = super.sqlc.overrideAttrs (old: rec {
+                version = "pr-3631-" + inputs.sqlc-iter-pr.rev;
+                src = inputs.sqlc-iter-pr;
+                doCheck = false;
+
+                vendorHash = "sha256-d1kfA4C4wg7TJBVCTUOoyIZjbZ2UeSIbRQUXugQyrGA=";
               });
 
               pgformatter = import ./nix/pgformatter.nix { pkgs = super; };

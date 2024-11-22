@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -12,6 +13,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"libdb.so/e2clicker/internal/publicerrors"
 	"libdb.so/e2clicker/internal/slogutil"
+	"libdb.so/e2clicker/internal/userlimit"
 	"libdb.so/e2clicker/services/api/openapi"
 )
 
@@ -27,8 +29,13 @@ func init() {
 		openapi3filter.ErrInvalidRequired,
 		openapi3filter.ErrInvalidEmptyValue,
 		openapi3filter.ErrAuthenticationServiceMissing,
+		ErrNoAcceptableContentType,
 	)
 }
+
+// ErrNoAcceptableContentType is returned when the request does not have an
+// acceptable Content-Type OR Accept header.
+var ErrNoAcceptableContentType = errors.New("no acceptable content type")
 
 type errorResponse = struct {
 	Body       openapi.Error
@@ -41,7 +48,18 @@ func convertError[T ~errorResponse](ctx context.Context, err error) T {
 
 func convertErrorWithMessage[T ~errorResponse](ctx context.Context, err error, hiddenMessage string) T {
 	marshaled := publicerrors.MarshalError(ctx, err, hiddenMessage)
+	return convertErrorWithMessageFromMarshaled[T](ctx, marshaled)
+}
+
+func convertErrorWithMessageFromMarshaled[T ~errorResponse](ctx context.Context, marshaled publicerrors.MarshaledError) T {
 	oapiValue := openapi.Error{Message: marshaled.Message}
+	if len(marshaled.Errors) > 0 {
+		oapiValue.Errors = make([]openapi.Error, len(marshaled.Errors))
+		for i, e := range marshaled.Errors {
+			resp := convertErrorWithMessageFromMarshaled[errorResponse](ctx, e)
+			oapiValue.Errors[i] = resp.Body
+		}
+	}
 	if marshaled.Details != nil {
 		oapiValue.Details = &marshaled.Details
 	}
@@ -62,24 +80,36 @@ func convertErrorWithMessage[T ~errorResponse](ctx context.Context, err error, h
 }
 
 func writeError(w http.ResponseWriter, r *http.Request, err error, statusCode int) {
-	errResponse := convertError[errorResponse](r.Context(), err)
-	if statusCode != 0 && !optPtr(errResponse.Body.Internal) {
-		// Error is revealed, so use the suggested status code.
-		errResponse.StatusCode = statusCode
+	resp := convertError[errorResponse](r.Context(), err)
+	if !optPtr(resp.Body.Internal) {
+		if statusCode != 0 {
+			// Error is revealed, so use the suggested status code.
+			resp.StatusCode = statusCode
+		}
+
+		var rateLimitError *userlimit.LimitExceededError
+		if errors.As(err, &rateLimitError) {
+			resp.StatusCode = http.StatusTooManyRequests
+			resp.Body.Details = anyPtr(rateLimitError)
+
+			if retryAfter, ok := rateLimitError.DelaySeconds(); ok {
+				w.Header().Set("Retry-After", fmt.Sprintf("%d", retryAfter))
+			}
+		}
 	}
 
-	b, err := json.Marshal(errResponse.Body)
+	b, err := json.Marshal(resp.Body)
 	if err != nil {
-		errResponse = convertError[errorResponse](r.Context(), err)
+		resp = convertError[errorResponse](r.Context(), err)
 
-		b, err = json.Marshal(errResponse.Body)
+		b, err = json.Marshal(resp.Body)
 		if err != nil {
 			panic(fmt.Errorf("cannot marshal fallback error: %w", err))
 		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(errResponse.StatusCode)
+	w.WriteHeader(resp.StatusCode)
 	w.Write(b)
 }
 

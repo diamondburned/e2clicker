@@ -24,6 +24,7 @@ type DosageHistory struct {
 	Dose           float32
 	TakenAt        pgtype.Timestamptz
 	TakenOffAt     pgtype.Timestamptz
+	Comment        pgtype.Text
 }
 
 type DosageSchedule struct {

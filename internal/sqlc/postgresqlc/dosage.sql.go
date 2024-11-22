@@ -7,7 +7,9 @@ package postgresqlc
 
 import (
 	"context"
+	"iter"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	userservice "libdb.so/e2clicker/services/user"
 )
@@ -44,8 +46,8 @@ func (q *Queries) DosageSchedule(ctx context.Context, userSecret userservice.Sec
 	return i, err
 }
 
-const doseHistory = `-- name: DoseHistory :many
-SELECT dose_id, user_secret, delivery_method, dose, taken_at, taken_off_at
+const doseHistory = `-- name: DoseHistory :iter
+SELECT dose_id, user_secret, delivery_method, dose, taken_at, taken_off_at, comment
 FROM dosage_history
 WHERE user_secret = $1
   AND taken_at >= $2
@@ -60,31 +62,59 @@ type DoseHistoryParams struct {
 	End        pgtype.Timestamptz
 }
 
-func (q *Queries) DoseHistory(ctx context.Context, arg DoseHistoryParams) ([]DosageHistory, error) {
+func (q *Queries) DoseHistory(ctx context.Context, arg DoseHistoryParams) DoseHistoryRows {
 	rows, err := q.db.Query(ctx, doseHistory, arg.UserSecret, arg.Start, arg.End)
 	if err != nil {
-		return nil, err
+		return DoseHistoryRows{err: err}
 	}
-	defer rows.Close()
-	var items []DosageHistory
-	for rows.Next() {
-		var i DosageHistory
-		if err := rows.Scan(
-			&i.DoseID,
-			&i.UserSecret,
-			&i.DeliveryMethod,
-			&i.Dose,
-			&i.TakenAt,
-			&i.TakenOffAt,
-		); err != nil {
-			return nil, err
+	return DoseHistoryRows{rows: rows}
+}
+
+type DoseHistoryRows struct {
+	rows pgx.Rows
+	err  error
+}
+
+func (r *DoseHistoryRows) Iterate() iter.Seq[DosageHistory] {
+	if r.rows == nil {
+		return func(yield func(DosageHistory) bool) {}
+	}
+
+	return func(yield func(DosageHistory) bool) {
+		defer r.rows.Close()
+
+		for r.rows.Next() {
+			var i DosageHistory
+			err := r.rows.Scan(
+				&i.DoseID,
+				&i.UserSecret,
+				&i.DeliveryMethod,
+				&i.Dose,
+				&i.TakenAt,
+				&i.TakenOffAt,
+				&i.Comment,
+			)
+			if err != nil {
+				r.err = err
+				return
+			}
+
+			if !yield(i) {
+				return
+			}
 		}
-		items = append(items, i)
 	}
-	if err := rows.Err(); err != nil {
-		return nil, err
+}
+
+func (r *DoseHistoryRows) Close() {
+	r.rows.Close()
+}
+
+func (r *DoseHistoryRows) Err() error {
+	if r.err != nil {
+		return r.err
 	}
-	return items, nil
+	return r.rows.Err()
 }
 
 const editDose = `-- name: EditDose :execrows
@@ -93,7 +123,7 @@ UPDATE
 SET delivery_method = $3, dose = $4, taken_at = $5, taken_off_at = $6
 WHERE user_secret = $2
   AND dose_id = $1
-RETURNING dose_id, user_secret, delivery_method, dose, taken_at, taken_off_at
+RETURNING dose_id, user_secret, delivery_method, dose, taken_at, taken_off_at, comment
 `
 
 type EditDoseParams struct {
@@ -140,30 +170,30 @@ func (q *Queries) ForgetDoses(ctx context.Context, arg ForgetDosesParams) (int64
 }
 
 const recordDose = `-- name: RecordDose :one
-INSERT INTO dosage_history (user_secret, taken_at, delivery_method, dose) (
-  SELECT $1::usersecret, $2::timestamptz, delivery_method, dose
-  FROM dosage_schedule
-  WHERE dosage_schedule.user_secret = $1::usersecret)
-RETURNING dosage_history.dose_id, dosage_history.user_secret, dosage_history.delivery_method, dosage_history.dose, dosage_history.taken_at, dosage_history.taken_off_at
+INSERT INTO dosage_history (user_secret, delivery_method, dose, taken_at, taken_off_at)
+  VALUES ($1, $2, $3, $4, $5)
+RETURNING dose_id
 `
 
 type RecordDoseParams struct {
-	UserSecret userservice.Secret
-	TakenAt    pgtype.Timestamptz
+	UserSecret     userservice.Secret
+	DeliveryMethod pgtype.Text
+	Dose           float32
+	TakenAt        pgtype.Timestamptz
+	TakenOffAt     pgtype.Timestamptz
 }
 
-func (q *Queries) RecordDose(ctx context.Context, arg RecordDoseParams) (DosageHistory, error) {
-	row := q.db.QueryRow(ctx, recordDose, arg.UserSecret, arg.TakenAt)
-	var i DosageHistory
-	err := row.Scan(
-		&i.DoseID,
-		&i.UserSecret,
-		&i.DeliveryMethod,
-		&i.Dose,
-		&i.TakenAt,
-		&i.TakenOffAt,
+func (q *Queries) RecordDose(ctx context.Context, arg RecordDoseParams) (int64, error) {
+	row := q.db.QueryRow(ctx, recordDose,
+		arg.UserSecret,
+		arg.DeliveryMethod,
+		arg.Dose,
+		arg.TakenAt,
+		arg.TakenOffAt,
 	)
-	return i, err
+	var dose_id int64
+	err := row.Scan(&dose_id)
+	return dose_id, err
 }
 
 const setDosageSchedule = `-- name: SetDosageSchedule :exec

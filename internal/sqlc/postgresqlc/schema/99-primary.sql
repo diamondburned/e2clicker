@@ -97,12 +97,18 @@ CREATE TABLE dosage_history (
   -- The time the dose was taken.
   taken_at timestamptz NOT NULL,
   -- The time the patch was taken off. This is only applicable to patches.
-  taken_off_at timestamptz
+  taken_off_at timestamptz,
+  -- The comment for the dose.
+  comment text,
+  -- Ensure that the user can't take multiple doses at the same time.
+  --   Realistically, they can, but our system does not allow this anyway unless
+  --   you're trying to import in bulk.
+  UNIQUE (user_secret, taken_at)
 );
 
 CREATE INDEX dosage_history_user_secret ON dosage_history USING HASH (user_secret);
 
-CREATE INDEX dosage_history_taken_at ON dosage_history USING BTREE (user_secret, taken_at);
+CREATE INDEX dosage_history_taken_at ON dosage_history USING BTREE (taken_at);
 
 CREATE TABLE notification_history (
   notification_id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,

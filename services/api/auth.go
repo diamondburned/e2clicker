@@ -55,7 +55,7 @@ func (a *Authenticator) authenticateBearerAuth(ctx context.Context, auth *openap
 
 	// Awful hack to pass the session to the handler.
 	// Blame the OpenAPI generator for this.
-	*auth.RequestValidationInput.Request = *r.WithContext(ctxt.With(ctx, s))
+	addToRequestContext(ctx, s)
 
 	return nil
 }

@@ -10,12 +10,16 @@ require (
 	github.com/jackc/pgx/v5 v5.6.0
 	github.com/lmittmann/tint v1.0.5
 	github.com/oapi-codegen/runtime v1.1.1
+	github.com/puzpuzpuz/xsync/v3 v3.4.0
 	github.com/spf13/pflag v1.0.5
+	github.com/timewasted/go-accept-headers v0.0.0-20130320203746-c78f304b1b09
 	go.uber.org/fx v1.23.0
 	golang.org/x/text v0.19.0
+	golang.org/x/time v0.5.0
 	libdb.so/ctxt v0.0.0-20240229093153-2db38a5d3c12
 	libdb.so/hserve v0.0.0-20230404043009-95e112a6e0a5
 	libdb.so/lazymigrate v0.0.0-20240811151247-0597fc52ac48
+	libdb.so/xcsv v0.0.0-20241122012224-49de41730f5a
 )
 
 require (
