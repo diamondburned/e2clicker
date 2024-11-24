@@ -30,21 +30,21 @@
       : null,
   );
 
-  let visiblePastDay = $state(0);
+  let visiblePastWeek = $state(0);
 
-  let visibleTotalDays = $derived.by(() => {
-    const daysList = history.map((d) => d.takenAt.startOf("day"));
+  let visibleTotalWeeks = $derived.by(() => {
+    const daysList = history.map((d) => d.takenAt.startOf("week"));
     const days = new Set(daysList);
     return days.size;
   });
 
   let visibleDoseTime = $derived(
-    (lastDoseAt ?? DateTime.now()).minus({ days: visiblePastDay }).startOf("day"),
+    (lastDoseAt ?? DateTime.now()).minus({ weeks: visiblePastWeek }).startOf("week"),
   );
 
   let visibleDoses = $derived.by(() => {
     const start = visibleDoseTime;
-    const end = visibleDoseTime.endOf("day");
+    const end = visibleDoseTime.endOf("week");
     return history.filter((d) => {
       return d.takenAt >= start && d.takenAt <= end;
     });
@@ -59,7 +59,7 @@
         <th data-column="Dose">Dose</th>
         <th data-column="Misc"></th>
       </tr>
-      {#each visibleDoses.toReversed() as dose}
+      {#each visibleDoses.toReversed() as dose (dose.id)}
         <tr>
           <td data-column="When">{e2.formatDoseTime(dose, now)} ago</td>
           <td data-column="Dose">
@@ -102,15 +102,15 @@
 <div class="paginator flex items-center justify-center">
   <button
     class="p-1 outline"
-    onclick={() => visiblePastDay++}
-    disabled={visiblePastDay >= visibleTotalDays}
+    onclick={() => visiblePastWeek++}
+    disabled={visiblePastWeek >= visibleTotalWeeks}
   >
     <Icon name="chevron-left" />
   </button>
   <p class="mx-4 my-0">
     Showing <b>{visibleDoseTime.toLocaleString({ dateStyle: "long" })}</b>
   </p>
-  <button class="p-1 outline xx" onclick={() => visiblePastDay--} disabled={visiblePastDay <= 0}>
+  <button class="p-1 outline xx" onclick={() => visiblePastWeek--} disabled={visiblePastWeek <= 0}>
     <Icon name="chevron-right" />
   </button>
 </div>

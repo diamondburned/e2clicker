@@ -9,12 +9,12 @@
     anchor?: "middle" | "top" | "bottom";
   } = $props();
 
+  let prefersReducedMotion = $state(false);
   let innerHeight = $state(0);
   let outerHeight = $state(0);
-  let enabled = $state(false);
-  let style = $derived(enabled ? `height: ${innerHeight}px` : "");
+  let enabled = $state(true);
+  let style = $derived(enabled && !prefersReducedMotion ? `height: ${innerHeight}px` : "");
   let equal = $derived(innerHeight === outerHeight);
-  let prefersReducedMotion = $state(false);
 
   onMount(() => {
     const prefersReducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
