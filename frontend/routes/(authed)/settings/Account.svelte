@@ -43,34 +43,6 @@
       Reveal Secret <Icon name="visibility" />
     </button>
   </PreferenceItem>
-
-  <PreferenceItem name="Import Dosages" for="">
-    {#snippet description()}
-      Import your dosage history from CSV or JSON.
-    {/snippet}
-    <button class="outline" disabled>
-      JSON
-      <Icon name="upload" />
-    </button>
-    <button class="outline ml-2" disabled>
-      CSV
-      <Icon name="upload" />
-    </button>
-  </PreferenceItem>
-
-  <PreferenceItem name="Export Dosages" for="">
-    {#snippet description()}
-      Export your dosage history as CSV or JSON.
-    {/snippet}
-    <button class="outline" disabled>
-      JSON
-      <Icon name="download" />
-    </button>
-    <button class="outline ml-2" disabled>
-      CSV
-      <Icon name="download" />
-    </button>
-  </PreferenceItem>
 </PreferenceGroup>
 
 {#if $user}

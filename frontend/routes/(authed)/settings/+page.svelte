@@ -1,6 +1,7 @@
 <script lang="ts">
   import Dosage from "./Dosage.svelte";
   import Notification from "./Notification.svelte";
+  import Data from "./Data.svelte";
   import Account from "./Account.svelte";
 </script>
 
@@ -10,4 +11,5 @@
 
 <Dosage />
 <Notification />
+<Data />
 <Account />

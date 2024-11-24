@@ -267,6 +267,14 @@
         "responses": {
           "200": {
             "description": "Successfully retrieved the dosage history.",
+            "headers": {
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string",
+                  "description": "The filename to use when saving the file."
+                }
+              }
+            },
             "content": {
               "text/csv": {
                 "schema": {

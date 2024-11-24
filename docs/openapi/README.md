@@ -393,6 +393,7 @@ bearerAuth
 
 |Status|Header|Type|Format|Description|
 |---|---|---|---|---|
+|200|Content-Disposition|string||none|
 |429|Retry-After|integer|int32|If the client should retry the request after a certain amount of time (in seconds), this header will be set. Often times, this will be set if the request is being rate limmmited.|
 
 <aside class="warning">

@@ -334,7 +334,18 @@ func (h *OpenAPIHandler) ExportDosageHistory(ctx context.Context, request openap
 		return nil, ErrNoAcceptableContentType
 	}
 
+	exportExtensions, err := mime.ExtensionsByType(string(format))
+	if err != nil {
+		return nil, fmt.Errorf("format %q missing file extension: %w", format, err)
+	}
+
+	exportTime := time.Now().Format(time.RFC3339)
+	exportName := fmt.Sprintf("attachment; filename=dose-history-%s.%s", exportTime, exportExtensions[0])
+
 	return exportDosageHistoryResponse(func(w http.ResponseWriter) error {
+		w.Header().Set("Content-Type", string(request.Params.Accept))
+		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", exportName))
+
 		_, err := h.doseExporter.ExportDoseHistory(ctx, w, session.UserSecret, dosage.ExportDoseHistoryOptions{
 			Begin:  optPtr(request.Params.Start),
 			End:    optPtr(request.Params.End),

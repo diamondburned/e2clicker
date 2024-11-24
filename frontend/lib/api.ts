@@ -1,5 +1,4 @@
-// import * as api from "./openapi.gen.js";
-export * from "./openapi.gen.js";
+export * from "./openapi.gen";
 
 // secretQRRegex is a regular expression that matches the secret QR code format.
 export const secretQRRegex = /^e2clicker:secret-v1:(.*)$/;

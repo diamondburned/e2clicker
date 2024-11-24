@@ -15,13 +15,8 @@ const token = persisted<string | null>("e2clicker-token", null);
 // isLoggedIn is true if the user is logged in.
 export const isLoggedIn = derived(token, (token) => !!token);
 
-token.subscribe((token) => {
-  api.defaults.headers = { Authorization: token ? `Bearer ${token}` : undefined };
-  api.defaults.baseUrl = "/api";
-});
-
-api.defaults.fetch = async (input, init) => {
-  const resp = await fetch(input, init);
+const fetchAPI: Exclude<typeof api.defaults.fetch, undefined> = async (input, init = {}) => {
+  const resp = await window.fetch("/api" + input, init);
   switch (resp.status) {
     case 401:
       // Unauthorized. Clear token and redirect to /login.
@@ -34,6 +29,40 @@ api.defaults.fetch = async (input, init) => {
   }
   return resp;
 };
+
+api.defaults.fetch = fetchAPI;
+api.defaults.baseUrl = "";
+
+token.subscribe((token) => {
+  api.defaults.headers = { Authorization: token ? `Bearer ${token}` : undefined };
+});
+
+// fetch performs an API request with the given path and parameters.
+// The path is relative to the API base URL.
+export async function fetch(
+  path: string,
+  params: Omit<RequestInit, "headers"> & {
+    headers?: Record<string, string>;
+  },
+) {
+  const resp = await fetchAPI(path, {
+    ...params,
+    headers: {
+      ...(params.headers ?? {}),
+      ...(api.defaults.headers as Record<string, string>),
+    },
+  });
+  if (!resp.ok) {
+    let err: api.Error;
+    try {
+      err = (await resp.json()) as api.Error;
+    } catch (e) {
+      throw new Error(`HTTP ${resp.status} ${resp.statusText}`);
+    }
+    throw new Error(err.message, { cause: err });
+  }
+  return resp;
+}
 
 export const user = persisted<(api.User & { secret: api.UserSecret }) | null>("e2clicker-me", null);
 let meLastUpdated: DateTime | undefined;

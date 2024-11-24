@@ -82,7 +82,8 @@ type ExportDoseHistoryOptions struct {
 // ExportDoseHistory exports the dose history of the user as a CSV file into the
 // given writer. It returns the number of records exported.
 func (s *ExporterService) ExportDoseHistory(ctx context.Context, out io.Writer, secret user.Secret, o ExportDoseHistoryOptions) (int64, error) {
-	if err := userlimit.AsError(s.exportLimiter.Reserve(secret)); err != nil {
+	limit := s.exportLimiter.Reserve(secret)
+	if err := userlimit.AsError(limit); err != nil {
 		return 0, err
 	}
 
@@ -122,12 +123,13 @@ func (s *ExporterService) ExportDoseHistory(ctx context.Context, out io.Writer, 
 			}
 		})
 	case ExportJSON:
-		return 0, publicerrors.New("JSON export is not supported yet")
+		err = publicerrors.New("JSON export is not supported yet")
 	default:
-		return 0, publicerrors.Errorf("unsupported export format %q", o.Format)
+		err = publicerrors.Errorf("unsupported export format %q", o.Format)
 	}
 
 	if err != nil {
+		limit.Cancel()
 		return exported, err
 	}
 
@@ -147,7 +149,8 @@ type ImportDoseHistoryResult struct {
 
 // ImportDoseHistory imports dose history from a CSV file.
 func (s *ExporterService) ImportDoseHistory(ctx context.Context, in io.Reader, secret user.Secret, o ImportDoseHistoryOptions) (ImportDoseHistoryResult, error) {
-	if err := userlimit.AsError(s.importLimiter.Reserve(secret)); err != nil {
+	limit := s.importLimiter.Reserve(secret)
+	if err := userlimit.AsError(limit); err != nil {
 		return ImportDoseHistoryResult{}, err
 	}
 
@@ -203,8 +206,10 @@ func (s *ExporterService) ImportDoseHistory(ctx context.Context, in io.Reader, s
 			}
 		}
 	case ExportJSON:
+		limit.Cancel()
 		return ImportDoseHistoryResult{}, publicerrors.New("JSON import is not supported yet")
 	default:
+		limit.Cancel()
 		return ImportDoseHistoryResult{}, publicerrors.Errorf("unsupported import format %q", o.Format)
 	}
 
@@ -234,6 +239,7 @@ func (s *ExporterService) ImportDoseHistory(ctx context.Context, in io.Reader, s
 	}
 
 	if err != nil {
+		limit.Cancel()
 		return r, err
 	}
 
