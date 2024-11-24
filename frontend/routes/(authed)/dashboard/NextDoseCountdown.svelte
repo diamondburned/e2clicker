@@ -5,6 +5,7 @@
   import * as api from "$lib/api.svelte";
   import { type Snippet } from "svelte";
   import { DateTime, Duration } from "luxon";
+  import { slide } from "svelte/transition";
 
   let {
     now,
@@ -47,8 +48,8 @@
 </script>
 
 {#snippet reminder()}
-  <p class="dose-reminder primary text-center text-3xl font-bold mb-4">
-    It's time to take your next dose!
+  <p class="dose-reminder primary text-center text-2xl font-bold mb-4" transition:slide>
+    It's time!
   </p>
 {/snippet}
 
@@ -59,6 +60,7 @@
       {e2.formatDuration(untilNextDose.negate())}
     </mark>
     <span>ago</span>
+    {@render doseAux()}
   </p>
 {/snippet}
 
@@ -68,19 +70,23 @@
     <mark class="duration secondary">
       {e2.formatDuration(untilNextDose)}
     </mark>
-    <span class="duration-aux">
-      <br />
-      on {nextDoseAt?.toLocaleString({
-        weekday: "long",
-        hour: "numeric",
-        minute: "numeric",
-      })}
-    </span>
+    {@render doseAux()}
   </p>
 {/snippet}
 
+{#snippet doseAux()}
+  <span class="duration-aux">
+    <br />
+    on {nextDoseAt?.toLocaleString({
+      weekday: "long",
+      hour: "numeric",
+      minute: "numeric",
+    })}
+  </span>
+{/snippet}
+
 <div class="dose-countdown flex flex-col items-center">
-  <div class="duration-container">
+  <div class="duration-container mb-4">
     {#if nextDoseAt}
       {#if isTimeForNextDose}
         {@render reminder()}
@@ -119,8 +125,6 @@
   .duration-container {
     font-size: var(--font-size-2xl);
     line-height: 2rem;
-    // Spare the space for 4 lines.
-    min-height: calc(3 * 2rem);
   }
 
   .duration-display {
