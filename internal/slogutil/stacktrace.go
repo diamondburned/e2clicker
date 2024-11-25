@@ -18,11 +18,11 @@ func StackTrace(skip int) slog.Attr {
 	for i := 0; ; i-- {
 		f, more := frames.Next()
 
-		group := make([]slog.Attr, 1, 2)
-		group[0] = slog.String("location", fmt.Sprintf("%s:%d", f.File, f.Line))
+		group := make([]slog.Attr, 0, 2)
 		if f.Function != "" {
 			group = append(group, slog.String("function", f.Function))
 		}
+		group = append(group, slog.String("location", fmt.Sprintf("%s:%d", f.File, f.Line)))
 
 		attr = append(attr, slog.Any(
 			fmt.Sprintf("[%d]", i),

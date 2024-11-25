@@ -21,22 +21,38 @@
   });
 
   let errorPromise = $state<Promise<any> | null>(null);
+
+  function setPromise(promise: Promise<any> | null) {
+    if (!errorPromise) {
+      errorPromise = promise;
+    }
+  }
+
+  function setError(error: any) {
+    setPromise(new Promise((_, reject) => reject(error)));
+  }
 </script>
 
 <svelte:window
   onerror={(ev) => {
     ev.preventDefault();
-    errorPromise = new Promise((_, reject) => reject("An unknown browser error occured :("));
+    setError("An unknown browser error occured :(");
   }}
   onunhandledrejection={(ev) => {
     ev.preventDefault();
-    errorPromise = ev.promise;
-    console.error("An unhandled exception occured:", ev.reason);
+    try {
+      // insert exception checks here.
+      if (ev.reason.status == 401) return;
+    } catch (e) {
+      // do nothing
+    }
+    setError(ev.reason);
+    console.error("An unhandled exception occured:", { reason: ev.reason });
   }}
 />
 
 {#if errorPromise}
-  <LoadingPage promise={errorPromise} />
+  <LoadingPage important promise={errorPromise} />
 {/if}
 
 <!--

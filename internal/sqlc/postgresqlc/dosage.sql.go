@@ -47,7 +47,7 @@ func (q *Queries) DosageSchedule(ctx context.Context, userSecret userservice.Sec
 }
 
 const doseHistory = `-- name: DoseHistory :iter
-SELECT dose_id, user_secret, delivery_method, dose, taken_at, taken_off_at, comment
+SELECT user_secret, delivery_method, dose, taken_at, taken_off_at, comment
 FROM dosage_history
 WHERE user_secret = $1
   AND taken_at >= $2
@@ -86,7 +86,6 @@ func (r *DoseHistoryRows) Iterate() iter.Seq[DosageHistory] {
 		for r.rows.Next() {
 			var i DosageHistory
 			err := r.rows.Scan(
-				&i.DoseID,
 				&i.UserSecret,
 				&i.DeliveryMethod,
 				&i.Dose,
@@ -120,29 +119,28 @@ func (r *DoseHistoryRows) Err() error {
 const editDose = `-- name: EditDose :execrows
 UPDATE
   dosage_history
-SET delivery_method = $3, dose = $4, taken_at = $5, taken_off_at = $6
-WHERE user_secret = $2
-  AND dose_id = $1
-RETURNING dose_id, user_secret, delivery_method, dose, taken_at, taken_off_at, comment
+SET delivery_method = $1, dose = $2, taken_at = $3, taken_off_at = $4
+WHERE user_secret = $5
+  AND taken_at = $6
 `
 
 type EditDoseParams struct {
-	DoseID         int64
-	UserSecret     userservice.Secret
 	DeliveryMethod pgtype.Text
 	Dose           float32
 	TakenAt        pgtype.Timestamptz
 	TakenOffAt     pgtype.Timestamptz
+	UserSecret     userservice.Secret
+	OldTakenAt     pgtype.Timestamptz
 }
 
 func (q *Queries) EditDose(ctx context.Context, arg EditDoseParams) (int64, error) {
 	result, err := q.db.Exec(ctx, editDose,
-		arg.DoseID,
-		arg.UserSecret,
 		arg.DeliveryMethod,
 		arg.Dose,
 		arg.TakenAt,
 		arg.TakenOffAt,
+		arg.UserSecret,
+		arg.OldTakenAt,
 	)
 	if err != nil {
 		return 0, err
@@ -153,26 +151,25 @@ func (q *Queries) EditDose(ctx context.Context, arg EditDoseParams) (int64, erro
 const forgetDoses = `-- name: ForgetDoses :execrows
 DELETE FROM dosage_history
 WHERE user_secret = $1
-  AND dose_id = ANY ($2::bigint[])
+  AND taken_at = ANY ($2::timestamp[])
 `
 
 type ForgetDosesParams struct {
 	UserSecret userservice.Secret
-	DoseIDs    []int64
+	TakenAt    []pgtype.Timestamp
 }
 
 func (q *Queries) ForgetDoses(ctx context.Context, arg ForgetDosesParams) (int64, error) {
-	result, err := q.db.Exec(ctx, forgetDoses, arg.UserSecret, arg.DoseIDs)
+	result, err := q.db.Exec(ctx, forgetDoses, arg.UserSecret, arg.TakenAt)
 	if err != nil {
 		return 0, err
 	}
 	return result.RowsAffected(), nil
 }
 
-const recordDose = `-- name: RecordDose :one
+const recordDose = `-- name: RecordDose :exec
 INSERT INTO dosage_history (user_secret, delivery_method, dose, taken_at, taken_off_at)
   VALUES ($1, $2, $3, $4, $5)
-RETURNING dose_id
 `
 
 type RecordDoseParams struct {
@@ -183,17 +180,15 @@ type RecordDoseParams struct {
 	TakenOffAt     pgtype.Timestamptz
 }
 
-func (q *Queries) RecordDose(ctx context.Context, arg RecordDoseParams) (int64, error) {
-	row := q.db.QueryRow(ctx, recordDose,
+func (q *Queries) RecordDose(ctx context.Context, arg RecordDoseParams) error {
+	_, err := q.db.Exec(ctx, recordDose,
 		arg.UserSecret,
 		arg.DeliveryMethod,
 		arg.Dose,
 		arg.TakenAt,
 		arg.TakenOffAt,
 	)
-	var dose_id int64
-	err := row.Scan(&dose_id)
-	return dose_id, err
+	return err
 }
 
 const setDosageSchedule = `-- name: SetDosageSchedule :exec

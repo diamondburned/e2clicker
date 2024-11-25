@@ -53,7 +53,10 @@ func main() {
 	var slogHandler slog.Handler
 	switch cfg.LogFormat {
 	case e2clickermodule.LogFormatColor:
-		slogHandler = tint.NewHandler(os.Stderr, &tint.Options{Level: logLevel})
+		slogHandler = tint.NewHandler(os.Stderr, &tint.Options{
+			Level:     logLevel,
+			Multiline: true,
+		})
 	case e2clickermodule.LogFormatJSON:
 		slogHandler = slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: logLevel})
 	case e2clickermodule.LogFormatText:

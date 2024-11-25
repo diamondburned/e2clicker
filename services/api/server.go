@@ -4,14 +4,15 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"maps"
 	"net/http"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"go.uber.org/fx"
 	"libdb.so/e2clicker/internal/fxhooking"
-	"libdb.so/e2clicker/internal/publicerrors"
 	"libdb.so/e2clicker/services/api/openapi"
 	"libdb.so/hserve"
 
@@ -26,7 +27,7 @@ type Server struct {
 type ServerInputs struct {
 	fx.In
 
-	Handler       openapi.StrictServerInterface
+	Handler       openapi.ServerInterface
 	Authenticator openapi3filter.AuthenticationFunc
 }
 
@@ -50,18 +51,7 @@ func NewServer(
 	})
 
 	handler := openapi.HandlerWithOptions(
-		openapi.NewStrictHandlerWithOptions(
-			inputs.Handler, nil,
-			openapi.StrictHTTPServerOptions{
-				RequestErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {
-					err = publicerrors.ForcePublic(err) // only validation errors
-					writeError(w, r, err, http.StatusBadRequest)
-				},
-				ResponseErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {
-					writeError(w, r, err, 0)
-				},
-			},
-		),
+		inputs.Handler,
 		openapi.StdHTTPServerOptions{
 			BaseURL: "/api",
 			ErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {
@@ -106,12 +96,14 @@ func applyMiddleware(next http.Handler, mws []middlewareFunc) http.Handler {
 func logRequest(slog *slog.Logger) middlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			loggedHeader := cleanupLoggedHeaders(r.Header)
+
 			slog.DebugContext(r.Context(),
 				"received API request",
 				"method", r.Method,
 				"path", r.URL.Path,
 				"query", r.URL.Query().Encode(),
-				"headers", r.Header)
+				"headers", loggedHeader)
 
 			start := time.Now()
 			next.ServeHTTP(w, r)
@@ -122,8 +114,27 @@ func logRequest(slog *slog.Logger) middlewareFunc {
 				"method", r.Method,
 				"path", r.URL.Path,
 				"query", r.URL.Query().Encode(),
-				"headers", r.Header,
+				"headers", loggedHeader,
 				"took", since)
 		})
 	}
+}
+
+func cleanupLoggedHeaders(h http.Header) http.Header {
+	h = maps.Clone(h)
+
+	// Censor the Authorization token.
+	if h.Get("Authorization") != "" {
+		h.Set("Authorization", "***")
+	}
+
+	// Delete potentially identifying headers.
+	delete(h, "User-Agent")
+	for k := range h {
+		if strings.HasPrefix(k, "Sec-") {
+			delete(h, k)
+		}
+	}
+
+	return h
 }

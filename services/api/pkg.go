@@ -13,9 +13,11 @@ var Module = fx.Module("api",
 	fx.Provide(
 		NewServer,
 		NewAuthenticator,
-		NewOpenAPIHandler,
+		newOpenAPIHandler,
+		newOpenAPIHandlerForImportExport,
 
 		(*Authenticator).AuthenticationFunc, // openapi3filter.AuthenticationFunc
-		(*OpenAPIHandler).asStrictHandler,   // openapi.StrictServerInterface
+		// (*openAPIHandler).asHandler,                // openapi.ServerInterface
+		(*openAPIHandlerForImportExport).asHandler, // openapi.ServerInterface
 	),
 )

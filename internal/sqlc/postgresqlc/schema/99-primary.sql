@@ -86,7 +86,6 @@ CREATE TABLE dosage_schedule (
 );
 
 CREATE TABLE dosage_history (
-  dose_id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
   -- The user that took the dose.
   user_secret usersecret NOT NULL REFERENCES users (secret) ON DELETE CASCADE,
   -- The delivery method of the medication.
@@ -101,8 +100,8 @@ CREATE TABLE dosage_history (
   -- The comment for the dose.
   comment text,
   -- Ensure that the user can't take multiple doses at the same time.
-  --   Realistically, they can, but our system does not allow this anyway unless
-  --   you're trying to import in bulk.
+  -- Realistically, they can, but our system does not allow this anyway unless
+  -- you're trying to import in bulk.
   UNIQUE (user_secret, taken_at)
 );
 
@@ -111,13 +110,16 @@ CREATE INDEX dosage_history_user_secret ON dosage_history USING HASH (user_secre
 CREATE INDEX dosage_history_taken_at ON dosage_history USING BTREE (taken_at);
 
 CREATE TABLE notification_history (
-  notification_id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  notification_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   -- The user that the notification was for.
   user_secret usersecret NOT NULL REFERENCES users (secret) ON DELETE CASCADE,
-  -- The dosage that the notification was for.
-  dosage_id bigint REFERENCES dosage_history (dose_id) ON DELETE CASCADE,
-  -- The time the notification was sent.
+  -- The timestamp of the entity that the notification is about.
+  -- For dosage notifications, this is the time the dose is supposed to be taken.
+  supposed_entity_time timestamptz,
+  -- The time the notification was sent. This indicates an attempt.
   sent_at timestamptz NOT NULL,
   -- The error if the notification failed to send.
-  error_reason text
+  error_reason text,
+  -- True if the notification errored.
+  errored boolean GENERATED ALWAYS AS (error_reason IS NOT NULL) STORED
 );

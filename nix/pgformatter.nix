@@ -19,6 +19,7 @@ let
           "sqlc.slice"
           "sqlc.arg"
           "sqlc.narg"
+          "gen_random_uuid"
         ]
       )
     }"
@@ -30,5 +31,6 @@ let
 in
 
 pkgs.writeShellScriptBin "pg_format" ''
-  exec ${lib.getExe pgformatter} ${flags'} "$@" 
+  ${lib.getExe pgformatter} ${flags'} "$@" \
+  	| sed 's/\(\s*--\)\s*/\1 /g'
 ''

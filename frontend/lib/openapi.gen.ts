@@ -47,9 +47,7 @@ export type Dosage = {
     /** The number of estrogen patches on the body at once. Only relevant if delivery method is patch. */
     concurrence?: number;
 };
-export type DosageObservation = {
-    /** The unique identifier for the observation. */
-    id: number;
+export type Dose = {
     /** The delivery method used. */
     deliveryMethod: string;
     /** The dosage amount. */
@@ -61,7 +59,7 @@ export type DosageObservation = {
     /** A comment about the dosage, if any. */
     comment?: string;
 };
-export type DosageHistory = DosageObservation[];
+export type DosageHistory = Dose[];
 export type DosageHistoryCsv = string;
 export type PushInfo = {
     /** A Base64-encoded string or ArrayBuffer containing an ECDSA P-256 public key that the push server will use to authenticate your application server. If specified, all messages from your application server must use the VAPID authentication scheme, and include a JWT signed with the corresponding private key. This key IS NOT the same ECDH key that you use to encrypt the data. For more information, see "Using VAPID with WebPush". */
@@ -137,7 +135,7 @@ export function deliveryMethods(opts?: Oazapfts.RequestOpts) {
     } | {
         status: number;
         data: Error;
-    }>("/deliverymethods", {
+    }>("/delivery-methods", {
         ...opts
     }));
 }
@@ -198,39 +196,53 @@ export function clearDosage(opts?: Oazapfts.RequestOpts) {
 export function recordDose(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
-        data: DosageObservation;
+        data: Dose;
     }>("/dosage/dose", {
         ...opts,
         method: "POST"
     }));
 }
 /**
- * Update a dosage in the user's history
- */
-export function editDose(body: DosageObservation, opts?: Oazapfts.RequestOpts) {
-    return oazapfts.ok(oazapfts.fetchJson<{
-        status: 204;
-    } | {
-        status: number;
-        data: Error;
-    }>("/dosage/dose", oazapfts.json({
-        ...opts,
-        method: "PUT",
-        body
-    })));
-}
-/**
  * Delete multiple dosages from the user's history
  */
-export function forgetDoses(doseIds: number[], opts?: Oazapfts.RequestOpts) {
+export function forgetDoses(doseTimes: string[], opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 204;
     } | {
         status: number;
         data: Error;
     }>(`/dosage/dose${QS.query(QS.explode({
-        dose_ids: doseIds
+        doseTimes
     }))}`, {
+        ...opts,
+        method: "DELETE"
+    }));
+}
+/**
+ * Update a dosage in the user's history
+ */
+export function editDose(doseTime: string, body: Dose, opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 204;
+    } | {
+        status: number;
+        data: Error;
+    }>(`/dosage/dose/${encodeURIComponent(doseTime)}`, oazapfts.json({
+        ...opts,
+        method: "PUT",
+        body
+    })));
+}
+/**
+ * Delete a dosage from the user's history
+ */
+export function forgetDose(doseTime: string, opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 204;
+    } | {
+        status: number;
+        data: Error;
+    }>(`/dosage/dose/${encodeURIComponent(doseTime)}`, {
         ...opts,
         method: "DELETE"
     }));
@@ -238,7 +250,7 @@ export function forgetDoses(doseIds: number[], opts?: Oazapfts.RequestOpts) {
 /**
  * Export the user's dosage history
  */
-export function exportDosageHistory(accept: "text/csv" | "application/json", { start, end }: {
+export function exportDoses(accept: "text/csv" | "application/json", { start, end }: {
     start?: string;
     end?: string;
 } = {}, opts?: Oazapfts.RequestOpts) {
@@ -251,7 +263,7 @@ export function exportDosageHistory(accept: "text/csv" | "application/json", { s
     } | {
         status: number;
         data: Error;
-    }>(`/dosage/export${QS.query(QS.explode({
+    }>(`/dosage/export-doses${QS.query(QS.explode({
         start,
         end
     }))}`, {
@@ -264,7 +276,7 @@ export function exportDosageHistory(accept: "text/csv" | "application/json", { s
 /**
  * Import a CSV file of dosage history
  */
-export function importDosageHistory(contentType: "text/csv" | "application/json", dosageHistoryCsv: DosageHistoryCsv, opts?: Oazapfts.RequestOpts) {
+export function importDoses(contentType: "text/csv" | "application/json", dosageHistoryCsv: DosageHistoryCsv, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
         data: {
@@ -274,7 +286,7 @@ export function importDosageHistory(contentType: "text/csv" | "application/json"
             succeeded: number;
             error?: Error;
         };
-    }>("/dosage/import", oazapfts.json({
+    }>("/dosage/import-doses", oazapfts.json({
         ...opts,
         method: "POST",
         body: dosageHistoryCsv,
@@ -293,7 +305,7 @@ export function webPushInfo(opts?: Oazapfts.RequestOpts) {
     } | {
         status: number;
         data: Error;
-    }>("/pushinfo", {
+    }>("/push-info", {
         ...opts
     }));
 }

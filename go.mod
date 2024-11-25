@@ -2,6 +2,8 @@ module libdb.so/e2clicker
 
 go 1.23
 
+replace github.com/lmittmann/tint => github.com/diamondburned/tint v0.0.0-20241125184319-3f947943fed6
+
 require (
 	github.com/SherClockHolmes/webpush-go v1.3.0
 	github.com/alecthomas/assert/v2 v2.10.0

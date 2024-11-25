@@ -59,7 +59,10 @@ export async function fetch(
     } catch (e) {
       throw new Error(`HTTP ${resp.status} ${resp.statusText}`);
     }
-    throw new Error(err.message, { cause: err });
+    throw {
+      status: resp.status,
+      data: err,
+    };
   }
   return resp;
 }

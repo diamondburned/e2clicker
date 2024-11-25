@@ -17,23 +17,21 @@ ON CONFLICT (user_secret)
 DELETE FROM dosage_schedule
 WHERE user_secret = $1;
 
--- name: RecordDose :one
+-- name: RecordDose :exec
 INSERT INTO dosage_history (user_secret, delivery_method, dose, taken_at, taken_off_at)
-  VALUES ($1, $2, $3, $4, $5)
-RETURNING dose_id;
+  VALUES ($1, $2, $3, $4, $5);
 
 -- name: EditDose :execrows
 UPDATE
   dosage_history
-SET delivery_method = $3, dose = $4, taken_at = $5, taken_off_at = $6
-WHERE user_secret = $2
-  AND dose_id = $1
-RETURNING *;
+SET delivery_method = @delivery_method, dose = @dose, taken_at = @taken_at, taken_off_at = @taken_off_at
+WHERE user_secret = @user_secret
+  AND taken_at = @old_taken_at;
 
 -- name: ForgetDoses :execrows
 DELETE FROM dosage_history
 WHERE user_secret = $1
-  AND dose_id = ANY (@dose_ids::bigint[]);
+  AND taken_at = ANY (@taken_at::timestamp[]);
 
 -- name: DoseHistory :iter
 SELECT *

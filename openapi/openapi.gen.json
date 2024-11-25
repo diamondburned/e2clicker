@@ -18,7 +18,7 @@
     }
   ],
   "paths": {
-    "/deliverymethods": {
+    "/delivery-methods": {
       "get": {
         "summary": "List all available delivery methods",
         "operationId": "deliveryMethods",
@@ -155,40 +155,10 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DosageObservation"
+                  "$ref": "#/components/schemas/Dose"
                 }
               }
             }
-          }
-        },
-        "tags": [
-          "dosage"
-        ]
-      },
-      "put": {
-        "summary": "Update a dosage in the user's history",
-        "operationId": "editDose",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "description": "The updated dosage observation. The ID must match an existing observation.",
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/DosageObservation"
-                  }
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "204": {
-            "description": "Successfully updated dosage."
-          },
-          "default": {
-            "$ref": "#/components/responses/ErrorResponse"
           }
         },
         "tags": [
@@ -200,14 +170,14 @@
         "operationId": "forgetDoses",
         "parameters": [
           {
-            "name": "dose_ids",
+            "name": "doseTimes",
             "in": "query",
             "schema": {
               "type": "array",
               "items": {
-                "type": "integer",
-                "format": "int64",
-                "description": "The dose IDs of the observations to delete."
+                "type": "string",
+                "format": "date-time",
+                "description": "The times the dosages were taken that should be deleted."
               }
             },
             "required": true
@@ -226,10 +196,81 @@
         ]
       }
     },
-    "/dosage/export": {
+    "/dosage/dose/{doseTime}": {
+      "put": {
+        "summary": "Update a dosage in the user's history",
+        "operationId": "editDose",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "doseTime",
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "description": "The time the dosage was taken."
+            },
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "description": "The updated dosage observation.",
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/Dose"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Successfully updated the dosage."
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        },
+        "tags": [
+          "dosage"
+        ]
+      },
+      "delete": {
+        "summary": "Delete a dosage from the user's history",
+        "operationId": "forgetDose",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "doseTime",
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "description": "The time the dosage was taken."
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successfully deleted the dosage."
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        },
+        "tags": [
+          "dosage"
+        ]
+      }
+    },
+    "/dosage/export-doses": {
       "get": {
         "summary": "Export the user's dosage history",
-        "operationId": "exportDosageHistory",
+        "operationId": "exportDoses",
         "parameters": [
           {
             "name": "Accept",
@@ -300,10 +341,10 @@
         ]
       }
     },
-    "/dosage/import": {
+    "/dosage/import-doses": {
       "post": {
         "summary": "Import a CSV file of dosage history",
-        "operationId": "importDosageHistory",
+        "operationId": "importDoses",
         "parameters": [
           {
             "name": "Content-Type",
@@ -368,7 +409,7 @@
         ]
       }
     },
-    "/pushinfo": {
+    "/push-info": {
       "get": {
         "summary": "Get the server's push notification information",
         "operationId": "webPushInfo",
@@ -912,7 +953,7 @@
       "DosageHistory": {
         "type": "array",
         "items": {
-          "$ref": "#/components/schemas/DosageObservation"
+          "$ref": "#/components/schemas/Dose"
         }
       },
       "DosageHistoryCSV": {
@@ -920,21 +961,15 @@
         "example": "dose,method,takenAt,takenOffAt,comment\n100,patch tw,2020-01-01T00:00:00Z,,\n100,patch tw,2020-01-02T12:00:00Z,,\n100,patch tw,2020-01-04T00:00:00Z,,\n100,patch tw,2020-01-05T12:00:00Z,,",
         "description": "The CSV format of the user's dosage history."
       },
-      "DosageObservation": {
+      "Dose": {
+        "description": "A dose of medication in time.",
         "type": "object",
         "required": [
-          "id",
           "deliveryMethod",
           "dose",
           "takenAt"
         ],
         "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int64",
-            "description": "The unique identifier for the observation.",
-            "x-order": 1
-          },
           "deliveryMethod": {
             "type": "string",
             "description": "The delivery method used.",

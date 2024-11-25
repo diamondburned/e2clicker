@@ -7,6 +7,7 @@
   let {
     "no-darken": noDarken = false,
     promise = new Promise<T>(() => {}),
+    important,
     children,
     errorPrefix,
     errorHeader,
@@ -14,6 +15,7 @@
   }: {
     "no-darken"?: boolean;
     promise?: Promise<T>;
+    important?: boolean;
     children?: Snippet<[T]> | Snippet;
     errorPrefix?: string;
     errorHeader?: Snippet;
@@ -25,6 +27,7 @@
   <div
     class="loading-screen loading before:text-3xl"
     class:darken={!noDarken}
+    class:important
     aria-busy="true"
     out:fade={{ duration: 400, easing: easeFade }}
   ></div>
@@ -36,6 +39,7 @@
   <div
     class="loading-screen error"
     class:darken={!noDarken}
+    class:important
     transition:fade={{ duration: 400, easing: easeFade }}
   >
     <article class="loading-error spaced">
@@ -62,6 +66,10 @@
     &.darken {
       color: var(--pico-color);
       background-color: var(--pico-modal-overlay-background-color);
+    }
+
+    &.important {
+      z-index: 2000;
     }
 
     display: flex;

@@ -121,7 +121,10 @@ async function syncSubscription(subscription: PushSubscription) {
 }
 
 async function isSupported(): Promise<true | NotificationError> {
-  if (!("showNotification" in ServiceWorkerRegistration.prototype)) {
+  if (
+    !("ServiceWorkerRegistration" in window) ||
+    !("showNotification" in ServiceWorkerRegistration.prototype)
+  ) {
     return NotificationError.Unsupported;
   }
 

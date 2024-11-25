@@ -17,7 +17,7 @@ type doseHistoryStorage Storage
 
 func (s *Storage) doseHistoryStorage() dosage.DoseHistoryStorage { return (*doseHistoryStorage)(s) }
 
-func (s *doseHistoryStorage) RecordDose(ctx context.Context, userSecret user.Secret, dose dosage.Dose) (int64, error) {
+func (s *doseHistoryStorage) RecordDose(ctx context.Context, userSecret user.Secret, dose dosage.Dose) error {
 	return s.q.RecordDose(ctx, postgresqlc.RecordDoseParams{
 		UserSecret:     userSecret,
 		DeliveryMethod: pgtype.Text{String: dose.DeliveryMethod, Valid: true},
@@ -27,7 +27,7 @@ func (s *doseHistoryStorage) RecordDose(ctx context.Context, userSecret user.Sec
 	})
 }
 
-func (s *doseHistoryStorage) ImportDoses(ctx context.Context, userSecret user.Secret, doses iter.Seq2[dosage.Dose, error]) (int64, error) {
+func (s *doseHistoryStorage) ImportDoses(ctx context.Context, userSecret user.Secret, doses iter.Seq[dosage.Dose]) (int64, error) {
 	const table = "dosage_history"
 	rows := []string{
 		"user_secret",
@@ -82,10 +82,11 @@ func (s *doseHistoryStorage) ImportDoses(ctx context.Context, userSecret user.Se
 	return n, nil
 }
 
-func (s *doseHistoryStorage) EditDose(ctx context.Context, userSecret user.Secret, id int64, d dosage.Dose) error {
+func (s *doseHistoryStorage) EditDose(ctx context.Context, userSecret user.Secret, doseTime time.Time, d dosage.Dose) error {
 	n, err := s.q.EditDose(ctx, postgresqlc.EditDoseParams{
-		UserSecret:     userSecret,
-		DoseID:         id,
+		UserSecret: userSecret,
+		OldTakenAt: pgtype.Timestamptz{Time: doseTime, Valid: true},
+
 		DeliveryMethod: pgtype.Text{String: d.DeliveryMethod, Valid: true},
 		Dose:           d.Dose,
 		TakenAt:        pgtype.Timestamptz{Time: d.TakenAt, Valid: true},
@@ -100,21 +101,26 @@ func (s *doseHistoryStorage) EditDose(ctx context.Context, userSecret user.Secre
 	return nil
 }
 
-func (s *doseHistoryStorage) ForgetDoses(ctx context.Context, userSecret user.Secret, doseIDs []int64) error {
+func (s *doseHistoryStorage) ForgetDoses(ctx context.Context, userSecret user.Secret, doseTimes []time.Time) error {
+	pgTimes := make([]pgtype.Timestamp, len(doseTimes))
+	for i, t := range doseTimes {
+		pgTimes[i] = pgtype.Timestamp{Time: t, Valid: true}
+	}
+
 	n, err := s.q.ForgetDoses(ctx, postgresqlc.ForgetDosesParams{
 		UserSecret: userSecret,
-		DoseIDs:    doseIDs,
+		TakenAt:    pgTimes,
 	})
 	if err != nil {
 		return err
 	}
-	if len(doseIDs) > 0 && n == 0 {
+	if len(doseTimes) > 0 && n == 0 {
 		return dosage.ErrNoDoseMatched
 	}
 	return nil
 }
 
-func (s *doseHistoryStorage) DoseHistory(ctx context.Context, secret user.Secret, begin, end time.Time) iter.Seq2[dosage.Observation, error] {
+func (s *doseHistoryStorage) DoseHistory(ctx context.Context, secret user.Secret, begin, end time.Time) iter.Seq2[dosage.Dose, error] {
 	if end.IsZero() {
 		end = time.Now()
 	}
@@ -125,28 +131,26 @@ func (s *doseHistoryStorage) DoseHistory(ctx context.Context, secret user.Secret
 		End:        pgtype.Timestamptz{Time: end, Valid: true},
 	})
 
-	return func(yield func(dosage.Observation, error) bool) {
+	return func(yield func(dosage.Dose, error) bool) {
 		for o1 := range iter.Iterate() {
-			o2 := convertObservation(o1)
+			o2 := convertDose(o1)
 			if !yield(o2, nil) {
 				return
 			}
 		}
 
 		if err := iter.Err(); err != nil {
-			yield(dosage.Observation{}, err)
+			yield(dosage.Dose{}, err)
 		}
 	}
 }
 
-func convertObservation(o postgresqlc.DosageHistory) dosage.Observation {
-	return dosage.Observation{
-		ID: o.DoseID,
-		Dose: dosage.Dose{
-			DeliveryMethod: o.DeliveryMethod.String,
-			Dose:           o.Dose,
-			TakenAt:        o.TakenAt.Time,
-			TakenOffAt:     maybePtr(o.TakenOffAt.Time, o.TakenOffAt.Valid),
-		},
+func convertDose(o postgresqlc.DosageHistory) dosage.Dose {
+	return dosage.Dose{
+		DeliveryMethod: o.DeliveryMethod.String,
+		Dose:           o.Dose,
+		TakenAt:        o.TakenAt.Time,
+		TakenOffAt:     maybePtr(o.TakenOffAt.Time, o.TakenOffAt.Valid),
+		Comment:        o.Comment.String,
 	}
 }

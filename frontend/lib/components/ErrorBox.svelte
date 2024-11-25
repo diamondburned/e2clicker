@@ -3,7 +3,6 @@
   import Tooltip from "./popovers/Tooltip.svelte";
   import Icon from "./Icon.svelte";
   import type { Snippet } from "svelte";
-  import type * as api from "$lib/api.svelte";
 
   let {
     error,
@@ -25,11 +24,6 @@
       case "string":
         return cleanError(error);
       case "object":
-        if (error instanceof Error) {
-          const cause = error.cause as api.Error | undefined;
-          if (cause && cause.message) return cleanError(cause.message);
-          if (error.message) return cleanError(error.message);
-        }
         return cleanError(error.data?.message ?? error.message ?? `${error}`);
       default:
         return cleanError(`${error}`);

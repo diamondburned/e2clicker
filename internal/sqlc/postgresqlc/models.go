@@ -18,7 +18,6 @@ type DeliveryMethod struct {
 }
 
 type DosageHistory struct {
-	DoseID         int64
 	UserSecret     userservice.Secret
 	DeliveryMethod pgtype.Text
 	Dose           float32
@@ -41,11 +40,12 @@ type Meta struct {
 }
 
 type NotificationHistory struct {
-	NotificationID int64
-	UserSecret     userservice.Secret
-	DosageID       pgtype.Int8
-	SentAt         pgtype.Timestamptz
-	ErrorReason    pgtype.Text
+	NotificationID     pgtype.UUID
+	UserSecret         userservice.Secret
+	SupposedEntityTime pgtype.Timestamptz
+	SentAt             pgtype.Timestamptz
+	ErrorReason        pgtype.Text
+	Errored            pgtype.Bool
 }
 
 type User struct {

@@ -4,15 +4,17 @@ import (
 	"context"
 	"encoding/csv"
 	"errors"
-	"fmt"
 	"io"
+	"iter"
 	"log/slog"
 	"time"
 
 	"go.uber.org/fx"
 	"golang.org/x/time/rate"
+	"libdb.so/e2clicker/internal/jsonarray"
 	"libdb.so/e2clicker/internal/publicerrors"
 	"libdb.so/e2clicker/internal/userlimit"
+	"libdb.so/e2clicker/services/dosage/openapi"
 	"libdb.so/e2clicker/services/user"
 	"libdb.so/xcsv"
 )
@@ -27,6 +29,9 @@ const (
 	ExportCSV  ExportFormat = "text/csv"
 	ExportJSON ExportFormat = "application/json"
 )
+
+// AsMIME returns itself.
+func (f ExportFormat) AsMIME() string { return string(f) }
 
 // ExporterService exports dosage data to various formats.
 type ExporterService struct {
@@ -55,20 +60,6 @@ func NewExporterService(storage DoseHistoryStorage, lc fx.Lifecycle, logger *slo
 	return s
 }
 
-/*
- * CSV Export
- */
-
-// CSVDoseRecord is a single dose record in a CSV file.
-// This is version 1.
-type CSVDoseRecord struct {
-	TakenAt        string  `csv:"takenAt"`    // RFC3339
-	TakenOffAt     string  `csv:"takenOffAt"` // RFC3339 or ""
-	DeliveryMethod string  `csv:"deliveryMethod"`
-	Dose           float32 `csv:"dose"`
-	Comment        string  `csv:"comment"`
-}
-
 var csvDoseRecordColumns = xcsv.ColumnNames[CSVDoseRecord]()
 
 // ExportDoseHistoryOptions are options for exporting dose history as a CSV
@@ -89,13 +80,13 @@ func (s *ExporterService) ExportDoseHistory(ctx context.Context, out io.Writer, 
 
 	var exported int64
 	var scanErrs []error
-	doseIter := func(yield func(Dose) bool) {
+	history := func(yield func(Dose) bool) {
 		for o, err := range s.storage.DoseHistory(ctx, secret, o.Begin, o.End) {
 			if err != nil {
 				scanErrs = append(scanErrs, err)
 				continue
 			}
-			if !yield(o.Dose) {
+			if !yield(o) {
 				break
 			}
 			exported++
@@ -110,20 +101,20 @@ func (s *ExporterService) ExportDoseHistory(ctx context.Context, out io.Writer, 
 		csvw.Write(csvDoseRecordColumns)
 
 		err = xcsv.Marshal(csvw, func(yield func(CSVDoseRecord) bool) {
-			for dose := range doseIter {
-				if !yield(CSVDoseRecord{
-					Dose:           dose.Dose,
-					DeliveryMethod: dose.DeliveryMethod,
-					TakenAt:        formatCSVTime(dose.TakenAt),
-					TakenOffAt:     optionalStr(dose.TakenOffAt, formatCSVTime),
-					Comment:        dose.Comment,
-				}) {
+			for o := range history {
+				if !yield(o.ToCSV()) {
 					break
 				}
 			}
 		})
 	case ExportJSON:
-		err = publicerrors.New("JSON export is not supported yet")
+		err = jsonarray.MarshalArray(out, func(yield func(openapi.Dose) bool) {
+			for o := range history {
+				if !yield(o.ToOpenAPI()) {
+					break
+				}
+			}
+		})
 	default:
 		err = publicerrors.Errorf("unsupported export format %q", o.Format)
 	}
@@ -154,7 +145,9 @@ func (s *ExporterService) ImportDoseHistory(ctx context.Context, in io.Reader, s
 		return ImportDoseHistoryResult{}, err
 	}
 
-	var doseIter func(yield func(Dose, error) bool)
+	var doses iter.Seq[Dose]
+	var records int64
+	var importErrors []error
 
 	switch o.Format {
 	case ExportCSV:
@@ -164,75 +157,47 @@ func (s *ExporterService) ImportDoseHistory(ctx context.Context, in io.Reader, s
 		csvr.ReuseRecord = true
 		csvr.TrimLeadingSpace = true
 
-		doseIter = func(yield func(Dose, error) bool) {
+		doses = func(yield func(Dose) bool) {
 			for r, err := range xcsv.Unmarshal[CSVDoseRecord](csvr, xcsv.SkipHeader()) {
 				if err != nil {
-					if !yield(Dose{}, err) {
-						return
-					}
+					importErrors = append(importErrors, err)
 					continue
 				}
 
-				takenAt, err := parseCSVTime(r.TakenAt)
+				d, err := doseFromCSV(r)
 				if err != nil {
-					if !yield(Dose{}, err) {
-						return
-					}
+					importErrors = append(importErrors, err)
 					continue
 				}
 
-				var takenOffAt *time.Time
-				if r.TakenOffAt != "" {
-					t, err := parseCSVTime(r.TakenOffAt)
-					if err != nil {
-						if !yield(Dose{}, err) {
-							return
-						}
-						continue
-					}
-					takenOffAt = &t
-				}
-
-				dose := Dose{
-					Dose:           r.Dose,
-					DeliveryMethod: r.DeliveryMethod,
-					TakenAt:        takenAt,
-					TakenOffAt:     takenOffAt,
-					Comment:        r.Comment,
-				}
-				if !yield(dose, nil) {
+				if !yield(d) {
 					return
 				}
+
+				records++
 			}
 		}
 	case ExportJSON:
-		limit.Cancel()
-		return ImportDoseHistoryResult{}, publicerrors.New("JSON import is not supported yet")
+		doses = func(yield func(Dose) bool) {
+			for r, err := range jsonarray.UnmarshalArray[openapi.Dose](in) {
+				if err != nil {
+					importErrors = append(importErrors, err)
+					continue
+				}
+
+				if !yield(doseFromOpenAPI(r)) {
+					return
+				}
+
+				records++
+			}
+		}
 	default:
 		limit.Cancel()
 		return ImportDoseHistoryResult{}, publicerrors.Errorf("unsupported import format %q", o.Format)
 	}
 
-	var records int64
-	var importErrors []error
-
-	// ImportDoses does allow us to yield an error to stop the whole insertion,
-	// but we want to import as many records as possible, so we collect errors
-	// and return them at the end.
-	succeeded, err := s.storage.ImportDoses(ctx, secret, func(yield func(Dose, error) bool) {
-		for dose, err := range doseIter {
-			if err != nil {
-				importErrors = append(importErrors, err)
-				continue
-			}
-
-			records++
-			if !yield(dose, nil) {
-				return
-			}
-		}
-	})
-
+	succeeded, err := s.storage.ImportDoses(ctx, secret, doses)
 	r := ImportDoseHistoryResult{
 		Records:   records,
 		Succeeded: succeeded,
@@ -244,23 +209,4 @@ func (s *ExporterService) ImportDoseHistory(ctx context.Context, in io.Reader, s
 	}
 
 	return r, errors.Join(importErrors...)
-}
-
-func optionalStr[T any](v *T, f func(T) string) string {
-	if v == nil {
-		return ""
-	}
-	return f(*v)
-}
-
-func formatCSVTime(t time.Time) string {
-	return t.Format(time.RFC3339)
-}
-
-func parseCSVTime(s string) (time.Time, error) {
-	t, err := time.Parse(time.RFC3339, s)
-	if err != nil {
-		return time.Time{}, fmt.Errorf("cannot parse time %q: expected RFC3339, got %w", s, err)
-	}
-	return t, nil
 }

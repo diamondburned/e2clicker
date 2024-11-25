@@ -3,6 +3,7 @@
 </script>
 
 <script lang="ts">
+  import ErrorBox from "$lib/components/ErrorBox.svelte";
   import Icon from "$lib/components/Icon.svelte";
   import Tooltip from "$lib/components/popovers/Tooltip.svelte";
   import PreferenceGroup from "$lib/components/preference/PreferenceGroup.svelte";
@@ -41,14 +42,6 @@
     {#await promise}
       <span aria-busy="true"></span>
     {:then { enabled, available, reason }}
-      {#if reason}
-        <Tooltip>
-          <Icon name="help" />
-          {#snippet tooltip()}
-            <span>{reason}</span>
-          {/snippet}
-        </Tooltip>
-      {/if}
       {#if available}
         <button
           class:outline={enabled}
@@ -65,6 +58,8 @@
             Activate
           {/if}
         </button>
+      {:else if reason}
+        <ErrorBox error={reason} prefix="Not available" tiny />
       {:else}
         <span class="error-text"> Not available </span>
       {/if}

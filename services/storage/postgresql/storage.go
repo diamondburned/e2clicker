@@ -13,6 +13,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/fx"
+	"libdb.so/e2clicker/internal/slogutil"
 	"libdb.so/e2clicker/internal/sqlc/postgresqlc"
 
 	e2clickermodule "libdb.so/e2clicker/nix/modules/e2clicker"
@@ -113,7 +114,7 @@ type copyFromIterator[T any] struct {
 	value T
 	error error
 
-	next func() (T, error, bool)
+	next func() (T, bool)
 	stop func()
 	rows func(T) ([]any, error)
 }
@@ -123,8 +124,26 @@ var (
 	_ io.Closer          = (*copyFromIterator[struct{}])(nil)
 )
 
-func newCopyFromIterator[T any](seq iter.Seq2[T, error], rows func(T) ([]any, error)) *copyFromIterator[T] {
-	next, stop := iter.Pull2(seq)
+func newCopyFromIterator[T any](seq iter.Seq[T], rows func(T) ([]any, error)) *copyFromIterator[T] {
+	// Pull's recover() isn't particularly helpful, so we wrap it.
+	next, stop := iter.Pull(func(yield func(T) bool) {
+		defer func() {
+			if r := recover(); r != nil {
+				slog.Error(
+					"panic in iterator used by storage/postgresql.copyFromIterator",
+					"panic", r,
+					slogutil.StackTrace(1))
+				panic(r)
+			}
+		}()
+
+		for v := range seq {
+			if !yield(v) {
+				return
+			}
+		}
+	})
+
 	return &copyFromIterator[T]{
 		next: next,
 		stop: stop,
@@ -133,7 +152,17 @@ func newCopyFromIterator[T any](seq iter.Seq2[T, error], rows func(T) ([]any, er
 }
 
 func (i *copyFromIterator[T]) Next() (ok bool) {
-	i.value, i.error, ok = i.next()
+	defer func() {
+		if r := recover(); r != nil {
+			ok = false
+
+			slog.Error(
+				"panic in storage/postgresql.copyFromIterator",
+				"panic", r,
+				slogutil.StackTrace(1))
+		}
+	}()
+	i.value, ok = i.next()
 	return
 }
 
@@ -142,7 +171,7 @@ func (i *copyFromIterator[T]) Values() ([]any, error) {
 }
 
 func (i *copyFromIterator[T]) Err() error {
-	return i.error
+	return nil
 }
 
 func (i *copyFromIterator[T]) Close() error {

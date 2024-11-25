@@ -4,12 +4,10 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"mime"
 	"net/http"
 	"slices"
 	"time"
 
-	"github.com/timewasted/go-accept-headers"
 	"go.uber.org/fx"
 	"libdb.so/e2clicker/internal/asset"
 	"libdb.so/e2clicker/internal/publicerrors"
@@ -21,15 +19,14 @@ import (
 	notificationapi "libdb.so/e2clicker/services/notification/openapi"
 )
 
-// OpenAPIHandler is the handler for the OpenAPI service.
+// openAPIHandler is the handler for the OpenAPI service.
 // It implements the OpenAPI service interface.
-type OpenAPIHandler struct {
-	logger       *slog.Logger
-	users        *user.UserService
-	notifs       *notification.UserNotificationService
-	dosage       dosage.DosageStorage
-	doseHistory  dosage.DoseHistoryStorage
-	doseExporter *dosage.ExporterService
+type openAPIHandler struct {
+	logger      *slog.Logger
+	users       *user.UserService
+	notifs      *notification.UserNotificationService
+	dosage      dosage.DosageStorage
+	doseHistory dosage.DoseHistoryStorage
 }
 
 // OpenAPIHandlerServices is the set of service dependencies required by the
@@ -41,26 +38,37 @@ type OpenAPIHandlerServices struct {
 	UserNotifications *notification.UserNotificationService
 	Dosage            dosage.DosageStorage
 	DoseHistory       dosage.DoseHistoryStorage
-	DoseExporter      *dosage.ExporterService
 }
 
-// NewOpenAPIHandler creates a new OpenAPIHandler.
-func NewOpenAPIHandler(deps OpenAPIHandlerServices, logger *slog.Logger) *OpenAPIHandler {
-	return &OpenAPIHandler{
-		logger:       logger,
-		users:        deps.Users,
-		notifs:       deps.UserNotifications,
-		dosage:       deps.Dosage,
-		doseHistory:  deps.DoseHistory,
-		doseExporter: deps.DoseExporter,
+// newOpenAPIHandler creates a new OpenAPIHandler.
+func newOpenAPIHandler(deps OpenAPIHandlerServices, logger *slog.Logger) *openAPIHandler {
+	return &openAPIHandler{
+		logger:      logger,
+		users:       deps.Users,
+		notifs:      deps.UserNotifications,
+		dosage:      deps.Dosage,
+		doseHistory: deps.DoseHistory,
 	}
 }
 
-func (h *OpenAPIHandler) asStrictHandler() openapi.StrictServerInterface { return h }
+func (h *openAPIHandler) asHandler() openapi.ServerInterface {
+	return openapi.NewStrictHandlerWithOptions(
+		h, nil,
+		openapi.StrictHTTPServerOptions{
+			RequestErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {
+				err = publicerrors.ForcePublic(err) // only validation errors
+				writeError(w, r, err, http.StatusBadRequest)
+			},
+			ResponseErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {
+				writeError(w, r, err, 0)
+			},
+		},
+	)
+}
 
 // Register a new account
 // (POST /register)
-func (h *OpenAPIHandler) Register(ctx context.Context, request openapi.RegisterRequestObject) (openapi.RegisterResponseObject, error) {
+func (h *openAPIHandler) Register(ctx context.Context, request openapi.RegisterRequestObject) (openapi.RegisterResponseObject, error) {
 	u, err := h.users.CreateUser(ctx, request.Body.Name)
 	if err != nil {
 		return nil, err
@@ -76,7 +84,7 @@ func (h *OpenAPIHandler) Register(ctx context.Context, request openapi.RegisterR
 
 // Authenticate a user
 // (POST /auth)
-func (h *OpenAPIHandler) Auth(ctx context.Context, request openapi.AuthRequestObject) (openapi.AuthResponseObject, error) {
+func (h *openAPIHandler) Auth(ctx context.Context, request openapi.AuthRequestObject) (openapi.AuthResponseObject, error) {
 	t, err := h.users.CreateSession(ctx, request.Body.Secret, optstr(request.Params.UserAgent))
 	if err != nil {
 		return nil, err
@@ -89,7 +97,7 @@ func (h *OpenAPIHandler) Auth(ctx context.Context, request openapi.AuthRequestOb
 
 // Get the current user
 // (GET /me)
-func (h *OpenAPIHandler) CurrentUser(ctx context.Context, request openapi.CurrentUserRequestObject) (openapi.CurrentUserResponseObject, error) {
+func (h *openAPIHandler) CurrentUser(ctx context.Context, request openapi.CurrentUserRequestObject) (openapi.CurrentUserResponseObject, error) {
 	session := sessionFromCtx(ctx)
 
 	u, err := h.users.User(ctx, session.UserSecret)
@@ -107,7 +115,7 @@ func (h *OpenAPIHandler) CurrentUser(ctx context.Context, request openapi.Curren
 
 // Get the current user's avatar
 // (GET /me/avatar)
-func (h *OpenAPIHandler) CurrentUserAvatar(ctx context.Context, request openapi.CurrentUserAvatarRequestObject) (openapi.CurrentUserAvatarResponseObject, error) {
+func (h *openAPIHandler) CurrentUserAvatar(ctx context.Context, request openapi.CurrentUserAvatarRequestObject) (openapi.CurrentUserAvatarResponseObject, error) {
 	session := sessionFromCtx(ctx)
 
 	a, err := h.users.UserAvatar(ctx, session.UserSecret)
@@ -124,7 +132,7 @@ func (h *OpenAPIHandler) CurrentUserAvatar(ctx context.Context, request openapi.
 
 // Set the current user's avatar
 // (POST /me/avatar)
-func (h *OpenAPIHandler) SetCurrentUserAvatar(ctx context.Context, request openapi.SetCurrentUserAvatarRequestObject) (openapi.SetCurrentUserAvatarResponseObject, error) {
+func (h *openAPIHandler) SetCurrentUserAvatar(ctx context.Context, request openapi.SetCurrentUserAvatarRequestObject) (openapi.SetCurrentUserAvatarResponseObject, error) {
 	session := sessionFromCtx(ctx)
 
 	err := h.users.SetUserAvatar(ctx, session.UserSecret, asset.NewAssetReader(
@@ -141,7 +149,7 @@ func (h *OpenAPIHandler) SetCurrentUserAvatar(ctx context.Context, request opena
 
 // List the current user's sessions
 // (GET /me/sessions)
-func (h *OpenAPIHandler) CurrentUserSessions(ctx context.Context, request openapi.CurrentUserSessionsRequestObject) (openapi.CurrentUserSessionsResponseObject, error) {
+func (h *openAPIHandler) CurrentUserSessions(ctx context.Context, request openapi.CurrentUserSessionsRequestObject) (openapi.CurrentUserSessionsResponseObject, error) {
 	session := sessionFromCtx(ctx)
 
 	s, err := h.users.ListSessions(ctx, session.UserSecret)
@@ -154,7 +162,7 @@ func (h *OpenAPIHandler) CurrentUserSessions(ctx context.Context, request openap
 
 // Delete one of the current user's sessions
 // (DELETE /me/sessions)
-func (h *OpenAPIHandler) DeleteUserSession(ctx context.Context, request openapi.DeleteUserSessionRequestObject) (openapi.DeleteUserSessionResponseObject, error) {
+func (h *openAPIHandler) DeleteUserSession(ctx context.Context, request openapi.DeleteUserSessionRequestObject) (openapi.DeleteUserSessionResponseObject, error) {
 	session := sessionFromCtx(ctx)
 
 	err := h.users.DeleteSession(ctx, session.UserSecret, request.Params.ID)
@@ -167,7 +175,7 @@ func (h *OpenAPIHandler) DeleteUserSession(ctx context.Context, request openapi.
 
 // List all available delivery methods
 // (GET /delivery-methods)
-func (h *OpenAPIHandler) DeliveryMethods(ctx context.Context, request openapi.DeliveryMethodsRequestObject) (openapi.DeliveryMethodsResponseObject, error) {
+func (h *openAPIHandler) DeliveryMethods(ctx context.Context, request openapi.DeliveryMethodsRequestObject) (openapi.DeliveryMethodsResponseObject, error) {
 	methods, err := h.dosage.DeliveryMethods(ctx)
 	if err != nil {
 		return nil, err
@@ -180,7 +188,7 @@ func (h *OpenAPIHandler) DeliveryMethods(ctx context.Context, request openapi.De
 	), nil
 }
 
-func (h *OpenAPIHandler) SetDosage(ctx context.Context, request openapi.SetDosageRequestObject) (openapi.SetDosageResponseObject, error) {
+func (h *openAPIHandler) SetDosage(ctx context.Context, request openapi.SetDosageRequestObject) (openapi.SetDosageResponseObject, error) {
 	session := sessionFromCtx(ctx)
 
 	methods, err := h.dosage.DeliveryMethods(ctx)
@@ -209,7 +217,7 @@ func (h *OpenAPIHandler) SetDosage(ctx context.Context, request openapi.SetDosag
 	return openapi.SetDosage204Response{}, nil
 }
 
-func (h *OpenAPIHandler) ClearDosage(ctx context.Context, request openapi.ClearDosageRequestObject) (openapi.ClearDosageResponseObject, error) {
+func (h *openAPIHandler) ClearDosage(ctx context.Context, request openapi.ClearDosageRequestObject) (openapi.ClearDosageResponseObject, error) {
 	session := sessionFromCtx(ctx)
 	if err := h.dosage.ClearDosage(ctx, session.UserSecret); err != nil {
 		return nil, err
@@ -217,7 +225,7 @@ func (h *OpenAPIHandler) ClearDosage(ctx context.Context, request openapi.ClearD
 	return openapi.ClearDosage204Response{}, nil
 }
 
-func (h *OpenAPIHandler) RecordDose(ctx context.Context, request openapi.RecordDoseRequestObject) (openapi.RecordDoseResponseObject, error) {
+func (h *openAPIHandler) RecordDose(ctx context.Context, request openapi.RecordDoseRequestObject) (openapi.RecordDoseResponseObject, error) {
 	session := sessionFromCtx(ctx)
 	now := time.Now()
 
@@ -232,20 +240,14 @@ func (h *OpenAPIHandler) RecordDose(ctx context.Context, request openapi.RecordD
 		TakenAt:        now,
 	}
 
-	id, err := h.doseHistory.RecordDose(ctx, session.UserSecret, dose)
-	if err != nil {
+	if err := h.doseHistory.RecordDose(ctx, session.UserSecret, dose); err != nil {
 		return nil, err
 	}
 
-	return openapi.RecordDose200JSONResponse(
-		convertDosageObservation(dosage.Observation{
-			ID:   id,
-			Dose: dose,
-		}),
-	), nil
+	return openapi.RecordDose200JSONResponse(openapi.Dose(dose.ToOpenAPI())), nil
 }
 
-func (h *OpenAPIHandler) EditDose(ctx context.Context, request openapi.EditDoseRequestObject) (openapi.EditDoseResponseObject, error) {
+func (h *openAPIHandler) EditDose(ctx context.Context, request openapi.EditDoseRequestObject) (openapi.EditDoseResponseObject, error) {
 	session := sessionFromCtx(ctx)
 
 	o := dosage.Dose{
@@ -255,24 +257,30 @@ func (h *OpenAPIHandler) EditDose(ctx context.Context, request openapi.EditDoseR
 		TakenOffAt:     request.Body.TakenOffAt,
 	}
 
-	if err := h.doseHistory.EditDose(ctx, session.UserSecret, request.Body.ID, o); err != nil {
+	if err := h.doseHistory.EditDose(ctx, session.UserSecret, request.DoseTime, o); err != nil {
 		return nil, err
 	}
 
 	return openapi.EditDose204Response{}, nil
 }
 
-func (h *OpenAPIHandler) ForgetDoses(ctx context.Context, request openapi.ForgetDosesRequestObject) (openapi.ForgetDosesResponseObject, error) {
+func (h *openAPIHandler) ForgetDose(ctx context.Context, request openapi.ForgetDoseRequestObject) (openapi.ForgetDoseResponseObject, error) {
 	session := sessionFromCtx(ctx)
-
-	if err := h.doseHistory.ForgetDoses(ctx, session.UserSecret, request.Params.DoseIds); err != nil {
+	if err := h.doseHistory.ForgetDoses(ctx, session.UserSecret, []time.Time{request.DoseTime}); err != nil {
 		return nil, err
 	}
+	return openapi.ForgetDose204Response{}, nil
+}
 
+func (h *openAPIHandler) ForgetDoses(ctx context.Context, request openapi.ForgetDosesRequestObject) (openapi.ForgetDosesResponseObject, error) {
+	session := sessionFromCtx(ctx)
+	if err := h.doseHistory.ForgetDoses(ctx, session.UserSecret, request.Params.DoseTimes); err != nil {
+		return nil, err
+	}
 	return openapi.ForgetDoses204Response{}, nil
 }
 
-func (h *OpenAPIHandler) Dosage(ctx context.Context, request openapi.DosageRequestObject) (openapi.DosageResponseObject, error) {
+func (h *openAPIHandler) Dosage(ctx context.Context, request openapi.DosageRequestObject) (openapi.DosageResponseObject, error) {
 	session := sessionFromCtx(ctx)
 
 	var r openapi.Dosage200JSONResponse
@@ -298,7 +306,7 @@ func (h *OpenAPIHandler) Dosage(ctx context.Context, request openapi.DosageReque
 				"(consider exporting instead)")
 		}
 
-		os := make([]openapi.DosageObservation, 0, 32)
+		os := make([]openapi.Dose, 0, 32)
 		r.History = &os
 
 		for dose, err := range h.doseHistory.DoseHistory(
@@ -310,110 +318,22 @@ func (h *OpenAPIHandler) Dosage(ctx context.Context, request openapi.DosageReque
 				return nil, fmt.Errorf("cannot get dosage history: %w", err)
 			}
 
-			os = append(os, convertDosageObservation(dose))
+			os = append(os, openapi.Dose(dose.ToOpenAPI()))
 		}
 	}
 
 	return r, nil
 }
 
-func (h *OpenAPIHandler) ExportDosageHistory(ctx context.Context, request openapi.ExportDosageHistoryRequestObject) (openapi.ExportDosageHistoryResponseObject, error) {
-	session := sessionFromCtx(ctx)
-
-	var format dosage.ExportFormat
-	for _, t := range accept.Parse(string(request.Params.Accept)) {
-		switch t.Type + "/" + t.Subtype {
-		case "text/csv":
-			format = dosage.ExportCSV
-		case "application/json":
-			format = dosage.ExportJSON
-		}
-	}
-
-	if format == "" {
-		return nil, ErrNoAcceptableContentType
-	}
-
-	exportExtensions, err := mime.ExtensionsByType(string(format))
-	if err != nil {
-		return nil, fmt.Errorf("format %q missing file extension: %w", format, err)
-	}
-
-	exportTime := time.Now().Format(time.RFC3339)
-	exportName := fmt.Sprintf("attachment; filename=dose-history-%s.%s", exportTime, exportExtensions[0])
-
-	return exportDosageHistoryResponse(func(w http.ResponseWriter) error {
-		w.Header().Set("Content-Type", string(request.Params.Accept))
-		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", exportName))
-
-		_, err := h.doseExporter.ExportDoseHistory(ctx, w, session.UserSecret, dosage.ExportDoseHistoryOptions{
-			Begin:  optPtr(request.Params.Start),
-			End:    optPtr(request.Params.End),
-			Format: dosage.ExportFormat(request.Params.Accept),
-		})
-		return err
-	}), nil
+func (h openAPIHandler) ExportDoses(ctx context.Context, request openapi.ExportDosesRequestObject) (openapi.ExportDosesResponseObject, error) {
+	panic("unreachable") // see handler_importexport.go
 }
 
-type exportDosageHistoryResponse func(http.ResponseWriter) error
-
-func (f exportDosageHistoryResponse) VisitExportDosageHistoryResponse(w http.ResponseWriter) error {
-	return f(w)
+func (h *openAPIHandler) ImportDoses(ctx context.Context, request openapi.ImportDosesRequestObject) (openapi.ImportDosesResponseObject, error) {
+	panic("unreachable") // see handler_importexport.go
 }
 
-func (h *OpenAPIHandler) ImportDosageHistory(ctx context.Context, request openapi.ImportDosageHistoryRequestObject) (openapi.ImportDosageHistoryResponseObject, error) {
-	session := sessionFromCtx(ctx)
-
-	contentType, params, err := mime.ParseMediaType(string(request.Params.ContentType))
-	if err != nil {
-		return nil, publicerrors.Errorf("invalid content type: %w", err)
-	}
-
-	if charset, ok := params["charset"]; ok && charset != "utf-8" {
-		return nil, publicerrors.Errorf("unsupported charset %q, UTF-8 only please", charset)
-	}
-
-	var format dosage.ExportFormat
-	switch contentType {
-	case "text/csv":
-		format = dosage.ExportCSV
-	case "application/json":
-		format = dosage.ExportJSON
-	default:
-		return nil, ErrNoAcceptableContentType
-	}
-
-	result, err := h.doseExporter.ImportDoseHistory(ctx, request.Body, session.UserSecret, dosage.ImportDoseHistoryOptions{
-		Format: format,
-	})
-	if result.Records == 0 && err != nil {
-		return nil, err
-	}
-
-	var oapiError *openapi.Error
-	if err != nil {
-		converted := convertError[errorResponse](ctx, err)
-		oapiError = &converted.Body
-	}
-
-	return openapi.ImportDosageHistory200JSONResponse{
-		Records:   int(result.Records),
-		Succeeded: int(result.Succeeded),
-		Error:     oapiError,
-	}, nil
-}
-
-func convertDosageObservation(o dosage.Observation) openapi.DosageObservation {
-	return openapi.DosageObservation{
-		ID:             o.ID,
-		DeliveryMethod: o.Dose.DeliveryMethod,
-		Dose:           o.Dose.Dose,
-		TakenAt:        o.Dose.TakenAt,
-		TakenOffAt:     o.Dose.TakenOffAt,
-	}
-}
-
-func (h *OpenAPIHandler) WebPushInfo(ctx context.Context, request openapi.WebPushInfoRequestObject) (openapi.WebPushInfoResponseObject, error) {
+func (h *openAPIHandler) WebPushInfo(ctx context.Context, request openapi.WebPushInfoRequestObject) (openapi.WebPushInfoResponseObject, error) {
 	i, err := h.notifs.WebPushInfo(ctx)
 	if err != nil {
 		return nil, err
@@ -421,7 +341,7 @@ func (h *OpenAPIHandler) WebPushInfo(ctx context.Context, request openapi.WebPus
 	return openapi.WebPushInfo200JSONResponse(openapi.PushInfo(i)), nil
 }
 
-func (h *OpenAPIHandler) UserNotificationMethods(ctx context.Context, request openapi.UserNotificationMethodsRequestObject) (openapi.UserNotificationMethodsResponseObject, error) {
+func (h *openAPIHandler) UserNotificationMethods(ctx context.Context, request openapi.UserNotificationMethodsRequestObject) (openapi.UserNotificationMethodsResponseObject, error) {
 	session := sessionFromCtx(ctx)
 
 	p, err := h.notifs.UserPreferences(ctx, session.UserSecret)
@@ -446,7 +366,7 @@ func (h *OpenAPIHandler) UserNotificationMethods(ctx context.Context, request op
 	return openapi.UserNotificationMethods200JSONResponse(ret), nil
 }
 
-func (h *OpenAPIHandler) UserPushSubscription(ctx context.Context, request openapi.UserPushSubscriptionRequestObject) (openapi.UserPushSubscriptionResponseObject, error) {
+func (h *openAPIHandler) UserPushSubscription(ctx context.Context, request openapi.UserPushSubscriptionRequestObject) (openapi.UserPushSubscriptionResponseObject, error) {
 	session := sessionFromCtx(ctx)
 
 	p, err := h.notifs.UserPreferences(ctx, session.UserSecret)
@@ -471,7 +391,7 @@ func (h *OpenAPIHandler) UserPushSubscription(ctx context.Context, request opena
 	)), nil
 }
 
-func (h *OpenAPIHandler) UserSubscribePush(ctx context.Context, request openapi.UserSubscribePushRequestObject) (openapi.UserSubscribePushResponseObject, error) {
+func (h *openAPIHandler) UserSubscribePush(ctx context.Context, request openapi.UserSubscribePushRequestObject) (openapi.UserSubscribePushResponseObject, error) {
 	session := sessionFromCtx(ctx)
 	if err := h.notifs.SubscribeWebPush(ctx, session.UserSecret, notificationapi.PushSubscription(*request.Body)); err != nil {
 		return nil, err
@@ -479,7 +399,7 @@ func (h *OpenAPIHandler) UserSubscribePush(ctx context.Context, request openapi.
 	return openapi.UserSubscribePush204Response{}, nil
 }
 
-func (h *OpenAPIHandler) UserUnsubscribePush(ctx context.Context, request openapi.UserUnsubscribePushRequestObject) (openapi.UserUnsubscribePushResponseObject, error) {
+func (h *openAPIHandler) UserUnsubscribePush(ctx context.Context, request openapi.UserUnsubscribePushRequestObject) (openapi.UserUnsubscribePushResponseObject, error) {
 	session := sessionFromCtx(ctx)
 	if err := h.notifs.UnsubscribeWebPush(ctx, session.UserSecret, request.DeviceID); err != nil {
 		return nil, err

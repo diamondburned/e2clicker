@@ -20,7 +20,7 @@ Base URLs:
 
 <a id="opIddeliveryMethods"></a>
 
-`GET /deliverymethods`
+`GET /delivery-methods`
 
 > Example responses
 
@@ -83,7 +83,6 @@ This operation does not require authentication
   },
   "history": [
     {
-      "id": 0,
       "deliveryMethod": "string",
       "dose": 0.1,
       "takenAt": "2019-08-24T14:15:22Z",
@@ -218,7 +217,6 @@ This endpoint is used to record a new dosage observation to the user's history. 
 
 ```json
 {
-  "id": 0,
   "deliveryMethod": "string",
   "dose": 0.1,
   "takenAt": "2019-08-24T14:15:22Z",
@@ -231,66 +229,7 @@ This endpoint is used to record a new dosage observation to the user's history. 
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Successfully recorded dosage.|[DosageObservation](#schemadosageobservation)|
-
-<aside class="warning">
-To perform this operation, you must be authenticated by means of one of the following methods:
-bearerAuth
-</aside>
-
-## Update a dosage in the user's history
-
-<a id="opIdeditDose"></a>
-
-`PUT /dosage/dose`
-
-> Body parameter
-
-```json
-{
-  "id": 0,
-  "deliveryMethod": "string",
-  "dose": 0.1,
-  "takenAt": "2019-08-24T14:15:22Z",
-  "takenOffAt": "2019-08-24T14:15:22Z",
-  "comment": "string"
-}
-```
-
-<h3 id="update-a-dosage-in-the-user's-history-parameters">Parameters</h3>
-
-|Name|In|Type|Required|Description|
-|---|---|---|---|---|
-|body|body|any|true|none|
-
-> Example responses
-
-> default Response
-
-```json
-{
-  "message": "string",
-  "errors": [
-    {
-      "message": "string",
-      "errors": [],
-      "details": null,
-      "internal": true,
-      "internalCode": "string"
-    }
-  ],
-  "details": null,
-  "internal": true,
-  "internalCode": "string"
-}
-```
-
-<h3 id="update-a-dosage-in-the-user's-history-responses">Responses</h3>
-
-|Status|Meaning|Description|Schema|
-|---|---|---|---|
-|204|[No Content](https://tools.ietf.org/html/rfc7231#section-6.3.5)|Successfully updated dosage.|None|
-|default|Default|The request is invalid.|[Error](#schemaerror)|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Successfully recorded dosage.|[Dose](#schemadose)|
 
 <aside class="warning">
 To perform this operation, you must be authenticated by means of one of the following methods:
@@ -307,7 +246,7 @@ bearerAuth
 
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
-|dose_ids|query|array[integer]|true|none|
+|doseTimes|query|array[string]|true|none|
 
 > Example responses
 
@@ -343,11 +282,116 @@ To perform this operation, you must be authenticated by means of one of the foll
 bearerAuth
 </aside>
 
+## Update a dosage in the user's history
+
+<a id="opIdeditDose"></a>
+
+`PUT /dosage/dose/{doseTime}`
+
+> Body parameter
+
+```json
+{
+  "deliveryMethod": "string",
+  "dose": 0.1,
+  "takenAt": "2019-08-24T14:15:22Z",
+  "takenOffAt": "2019-08-24T14:15:22Z",
+  "comment": "string"
+}
+```
+
+<h3 id="update-a-dosage-in-the-user's-history-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|doseTime|path|string(date-time)|true|none|
+|body|body|any|true|none|
+
+> Example responses
+
+> default Response
+
+```json
+{
+  "message": "string",
+  "errors": [
+    {
+      "message": "string",
+      "errors": [],
+      "details": null,
+      "internal": true,
+      "internalCode": "string"
+    }
+  ],
+  "details": null,
+  "internal": true,
+  "internalCode": "string"
+}
+```
+
+<h3 id="update-a-dosage-in-the-user's-history-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|204|[No Content](https://tools.ietf.org/html/rfc7231#section-6.3.5)|Successfully updated the dosage.|None|
+|default|Default|The request is invalid.|[Error](#schemaerror)|
+
+<aside class="warning">
+To perform this operation, you must be authenticated by means of one of the following methods:
+bearerAuth
+</aside>
+
+## Delete a dosage from the user's history
+
+<a id="opIdforgetDose"></a>
+
+`DELETE /dosage/dose/{doseTime}`
+
+<h3 id="delete-a-dosage-from-the-user's-history-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|doseTime|path|string(date-time)|true|none|
+
+> Example responses
+
+> default Response
+
+```json
+{
+  "message": "string",
+  "errors": [
+    {
+      "message": "string",
+      "errors": [],
+      "details": null,
+      "internal": true,
+      "internalCode": "string"
+    }
+  ],
+  "details": null,
+  "internal": true,
+  "internalCode": "string"
+}
+```
+
+<h3 id="delete-a-dosage-from-the-user's-history-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|204|[No Content](https://tools.ietf.org/html/rfc7231#section-6.3.5)|Successfully deleted the dosage.|None|
+|default|Default|The request is invalid.|[Error](#schemaerror)|
+
+<aside class="warning">
+To perform this operation, you must be authenticated by means of one of the following methods:
+bearerAuth
+</aside>
+
 ## Export the user's dosage history
 
-<a id="opIdexportDosageHistory"></a>
+<a id="opIdexportDoses"></a>
 
-`GET /dosage/export`
+`GET /dosage/export-doses`
 
 <h3 id="export-the-user's-dosage-history-parameters">Parameters</h3>
 
@@ -371,7 +415,6 @@ bearerAuth
 ```json
 [
   {
-    "id": 0,
     "deliveryMethod": "string",
     "dose": 0.1,
     "takenAt": "2019-08-24T14:15:22Z",
@@ -403,9 +446,9 @@ bearerAuth
 
 ## Import a CSV file of dosage history
 
-<a id="opIdimportDosageHistory"></a>
+<a id="opIdimportDoses"></a>
 
-`POST /dosage/import`
+`POST /dosage/import-doses`
 
 > Body parameter
 
@@ -473,7 +516,7 @@ bearerAuth
 
 <a id="opIdwebPushInfo"></a>
 
-`GET /pushinfo`
+`GET /push-info`
 
 > Example responses
 
@@ -1123,7 +1166,6 @@ bearerAuth
 ```json
 [
   {
-    "id": 0,
     "deliveryMethod": "string",
     "dose": 0.1,
     "takenAt": "2019-08-24T14:15:22Z",
@@ -1138,7 +1180,7 @@ bearerAuth
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|*anonymous*|[[DosageObservation](#schemadosageobservation)]|false|none|none|
+|*anonymous*|[[Dose](#schemadose)]|false|none|[A dose of medication in time.]|
 
 <h2 id="tocS_DosageHistoryCSV">DosageHistoryCSV</h2>
 <!-- backwards compatibility -->
@@ -1160,16 +1202,15 @@ The CSV format of the user's dosage history.
 |---|---|---|---|---|
 |*anonymous*|string|false|none|The CSV format of the user's dosage history.|
 
-<h2 id="tocS_DosageObservation">DosageObservation</h2>
+<h2 id="tocS_Dose">Dose</h2>
 <!-- backwards compatibility -->
-<a id="schemadosageobservation"></a>
-<a id="schema_DosageObservation"></a>
-<a id="tocSdosageobservation"></a>
-<a id="tocsdosageobservation"></a>
+<a id="schemadose"></a>
+<a id="schema_Dose"></a>
+<a id="tocSdose"></a>
+<a id="tocsdose"></a>
 
 ```json
 {
-  "id": 0,
   "deliveryMethod": "string",
   "dose": 0.1,
   "takenAt": "2019-08-24T14:15:22Z",
@@ -1179,11 +1220,12 @@ The CSV format of the user's dosage history.
 
 ```
 
+A dose of medication in time.
+
 ### Properties
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|id|integer(int64)|true|none|The unique identifier for the observation.|
 |deliveryMethod|string|true|none|The delivery method used.|
 |dose|number(float)|true|none|The dosage amount.|
 |takenAt|string(date-time)|true|none|The time the dosage was taken.|

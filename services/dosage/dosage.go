@@ -3,6 +3,7 @@ package dosage
 import (
 	"context"
 	"errors"
+	"fmt"
 	"iter"
 	"time"
 
@@ -38,23 +39,24 @@ type DosageStorage interface {
 // DoseHistoryStorage is a storage for dose history data.
 type DoseHistoryStorage interface {
 	// RecordDose records a single dose. The dose observation's ID is returned.
-	RecordDose(ctx context.Context, secret user.Secret, dose Dose) (int64, error)
+	RecordDose(ctx context.Context, secret user.Secret, dose Dose) error
 	// ImportDoses imports doses in bulk and returns the number of doses
 	// imported.
 	// This is a separate method from RecordDose to allow for more efficient
 	// bulk imports.
-	ImportDoses(ctx context.Context, secret user.Secret, doseSeq iter.Seq2[Dose, error]) (int64, error)
-	// EditDose edits a dose by ID. All fields are updated.
-	EditDose(ctx context.Context, secret user.Secret, doseIDs int64, dose Dose) error
+	ImportDoses(ctx context.Context, secret user.Secret, doseSeq iter.Seq[Dose]) (int64, error)
+	// EditDose edits a dose by the previous takenAt time.
+	// All fields are updated.
+	EditDose(ctx context.Context, secret user.Secret, doseTime time.Time, dose Dose) error
 	// ForgetDoses forgets the given doses.
-	ForgetDoses(ctx context.Context, secret user.Secret, doseIDs []int64) error
+	ForgetDoses(ctx context.Context, secret user.Secret, doseTimes []time.Time) error
 	// DoseHistory returns the history of a dosage schedule. If end is zero, it
 	// is considered to be now. If begin is zero, it is considered to be
 	// since the beginning of time.
 	// The history is ordered by time taken, with the oldest dose first.
 	// If there's an error, the returned sequence will yield the error with a
 	// zero-value [Observation].
-	DoseHistory(ctx context.Context, secret user.Secret, begin, end time.Time) iter.Seq2[Observation, error]
+	DoseHistory(ctx context.Context, secret user.Secret, begin, end time.Time) iter.Seq2[Dose, error]
 }
 
 // RecordedDosesResult is the result of recording doses.
@@ -108,10 +110,95 @@ type Dose struct {
 	Comment string
 }
 
-// Observation is an observed dose of medication. It is used in the history of a
-// dosage schedule.
-type Observation struct {
-	// ID is the ID of the observation.
-	ID int64
-	Dose
+func doseFromOpenAPI(d openapi.Dose) Dose {
+	var comment string
+	if d.Comment != nil {
+		comment = *d.Comment
+	}
+
+	return Dose{
+		DeliveryMethod: d.DeliveryMethod,
+		Dose:           d.Dose,
+		TakenAt:        d.TakenAt,
+		TakenOffAt:     d.TakenOffAt,
+		Comment:        comment,
+	}
+}
+
+func (d Dose) ToOpenAPI() openapi.Dose {
+	var commentPtr *string
+	if d.Comment != "" {
+		commentPtr = &d.Comment
+	}
+
+	return openapi.Dose{
+		DeliveryMethod: d.DeliveryMethod,
+		Dose:           d.Dose,
+		TakenAt:        d.TakenAt,
+		TakenOffAt:     d.TakenOffAt,
+		Comment:        commentPtr,
+	}
+}
+
+// CSVDoseRecord is a single dose record in a CSV file.
+// This is version 1.
+type CSVDoseRecord struct {
+	TakenAt        string  `csv:"takenAt"`    // RFC3339
+	TakenOffAt     string  `csv:"takenOffAt"` // RFC3339 or ""
+	DeliveryMethod string  `csv:"deliveryMethod"`
+	Dose           float32 `csv:"dose"`
+	Comment        string  `csv:"comment"`
+}
+
+func doseFromCSV(r CSVDoseRecord) (Dose, error) {
+	takenAt, err := parseCSVTime(r.TakenAt)
+	if err != nil {
+		return Dose{}, fmt.Errorf("cannot parse takenAt: %w", err)
+	}
+
+	var takenOffAt *time.Time
+	if r.TakenOffAt != "" {
+		t, err := parseCSVTime(r.TakenOffAt)
+		if err != nil {
+			return Dose{}, fmt.Errorf("cannot parse takenOffAt: %w", err)
+		}
+		takenOffAt = &t
+	}
+
+	return Dose{
+		Dose:           r.Dose,
+		DeliveryMethod: r.DeliveryMethod,
+		TakenAt:        takenAt,
+		TakenOffAt:     takenOffAt,
+		Comment:        r.Comment,
+	}, nil
+}
+
+func (d Dose) ToCSV() CSVDoseRecord {
+	return CSVDoseRecord{
+		Dose:           d.Dose,
+		DeliveryMethod: d.DeliveryMethod,
+		TakenAt:        formatCSVTime(d.TakenAt),
+		TakenOffAt:     optionalStr(d.TakenOffAt, formatCSVTime),
+		Comment:        d.Comment,
+	}
+}
+
+func optionalStr[T any](v *T, f func(T) string) string {
+	if v == nil {
+		return ""
+	}
+	return f(*v)
+}
+
+func formatCSVTime(t time.Time) string {
+	return t.Format(time.RFC3339)
+}
+
+func parseCSVTime(s string) (time.Time, error) {
+	t, err := time.Parse(time.RFC3339, s)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("cannot parse time %q: expected RFC3339, got %w", s, err)
+	}
+	return t, nil
 }

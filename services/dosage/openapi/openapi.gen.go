@@ -7,16 +7,16 @@ import (
 	"time"
 )
 
-// Defines values for ExportDosageHistoryParamsAccept.
+// Defines values for ExportDosesParamsAccept.
 const (
-	ExportDosageHistoryParamsAcceptApplicationJSON ExportDosageHistoryParamsAccept = "application/json"
-	ExportDosageHistoryParamsAcceptTextCsv         ExportDosageHistoryParamsAccept = "text/csv"
+	ExportDosesParamsAcceptApplicationJSON ExportDosesParamsAccept = "application/json"
+	ExportDosesParamsAcceptTextCsv         ExportDosesParamsAccept = "text/csv"
 )
 
-// Defines values for ImportDosageHistoryParamsContentType.
+// Defines values for ImportDosesParamsContentType.
 const (
-	ImportDosageHistoryParamsContentTypeApplicationJSON ImportDosageHistoryParamsContentType = "application/json"
-	ImportDosageHistoryParamsContentTypeTextCsv         ImportDosageHistoryParamsContentType = "text/csv"
+	ImportDosesParamsContentTypeApplicationJSON ImportDosesParamsContentType = "application/json"
+	ImportDosesParamsContentTypeTextCsv         ImportDosesParamsContentType = "text/csv"
 )
 
 // DeliveryMethod defines model for DeliveryMethod.
@@ -50,16 +50,13 @@ type Dosage struct {
 }
 
 // DosageHistory defines model for DosageHistory.
-type DosageHistory = []DosageObservation
+type DosageHistory = []Dose
 
 // DosageHistoryCSV The CSV format of the user's dosage history.
 type DosageHistoryCSV = string
 
-// DosageObservation defines model for DosageObservation.
-type DosageObservation struct {
-	// ID The unique identifier for the observation.
-	ID int64 `json:"id"`
-
+// Dose A dose of medication in time.
+type Dose struct {
 	// DeliveryMethod The delivery method used.
 	DeliveryMethod string `json:"deliveryMethod"`
 
@@ -84,32 +81,32 @@ type DosageParams struct {
 
 // ForgetDosesParams defines parameters for ForgetDoses.
 type ForgetDosesParams struct {
-	DoseIds []int64 `form:"dose_ids" json:"dose_ids"`
+	DoseTimes []time.Time `form:"doseTimes" json:"doseTimes"`
 }
 
 // EditDoseJSONBody defines parameters for EditDose.
-type EditDoseJSONBody = DosageObservation
+type EditDoseJSONBody = Dose
 
-// ExportDosageHistoryParams defines parameters for ExportDosageHistory.
-type ExportDosageHistoryParams struct {
+// ExportDosesParams defines parameters for ExportDoses.
+type ExportDosesParams struct {
 	Start *time.Time `form:"start,omitempty" json:"start,omitempty"`
 	End   *time.Time `form:"end,omitempty" json:"end,omitempty"`
 
 	// Accept The format to export the dosage history in.
-	Accept ExportDosageHistoryParamsAccept `json:"Accept"`
+	Accept ExportDosesParamsAccept `json:"Accept"`
 }
 
-// ExportDosageHistoryParamsAccept defines parameters for ExportDosageHistory.
-type ExportDosageHistoryParamsAccept string
+// ExportDosesParamsAccept defines parameters for ExportDoses.
+type ExportDosesParamsAccept string
 
-// ImportDosageHistoryParams defines parameters for ImportDosageHistory.
-type ImportDosageHistoryParams struct {
+// ImportDosesParams defines parameters for ImportDoses.
+type ImportDosesParams struct {
 	// ContentType The format to import the dosage history as.
-	ContentType ImportDosageHistoryParamsContentType `json:"Content-Type"`
+	ContentType ImportDosesParamsContentType `json:"Content-Type"`
 }
 
-// ImportDosageHistoryParamsContentType defines parameters for ImportDosageHistory.
-type ImportDosageHistoryParamsContentType string
+// ImportDosesParamsContentType defines parameters for ImportDoses.
+type ImportDosesParamsContentType string
 
 // SetDosageJSONRequestBody defines body for SetDosage for application/json ContentType.
 type SetDosageJSONRequestBody = Dosage
@@ -117,5 +114,5 @@ type SetDosageJSONRequestBody = Dosage
 // EditDoseJSONRequestBody defines body for EditDose for application/json ContentType.
 type EditDoseJSONRequestBody = EditDoseJSONBody
 
-// ImportDosageHistoryJSONRequestBody defines body for ImportDosageHistory for application/json ContentType.
-type ImportDosageHistoryJSONRequestBody = DosageHistory
+// ImportDosesJSONRequestBody defines body for ImportDoses for application/json ContentType.
+type ImportDosesJSONRequestBody = DosageHistory

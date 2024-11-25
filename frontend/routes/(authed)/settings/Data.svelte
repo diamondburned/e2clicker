@@ -53,7 +53,7 @@
       }
 
       // Use type File as parameter instead of a string.
-      const resp = await api.fetch("/dosage/import", {
+      const resp = await api.fetch("/dosage/import-doses", {
         method: "POST",
         body: file,
         headers: {
@@ -61,7 +61,7 @@
         },
       });
 
-      const body = await (resp.json() as ReturnType<typeof api.importDosageHistory>);
+      const body = await (resp.json() as ReturnType<typeof api.importDoses>);
       if (body.error) {
         throw new Error(body.error.message, { cause: body.error });
       }
@@ -76,7 +76,7 @@
     try {
       exportStatus = { status: "loading" };
 
-      const resp = await api.fetch("/dosage/export", {
+      const resp = await api.fetch("/dosage/export-doses", {
         method: "GET",
         headers: {
           Accept: format,

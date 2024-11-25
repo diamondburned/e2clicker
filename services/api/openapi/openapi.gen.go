@@ -37,16 +37,16 @@ const (
 	WelcomeMessage         NotificationType = "welcome_message"
 )
 
-// Defines values for ExportDosageHistoryParamsAccept.
+// Defines values for ExportDosesParamsAccept.
 const (
-	ExportDosageHistoryParamsAcceptApplicationJSON ExportDosageHistoryParamsAccept = "application/json"
-	ExportDosageHistoryParamsAcceptTextCsv         ExportDosageHistoryParamsAccept = "text/csv"
+	ExportDosesParamsAcceptApplicationJSON ExportDosesParamsAccept = "application/json"
+	ExportDosesParamsAcceptTextCsv         ExportDosesParamsAccept = "text/csv"
 )
 
-// Defines values for ImportDosageHistoryParamsContentType.
+// Defines values for ImportDosesParamsContentType.
 const (
-	ImportDosageHistoryParamsContentTypeApplicationJSON ImportDosageHistoryParamsContentType = "application/json"
-	ImportDosageHistoryParamsContentTypeTextCsv         ImportDosageHistoryParamsContentType = "text/csv"
+	ImportDosesParamsContentTypeApplicationJSON ImportDosesParamsContentType = "application/json"
+	ImportDosesParamsContentTypeTextCsv         ImportDosesParamsContentType = "text/csv"
 )
 
 // PushDeviceID A short ID associated with the device that the push subscription is for This is used to identify the device when updating its push subscription later on.
@@ -100,16 +100,13 @@ type Dosage struct {
 }
 
 // DosageHistory defines model for DosageHistory.
-type DosageHistory = []DosageObservation
+type DosageHistory = []Dose
 
 // DosageHistoryCSV The CSV format of the user's dosage history.
 type DosageHistoryCSV = string
 
-// DosageObservation defines model for DosageObservation.
-type DosageObservation struct {
-	// ID The unique identifier for the observation.
-	ID int64 `json:"id"`
-
+// Dose A dose of medication in time.
+type Dose struct {
 	// DeliveryMethod The delivery method used.
 	DeliveryMethod string `json:"deliveryMethod"`
 
@@ -280,32 +277,32 @@ type DosageParams struct {
 
 // ForgetDosesParams defines parameters for ForgetDoses.
 type ForgetDosesParams struct {
-	DoseIds []int64 `form:"dose_ids" json:"dose_ids"`
+	DoseTimes []time.Time `form:"doseTimes" json:"doseTimes"`
 }
 
 // EditDoseJSONBody defines parameters for EditDose.
-type EditDoseJSONBody = DosageObservation
+type EditDoseJSONBody = Dose
 
-// ExportDosageHistoryParams defines parameters for ExportDosageHistory.
-type ExportDosageHistoryParams struct {
+// ExportDosesParams defines parameters for ExportDoses.
+type ExportDosesParams struct {
 	Start *time.Time `form:"start,omitempty" json:"start,omitempty"`
 	End   *time.Time `form:"end,omitempty" json:"end,omitempty"`
 
 	// Accept The format to export the dosage history in.
-	Accept ExportDosageHistoryParamsAccept `json:"Accept"`
+	Accept ExportDosesParamsAccept `json:"Accept"`
 }
 
-// ExportDosageHistoryParamsAccept defines parameters for ExportDosageHistory.
-type ExportDosageHistoryParamsAccept string
+// ExportDosesParamsAccept defines parameters for ExportDoses.
+type ExportDosesParamsAccept string
 
-// ImportDosageHistoryParams defines parameters for ImportDosageHistory.
-type ImportDosageHistoryParams struct {
+// ImportDosesParams defines parameters for ImportDoses.
+type ImportDosesParams struct {
 	// ContentType The format to import the dosage history as.
-	ContentType ImportDosageHistoryParamsContentType `json:"Content-Type"`
+	ContentType ImportDosesParamsContentType `json:"Content-Type"`
 }
 
-// ImportDosageHistoryParamsContentType defines parameters for ImportDosageHistory.
-type ImportDosageHistoryParamsContentType string
+// ImportDosesParamsContentType defines parameters for ImportDoses.
+type ImportDosesParamsContentType string
 
 // DeleteUserSessionParams defines parameters for DeleteUserSession.
 type DeleteUserSessionParams struct {
@@ -327,8 +324,8 @@ type SetDosageJSONRequestBody = Dosage
 // EditDoseJSONRequestBody defines body for EditDose for application/json ContentType.
 type EditDoseJSONRequestBody = EditDoseJSONBody
 
-// ImportDosageHistoryJSONRequestBody defines body for ImportDosageHistory for application/json ContentType.
-type ImportDosageHistoryJSONRequestBody = DosageHistory
+// ImportDosesJSONRequestBody defines body for ImportDoses for application/json ContentType.
+type ImportDosesJSONRequestBody = DosageHistory
 
 // UserSubscribePushJSONRequestBody defines body for UserSubscribePush for application/json ContentType.
 type UserSubscribePushJSONRequestBody = PushSubscription
@@ -342,7 +339,7 @@ type ServerInterface interface {
 	// (POST /auth)
 	Auth(w http.ResponseWriter, r *http.Request, params AuthParams)
 	// List all available delivery methods
-	// (GET /deliverymethods)
+	// (GET /delivery-methods)
 	DeliveryMethods(w http.ResponseWriter, r *http.Request)
 	// Clear the user's dosage schedule
 	// (DELETE /dosage)
@@ -359,15 +356,18 @@ type ServerInterface interface {
 	// Record a new dosage to the user's history
 	// (POST /dosage/dose)
 	RecordDose(w http.ResponseWriter, r *http.Request)
+	// Delete a dosage from the user's history
+	// (DELETE /dosage/dose/{doseTime})
+	ForgetDose(w http.ResponseWriter, r *http.Request, doseTime time.Time)
 	// Update a dosage in the user's history
-	// (PUT /dosage/dose)
-	EditDose(w http.ResponseWriter, r *http.Request)
+	// (PUT /dosage/dose/{doseTime})
+	EditDose(w http.ResponseWriter, r *http.Request, doseTime time.Time)
 	// Export the user's dosage history
-	// (GET /dosage/export)
-	ExportDosageHistory(w http.ResponseWriter, r *http.Request, params ExportDosageHistoryParams)
+	// (GET /dosage/export-doses)
+	ExportDoses(w http.ResponseWriter, r *http.Request, params ExportDosesParams)
 	// Import a CSV file of dosage history
-	// (POST /dosage/import)
-	ImportDosageHistory(w http.ResponseWriter, r *http.Request, params ImportDosageHistoryParams)
+	// (POST /dosage/import-doses)
+	ImportDoses(w http.ResponseWriter, r *http.Request, params ImportDosesParams)
 	// Get the current user
 	// (GET /me)
 	CurrentUser(w http.ResponseWriter, r *http.Request)
@@ -396,7 +396,7 @@ type ServerInterface interface {
 	// (GET /notifications/methods/push/{deviceID})
 	UserPushSubscription(w http.ResponseWriter, r *http.Request, deviceID PushDeviceID)
 	// Get the server's push notification information
-	// (GET /pushinfo)
+	// (GET /push-info)
 	WebPushInfo(w http.ResponseWriter, r *http.Request)
 	// Register a new account
 	// (POST /register)
@@ -561,18 +561,18 @@ func (siw *ServerInterfaceWrapper) ForgetDoses(w http.ResponseWriter, r *http.Re
 	// Parameter object where we will unmarshal all parameters from the context
 	var params ForgetDosesParams
 
-	// ------------- Required query parameter "dose_ids" -------------
+	// ------------- Required query parameter "doseTimes" -------------
 
-	if paramValue := r.URL.Query().Get("dose_ids"); paramValue != "" {
+	if paramValue := r.URL.Query().Get("doseTimes"); paramValue != "" {
 
 	} else {
-		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "dose_ids"})
+		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "doseTimes"})
 		return
 	}
 
-	err = runtime.BindQueryParameter("form", true, true, "dose_ids", r.URL.Query(), &params.DoseIds)
+	err = runtime.BindQueryParameter("form", true, true, "doseTimes", r.URL.Query(), &params.DoseTimes)
 	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "dose_ids", Err: err})
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "doseTimes", Err: err})
 		return
 	}
 
@@ -607,8 +607,19 @@ func (siw *ServerInterfaceWrapper) RecordDose(w http.ResponseWriter, r *http.Req
 	handler.ServeHTTP(w, r)
 }
 
-// EditDose operation middleware
-func (siw *ServerInterfaceWrapper) EditDose(w http.ResponseWriter, r *http.Request) {
+// ForgetDose operation middleware
+func (siw *ServerInterfaceWrapper) ForgetDose(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "doseTime" -------------
+	var doseTime time.Time
+
+	err = runtime.BindStyledParameterWithOptions("simple", "doseTime", r.PathValue("doseTime"), &doseTime, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "doseTime", Err: err})
+		return
+	}
 
 	ctx := r.Context()
 
@@ -617,7 +628,7 @@ func (siw *ServerInterfaceWrapper) EditDose(w http.ResponseWriter, r *http.Reque
 	r = r.WithContext(ctx)
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.EditDose(w, r)
+		siw.Handler.ForgetDose(w, r, doseTime)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -627,8 +638,39 @@ func (siw *ServerInterfaceWrapper) EditDose(w http.ResponseWriter, r *http.Reque
 	handler.ServeHTTP(w, r)
 }
 
-// ExportDosageHistory operation middleware
-func (siw *ServerInterfaceWrapper) ExportDosageHistory(w http.ResponseWriter, r *http.Request) {
+// EditDose operation middleware
+func (siw *ServerInterfaceWrapper) EditDose(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "doseTime" -------------
+	var doseTime time.Time
+
+	err = runtime.BindStyledParameterWithOptions("simple", "doseTime", r.PathValue("doseTime"), &doseTime, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "doseTime", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.EditDose(w, r, doseTime)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ExportDoses operation middleware
+func (siw *ServerInterfaceWrapper) ExportDoses(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 
@@ -639,7 +681,7 @@ func (siw *ServerInterfaceWrapper) ExportDosageHistory(w http.ResponseWriter, r 
 	r = r.WithContext(ctx)
 
 	// Parameter object where we will unmarshal all parameters from the context
-	var params ExportDosageHistoryParams
+	var params ExportDosesParams
 
 	// ------------- Optional query parameter "start" -------------
 
@@ -661,7 +703,7 @@ func (siw *ServerInterfaceWrapper) ExportDosageHistory(w http.ResponseWriter, r 
 
 	// ------------- Required header parameter "Accept" -------------
 	if valueList, found := headers[http.CanonicalHeaderKey("Accept")]; found {
-		var Accept ExportDosageHistoryParamsAccept
+		var Accept ExportDosesParamsAccept
 		n := len(valueList)
 		if n != 1 {
 			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Accept", Count: n})
@@ -683,7 +725,7 @@ func (siw *ServerInterfaceWrapper) ExportDosageHistory(w http.ResponseWriter, r 
 	}
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.ExportDosageHistory(w, r, params)
+		siw.Handler.ExportDoses(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -693,8 +735,8 @@ func (siw *ServerInterfaceWrapper) ExportDosageHistory(w http.ResponseWriter, r 
 	handler.ServeHTTP(w, r)
 }
 
-// ImportDosageHistory operation middleware
-func (siw *ServerInterfaceWrapper) ImportDosageHistory(w http.ResponseWriter, r *http.Request) {
+// ImportDoses operation middleware
+func (siw *ServerInterfaceWrapper) ImportDoses(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 
@@ -705,13 +747,13 @@ func (siw *ServerInterfaceWrapper) ImportDosageHistory(w http.ResponseWriter, r 
 	r = r.WithContext(ctx)
 
 	// Parameter object where we will unmarshal all parameters from the context
-	var params ImportDosageHistoryParams
+	var params ImportDosesParams
 
 	headers := r.Header
 
 	// ------------- Required header parameter "Content-Type" -------------
 	if valueList, found := headers[http.CanonicalHeaderKey("Content-Type")]; found {
-		var ContentType ImportDosageHistoryParamsContentType
+		var ContentType ImportDosesParamsContentType
 		n := len(valueList)
 		if n != 1 {
 			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Content-Type", Count: n})
@@ -733,7 +775,7 @@ func (siw *ServerInterfaceWrapper) ImportDosageHistory(w http.ResponseWriter, r 
 	}
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.ImportDosageHistory(w, r, params)
+		siw.Handler.ImportDoses(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1114,15 +1156,16 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	}
 
 	m.HandleFunc("POST "+options.BaseURL+"/auth", wrapper.Auth)
-	m.HandleFunc("GET "+options.BaseURL+"/deliverymethods", wrapper.DeliveryMethods)
+	m.HandleFunc("GET "+options.BaseURL+"/delivery-methods", wrapper.DeliveryMethods)
 	m.HandleFunc("DELETE "+options.BaseURL+"/dosage", wrapper.ClearDosage)
 	m.HandleFunc("GET "+options.BaseURL+"/dosage", wrapper.Dosage)
 	m.HandleFunc("PUT "+options.BaseURL+"/dosage", wrapper.SetDosage)
 	m.HandleFunc("DELETE "+options.BaseURL+"/dosage/dose", wrapper.ForgetDoses)
 	m.HandleFunc("POST "+options.BaseURL+"/dosage/dose", wrapper.RecordDose)
-	m.HandleFunc("PUT "+options.BaseURL+"/dosage/dose", wrapper.EditDose)
-	m.HandleFunc("GET "+options.BaseURL+"/dosage/export", wrapper.ExportDosageHistory)
-	m.HandleFunc("POST "+options.BaseURL+"/dosage/import", wrapper.ImportDosageHistory)
+	m.HandleFunc("DELETE "+options.BaseURL+"/dosage/dose/{doseTime}", wrapper.ForgetDose)
+	m.HandleFunc("PUT "+options.BaseURL+"/dosage/dose/{doseTime}", wrapper.EditDose)
+	m.HandleFunc("GET "+options.BaseURL+"/dosage/export-doses", wrapper.ExportDoses)
+	m.HandleFunc("POST "+options.BaseURL+"/dosage/import-doses", wrapper.ImportDoses)
 	m.HandleFunc("GET "+options.BaseURL+"/me", wrapper.CurrentUser)
 	m.HandleFunc("GET "+options.BaseURL+"/me/avatar", wrapper.CurrentUserAvatar)
 	m.HandleFunc("PUT "+options.BaseURL+"/me/avatar", wrapper.SetCurrentUserAvatar)
@@ -1132,7 +1175,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc("PUT "+options.BaseURL+"/notifications/methods/push", wrapper.UserSubscribePush)
 	m.HandleFunc("DELETE "+options.BaseURL+"/notifications/methods/push/{deviceID}", wrapper.UserUnsubscribePush)
 	m.HandleFunc("GET "+options.BaseURL+"/notifications/methods/push/{deviceID}", wrapper.UserPushSubscription)
-	m.HandleFunc("GET "+options.BaseURL+"/pushinfo", wrapper.WebPushInfo)
+	m.HandleFunc("GET "+options.BaseURL+"/push-info", wrapper.WebPushInfo)
 	m.HandleFunc("POST "+options.BaseURL+"/register", wrapper.Register)
 
 	return m
@@ -1323,7 +1366,7 @@ type RecordDoseResponseObject interface {
 	VisitRecordDoseResponse(w http.ResponseWriter) error
 }
 
-type RecordDose200JSONResponse DosageObservation
+type RecordDose200JSONResponse Dose
 
 func (response RecordDose200JSONResponse) VisitRecordDoseResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
@@ -1332,8 +1375,37 @@ func (response RecordDose200JSONResponse) VisitRecordDoseResponse(w http.Respons
 	return json.NewEncoder(w).Encode(response)
 }
 
+type ForgetDoseRequestObject struct {
+	DoseTime time.Time `json:"doseTime"`
+}
+
+type ForgetDoseResponseObject interface {
+	VisitForgetDoseResponse(w http.ResponseWriter) error
+}
+
+type ForgetDose204Response struct {
+}
+
+func (response ForgetDose204Response) VisitForgetDoseResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type ForgetDosedefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response ForgetDosedefaultJSONResponse) VisitForgetDoseResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+
+	return json.NewEncoder(w).Encode(response.Body)
+}
+
 type EditDoseRequestObject struct {
-	Body *EditDoseJSONRequestBody
+	DoseTime time.Time `json:"doseTime"`
+	Body     *EditDoseJSONRequestBody
 }
 
 type EditDoseResponseObject interface {
@@ -1360,24 +1432,24 @@ func (response EditDosedefaultJSONResponse) VisitEditDoseResponse(w http.Respons
 	return json.NewEncoder(w).Encode(response.Body)
 }
 
-type ExportDosageHistoryRequestObject struct {
-	Params ExportDosageHistoryParams
+type ExportDosesRequestObject struct {
+	Params ExportDosesParams
 }
 
-type ExportDosageHistoryResponseObject interface {
-	VisitExportDosageHistoryResponse(w http.ResponseWriter) error
+type ExportDosesResponseObject interface {
+	VisitExportDosesResponse(w http.ResponseWriter) error
 }
 
-type ExportDosageHistory200ResponseHeaders struct {
+type ExportDoses200ResponseHeaders struct {
 	ContentDisposition string
 }
 
-type ExportDosageHistory200JSONResponse struct {
+type ExportDoses200JSONResponse struct {
 	Body    DosageHistory
-	Headers ExportDosageHistory200ResponseHeaders
+	Headers ExportDoses200ResponseHeaders
 }
 
-func (response ExportDosageHistory200JSONResponse) VisitExportDosageHistoryResponse(w http.ResponseWriter) error {
+func (response ExportDoses200JSONResponse) VisitExportDosesResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Content-Disposition", fmt.Sprint(response.Headers.ContentDisposition))
 	w.WriteHeader(200)
@@ -1385,13 +1457,13 @@ func (response ExportDosageHistory200JSONResponse) VisitExportDosageHistoryRespo
 	return json.NewEncoder(w).Encode(response.Body)
 }
 
-type ExportDosageHistory200TextCsvResponse struct {
+type ExportDoses200TextCsvResponse struct {
 	Body          io.Reader
-	Headers       ExportDosageHistory200ResponseHeaders
+	Headers       ExportDoses200ResponseHeaders
 	ContentLength int64
 }
 
-func (response ExportDosageHistory200TextCsvResponse) VisitExportDosageHistoryResponse(w http.ResponseWriter) error {
+func (response ExportDoses200TextCsvResponse) VisitExportDosesResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "text/csv")
 	if response.ContentLength != 0 {
 		w.Header().Set("Content-Length", fmt.Sprint(response.ContentLength))
@@ -1406,11 +1478,11 @@ func (response ExportDosageHistory200TextCsvResponse) VisitExportDosageHistoryRe
 	return err
 }
 
-type ExportDosageHistory429JSONResponse struct {
+type ExportDoses429JSONResponse struct {
 	RateLimitedResponseJSONResponse
 }
 
-func (response ExportDosageHistory429JSONResponse) VisitExportDosageHistoryResponse(w http.ResponseWriter) error {
+func (response ExportDoses429JSONResponse) VisitExportDosesResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Retry-After", fmt.Sprint(response.Headers.RetryAfter))
 	w.WriteHeader(429)
@@ -1418,29 +1490,29 @@ func (response ExportDosageHistory429JSONResponse) VisitExportDosageHistoryRespo
 	return json.NewEncoder(w).Encode(response.Body)
 }
 
-type ExportDosageHistorydefaultJSONResponse struct {
+type ExportDosesdefaultJSONResponse struct {
 	Body       Error
 	StatusCode int
 }
 
-func (response ExportDosageHistorydefaultJSONResponse) VisitExportDosageHistoryResponse(w http.ResponseWriter) error {
+func (response ExportDosesdefaultJSONResponse) VisitExportDosesResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(response.StatusCode)
 
 	return json.NewEncoder(w).Encode(response.Body)
 }
 
-type ImportDosageHistoryRequestObject struct {
-	Params   ImportDosageHistoryParams
-	JSONBody *ImportDosageHistoryJSONRequestBody
+type ImportDosesRequestObject struct {
+	Params   ImportDosesParams
+	JSONBody *ImportDosesJSONRequestBody
 	Body     io.Reader
 }
 
-type ImportDosageHistoryResponseObject interface {
-	VisitImportDosageHistoryResponse(w http.ResponseWriter) error
+type ImportDosesResponseObject interface {
+	VisitImportDosesResponse(w http.ResponseWriter) error
 }
 
-type ImportDosageHistory200JSONResponse struct {
+type ImportDoses200JSONResponse struct {
 	Error *Error `json:"error,omitempty"`
 
 	// Records The number of records in the file.
@@ -1450,7 +1522,7 @@ type ImportDosageHistory200JSONResponse struct {
 	Succeeded int `json:"succeeded"`
 }
 
-func (response ImportDosageHistory200JSONResponse) VisitImportDosageHistoryResponse(w http.ResponseWriter) error {
+func (response ImportDoses200JSONResponse) VisitImportDosesResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
 
@@ -1818,7 +1890,7 @@ type StrictServerInterface interface {
 	// (POST /auth)
 	Auth(ctx context.Context, request AuthRequestObject) (AuthResponseObject, error)
 	// List all available delivery methods
-	// (GET /deliverymethods)
+	// (GET /delivery-methods)
 	DeliveryMethods(ctx context.Context, request DeliveryMethodsRequestObject) (DeliveryMethodsResponseObject, error)
 	// Clear the user's dosage schedule
 	// (DELETE /dosage)
@@ -1835,15 +1907,18 @@ type StrictServerInterface interface {
 	// Record a new dosage to the user's history
 	// (POST /dosage/dose)
 	RecordDose(ctx context.Context, request RecordDoseRequestObject) (RecordDoseResponseObject, error)
+	// Delete a dosage from the user's history
+	// (DELETE /dosage/dose/{doseTime})
+	ForgetDose(ctx context.Context, request ForgetDoseRequestObject) (ForgetDoseResponseObject, error)
 	// Update a dosage in the user's history
-	// (PUT /dosage/dose)
+	// (PUT /dosage/dose/{doseTime})
 	EditDose(ctx context.Context, request EditDoseRequestObject) (EditDoseResponseObject, error)
 	// Export the user's dosage history
-	// (GET /dosage/export)
-	ExportDosageHistory(ctx context.Context, request ExportDosageHistoryRequestObject) (ExportDosageHistoryResponseObject, error)
+	// (GET /dosage/export-doses)
+	ExportDoses(ctx context.Context, request ExportDosesRequestObject) (ExportDosesResponseObject, error)
 	// Import a CSV file of dosage history
-	// (POST /dosage/import)
-	ImportDosageHistory(ctx context.Context, request ImportDosageHistoryRequestObject) (ImportDosageHistoryResponseObject, error)
+	// (POST /dosage/import-doses)
+	ImportDoses(ctx context.Context, request ImportDosesRequestObject) (ImportDosesResponseObject, error)
 	// Get the current user
 	// (GET /me)
 	CurrentUser(ctx context.Context, request CurrentUserRequestObject) (CurrentUserResponseObject, error)
@@ -1872,7 +1947,7 @@ type StrictServerInterface interface {
 	// (GET /notifications/methods/push/{deviceID})
 	UserPushSubscription(ctx context.Context, request UserPushSubscriptionRequestObject) (UserPushSubscriptionResponseObject, error)
 	// Get the server's push notification information
-	// (GET /pushinfo)
+	// (GET /push-info)
 	WebPushInfo(ctx context.Context, request WebPushInfoRequestObject) (WebPushInfoResponseObject, error)
 	// Register a new account
 	// (POST /register)
@@ -2096,9 +2171,37 @@ func (sh *strictHandler) RecordDose(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// ForgetDose operation middleware
+func (sh *strictHandler) ForgetDose(w http.ResponseWriter, r *http.Request, doseTime time.Time) {
+	var request ForgetDoseRequestObject
+
+	request.DoseTime = doseTime
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ForgetDose(ctx, request.(ForgetDoseRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ForgetDose")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ForgetDoseResponseObject); ok {
+		if err := validResponse.VisitForgetDoseResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // EditDose operation middleware
-func (sh *strictHandler) EditDose(w http.ResponseWriter, r *http.Request) {
+func (sh *strictHandler) EditDose(w http.ResponseWriter, r *http.Request, doseTime time.Time) {
 	var request EditDoseRequestObject
+
+	request.DoseTime = doseTime
 
 	var body EditDoseJSONRequestBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -2127,25 +2230,25 @@ func (sh *strictHandler) EditDose(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// ExportDosageHistory operation middleware
-func (sh *strictHandler) ExportDosageHistory(w http.ResponseWriter, r *http.Request, params ExportDosageHistoryParams) {
-	var request ExportDosageHistoryRequestObject
+// ExportDoses operation middleware
+func (sh *strictHandler) ExportDoses(w http.ResponseWriter, r *http.Request, params ExportDosesParams) {
+	var request ExportDosesRequestObject
 
 	request.Params = params
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.ExportDosageHistory(ctx, request.(ExportDosageHistoryRequestObject))
+		return sh.ssi.ExportDoses(ctx, request.(ExportDosesRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "ExportDosageHistory")
+		handler = middleware(handler, "ExportDoses")
 	}
 
 	response, err := handler(r.Context(), w, r, request)
 
 	if err != nil {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(ExportDosageHistoryResponseObject); ok {
-		if err := validResponse.VisitExportDosageHistoryResponse(w); err != nil {
+	} else if validResponse, ok := response.(ExportDosesResponseObject); ok {
+		if err := validResponse.VisitExportDosesResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -2153,14 +2256,14 @@ func (sh *strictHandler) ExportDosageHistory(w http.ResponseWriter, r *http.Requ
 	}
 }
 
-// ImportDosageHistory operation middleware
-func (sh *strictHandler) ImportDosageHistory(w http.ResponseWriter, r *http.Request, params ImportDosageHistoryParams) {
-	var request ImportDosageHistoryRequestObject
+// ImportDoses operation middleware
+func (sh *strictHandler) ImportDoses(w http.ResponseWriter, r *http.Request, params ImportDosesParams) {
+	var request ImportDosesRequestObject
 
 	request.Params = params
 	if strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") {
 
-		var body ImportDosageHistoryJSONRequestBody
+		var body ImportDosesJSONRequestBody
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 			sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
 			return
@@ -2172,18 +2275,18 @@ func (sh *strictHandler) ImportDosageHistory(w http.ResponseWriter, r *http.Requ
 	}
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.ImportDosageHistory(ctx, request.(ImportDosageHistoryRequestObject))
+		return sh.ssi.ImportDoses(ctx, request.(ImportDosesRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "ImportDosageHistory")
+		handler = middleware(handler, "ImportDoses")
 	}
 
 	response, err := handler(r.Context(), w, r, request)
 
 	if err != nil {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(ImportDosageHistoryResponseObject); ok {
-		if err := validResponse.VisitImportDosageHistoryResponse(w); err != nil {
+	} else if validResponse, ok := response.(ImportDosesResponseObject); ok {
+		if err := validResponse.VisitImportDosesResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -2482,82 +2585,82 @@ func (sh *strictHandler) Register(w http.ResponseWriter, r *http.Request) {
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
-	"5B6vqj6vBDHZjXE/b+b/FQAA////wUyDrlMAAA==",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
