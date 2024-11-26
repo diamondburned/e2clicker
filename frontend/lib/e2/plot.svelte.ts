@@ -71,14 +71,15 @@ export let chartOptions = (styles: PlotStyles): charts.DeepPartial<charts.ChartO
     vertLine: {
       color: styles.muted,
       style: LineStyle.Dashed,
-      labelVisible: true,
+      labelVisible: false,
       labelBackgroundColor: styles.color,
     },
     horzLine: {
-      color: styles.muted,
-      style: LineStyle.Dashed,
-      labelVisible: true,
-      labelBackgroundColor: styles.color,
+      visible: false,
+      // color: styles.muted,
+      // style: LineStyle.Dashed,
+      // labelVisible: true,
+      // labelBackgroundColor: styles.color,
     },
   },
   layout: {
