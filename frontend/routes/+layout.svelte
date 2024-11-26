@@ -46,7 +46,7 @@
     } catch (e) {
       // do nothing
     }
-    setError(ev.reason);
+    setPromise(ev.promise);
     console.error("An unhandled exception occured:", { reason: ev.reason });
   }}
 />

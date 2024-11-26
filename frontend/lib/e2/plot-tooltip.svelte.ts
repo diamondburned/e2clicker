@@ -1,5 +1,5 @@
 import type * as charts from "lightweight-charts";
-import { precision, units } from "./plot.svelte";
+import { fixed, units } from "./plot.svelte";
 import { DateTime } from "luxon";
 
 export type PlotTooltipData = {
@@ -18,10 +18,6 @@ export type AcceptablePlotTooltipData = {
 
 function ptInElement(pt: { x: number; y: number }, elem: HTMLElement) {
   return pt.x > 0 && pt.y > 0 && pt.x < elem.clientWidth && pt.y < elem.clientHeight;
-}
-
-function fixed(x?: number) {
-  return x && x.toFixed(precision());
 }
 
 const tooltipMargin = 8;
@@ -62,7 +58,7 @@ export function renderPlotTooltip(
     .filter((d) => !isNaN(d.value))
     .map((d) => ({
       name: d.name,
-      value: `${fixed(d.value)} ${d.unit ?? units()}`,
+      value: fixed(d.value, d.unit ?? units()),
     }));
 
   return {

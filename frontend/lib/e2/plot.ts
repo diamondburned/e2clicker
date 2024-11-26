@@ -55,16 +55,13 @@ export function dataWithinInterval(
   return data.filter((d) => iv.contains(DateTime.fromSeconds(d.time)));
 }
 
-export type DosageObservation = Omit<
-  api.DosageObservation,
-  "deliveryMethod" | "takenAt" | "takenOffAt"
-> & {
+export type Dose = Omit<api.Dose, "deliveryMethod" | "takenAt" | "takenOffAt"> & {
   deliveryMethod: api.DeliveryMethod;
   takenAt: DateTime;
   takenOffAt?: DateTime;
 };
 
-export type DosageHistory = DosageObservation[];
+export type DosageHistory = Dose[];
 
 // convertDoseHistory converts the dosage history from the API to have proper
 // DateTime objects.
@@ -76,6 +73,6 @@ export function convertDoseHistory(history: api.DosageHistory): DosageHistory {
         deliveryMethod: deliveryMethod(dose.deliveryMethod)!,
         takenAt: DateTime.fromISO(dose.takenAt),
         takenOffAt: dose.takenOffAt ? DateTime.fromISO(dose.takenOffAt) : undefined,
-      }) as DosageObservation,
+      }) as Dose,
   );
 }

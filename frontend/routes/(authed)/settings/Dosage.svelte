@@ -13,6 +13,17 @@
   let dosage = $state<Partial<api.Dosage> | null>(null);
   let initialPromise = $state<Promise<void>>();
 
+  // Ensure that concurrence is not set if the delivery method isn't one of the
+  // patches.
+  $effect(() => {
+    if (!dosage) {
+      return;
+    }
+    if (!dosage.deliveryMethod?.startsWith("patch ")) {
+      dosage.concurrence = undefined;
+    }
+  });
+
   onMount(() => {
     initialPromise = (async () => {
       const response = await api.dosage();

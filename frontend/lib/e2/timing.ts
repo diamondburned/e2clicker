@@ -1,6 +1,6 @@
 import * as api from "$lib/api";
 import { DateTime, Duration, type DateTimeMaybeValid, type DurationObjectUnits } from "luxon";
-import type { DosageObservation } from "./plot";
+import type { Dose } from "./plot";
 
 // timeUntilNextDose calculates the time at which the next dose should be taken
 // based on the last dose and the dosage schedule.
@@ -79,9 +79,6 @@ export function roundDuration(
 
 // Format the given dose time for display. The returned string will be quite
 // long.
-export function formatDoseTime(
-  dose: Pick<DosageObservation, "takenAt">,
-  now = DateTime.now(),
-): string {
+export function formatDoseTime(dose: Pick<Dose, "takenAt">, now = DateTime.now()): string {
   return formatDuration(durationTrimLower(now.diff(dose.takenAt).rescale(), 2));
 }

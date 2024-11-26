@@ -4,12 +4,14 @@ import { LineStyle, ColorType, LineType, CrosshairMode } from "lightweight-chart
 import {
   availableUnits,
   e2ssAverage3C,
+  e2Patch3C,
+  randomMCMCSample,
   PKFunctions,
   PKParameters,
   PKRandomFunctions,
 } from "estrannaise/src/models";
 import { deliveryMethod, estrannaiseDeliveryMethod } from "./methods.svelte";
-import type { DosageObservation, PlotStyles } from "./plot";
+import type { Dose, PlotStyles } from "./plot";
 import type { LevelUnits } from "estrannaise/src/modeldata";
 import { DateTime, Duration, Interval } from "luxon";
 
@@ -36,6 +38,17 @@ export let precision = () => availableUnits[units()].precision;
 export let conversionFactor = () => availableUnits[units()].conversionFactor;
 // how many points to plot in total. the more points, the smoother the curve.
 export let plotPoints = () => (plotPreferences.plotHighDensity ? 800 : 200);
+
+// fixed formats a number to a fixed precision and units.
+export function fixed<XType extends number | undefined>(
+  x: XType,
+  units_?: string,
+): XType extends undefined ? string | undefined : string {
+  if (!x) {
+    return undefined as any;
+  }
+  return x.toFixed(precision()) + (units_ ? " " + units_ : "");
+}
 
 export let chartOptions = (styles: PlotStyles): charts.DeepPartial<charts.ChartOptions> => ({
   autoSize: true,
@@ -160,16 +173,52 @@ export function fillCurve(
   return pts;
 }
 
+function makePKFunctions(
+  dosage: api.Dosage,
+  conversionFactor: number,
+  {
+    random = false,
+    interval = dosage.interval * (dosage.concurrence ?? 1),
+  }: {
+    random?: boolean | number;
+    interval?: number;
+  } = {},
+) {
+  const cf = conversionFactor;
+  return !random
+    ? {
+        ...PKFunctions(cf),
+        "patch tw": (t: number, dose: number, steady = false, T = 0.0) =>
+          e2Patch3C(t, cf * dose, ...PKParameters["patch tw"], interval, steady, T),
+        "patch ow": (t: number, dose: number, steady = false, T = 0.0) =>
+          e2Patch3C(t, cf * dose, ...PKParameters["patch ow"], interval, steady, T),
+      }
+    : {
+        ...PKRandomFunctions(cf),
+        "patch tw": (t: number, dose: number, steady = false, T = 0.0, ri?: number) =>
+          e2Patch3C(t, cf * dose, ...randomMCMCSample("patch tw", ri), interval, steady, T),
+        "patch ow": (t: number, dose: number, steady = false, T = 0.0, ri?: number) =>
+          e2Patch3C(t, cf * dose, ...randomMCMCSample("patch ow", ri), interval, steady, T),
+      };
+}
+
 // fillE2IdealData fills a curve with E2 data from the given E2 function.
 export function fillE2IdealData(
   iv: Interval<true>,
   dosage: api.Dosage,
-  conversionFactor = 1.0,
-  takenAt?: DateTime,
+  conversionFactor: number,
+  {
+    takenAt,
+  }: {
+    takenAt?: DateTime;
+  } = {},
 ) {
   const offset = takenAt ? dateToX(iv.start, takenAt) : 0;
   const delivery = estrannaiseDeliveryMethod(dosage.deliveryMethod);
-  const pk = PKFunctions(conversionFactor)[delivery];
+
+  const pkFunctions = makePKFunctions(dosage, conversionFactor);
+  const pk = pkFunctions[delivery];
+
   return fillCurve(iv, (t) =>
     pk(dateToX(iv.start, t) - offset, dosage.dose, true, dosage.interval),
   );
@@ -178,12 +227,18 @@ export function fillE2IdealData(
 // fillE2ActualData fills a curve with E2 data from the given dosage observations.
 export function fillE2ActualData(
   iv: Interval<true>,
-  history: DosageObservation[],
-  conversionFactor = 1.0,
-  random: boolean | number = false,
+  dosage: api.Dosage,
+  history: Dose[],
+  conversionFactor: number,
+  {
+    random = false,
+  }: {
+    random?: boolean | number;
+  } = {},
 ) {
   const deliveryMethods = history.map((o) => estrannaiseDeliveryMethod(o.deliveryMethod.id));
-  const pkFactory = !random ? PKFunctions(conversionFactor) : PKRandomFunctions(conversionFactor);
+  // TODO: support takenOffAt
+  const pkFunctions = makePKFunctions(dosage, conversionFactor, { random });
   const randomParam =
     typeof random == "number" && random > 0 //
       ? random
@@ -199,7 +254,7 @@ export function fillE2ActualData(
 
     return history.reduce((sum, dose, i) => {
       const x = xstart - dateToX(iv.start, dose.takenAt);
-      return sum + pkFactory[deliveryMethods[i]](x, dose.dose, false, tdiff, randomParam);
+      return sum + pkFunctions[deliveryMethods[i]](x, dose.dose, false, tdiff, randomParam);
     }, 0);
   });
 }

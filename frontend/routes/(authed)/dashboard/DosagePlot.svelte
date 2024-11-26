@@ -1,44 +1,89 @@
 <!-- estrannai.se as a svelte component -->
 
 <script lang="ts" module>
+  import type * as charts from "lightweight-charts";
+  import * as e2 from "$lib/e2.svelte";
+  import { Interval } from "luxon";
+
+  export class Data {
+    private interval_ = $state<Interval<true>>();
+    private doses = $state<{
+      dosage?: api.Dosage;
+      history?: e2.DosageHistory;
+    }>({});
+
+    readonly dosage = $derived(this.doses?.dosage);
+    readonly history = $derived(this.doses?.history ?? []);
+    readonly interval = $derived(this.interval_!);
+
+    readonly predictedInterval = $derived(
+      Interval.fromDateTimes(
+        // Predict ahead by the configured interval.
+        this.interval.end,
+        this.interval.end.plus(e2.predictAhead()),
+      ) as Interval<true>,
+    );
+    readonly totalInterval = $derived(
+      this.interval.union(this.predictedInterval) as Interval<true>,
+    );
+
+    readonly wpathRange = $derived(e2.wpathRange(e2.conversionFactor()));
+
+    readonly idealData = $derived(
+      this.dosage
+        ? e2.fillE2IdealData(this.totalInterval, this.dosage, e2.conversionFactor(), {
+            takenAt: this.history[this.history.length - 1]?.takenAt ?? this.interval.end,
+          })
+        : [],
+    );
+
+    readonly idealTrough = $derived(
+      this.dosage && e2.idealE2Trough(this.dosage, e2.conversionFactor()),
+    );
+    readonly idealAverage = $derived(
+      this.dosage && e2.idealE2Average(this.dosage, e2.conversionFactor()),
+    );
+
+    private readonly actualDataWhole = $derived(
+      this.dosage
+        ? e2.fillE2ActualData(this.totalInterval, this.dosage, this.history, e2.conversionFactor())
+        : [],
+    );
+
+    readonly actualData = $derived(
+      this.actualDataWhole ? e2.dataWithinInterval(this.actualDataWhole, this.interval) : [],
+    );
+
+    readonly actualPredictionData = $derived(
+      this.actualDataWhole
+        ? e2.dataWithinInterval(this.actualDataWhole, this.predictedInterval)
+        : [],
+    );
+
+    constructor(init: {
+      interval: NonNullable<typeof Data.prototype.interval>;
+      doses: NonNullable<typeof Data.prototype.doses>;
+    }) {
+      if (init) {
+        this.interval_ = init.interval;
+        this.doses = init.doses;
+      }
+    }
+  }
 </script>
 
 <script lang="ts">
   import Icon from "$lib/components/Icon.svelte";
 
-  import type * as charts from "lightweight-charts";
-  import * as e2 from "$lib/e2.svelte";
   import * as api from "$lib/api";
   import { createChart, LineStyle, LastPriceAnimationMode } from "lightweight-charts";
-  import { Interval } from "luxon";
   import { fade } from "svelte/transition";
 
   let {
-    interval,
-    doses,
+    data,
   }: {
-    interval: Interval<true>;
-    doses: {
-      dosage?: api.Dosage;
-      history?: e2.DosageHistory;
-    };
+    data: Data;
   } = $props();
-
-  let dosage = $derived(doses?.dosage);
-  let history = $derived(doses?.history ?? []);
-
-  let predictedInterval = $derived(
-    Interval.fromDateTimes(
-      // Predict ahead by the configured interval.
-      interval.end,
-      interval.end.plus(e2.predictAhead()),
-    ) as Interval<true>,
-  );
-  const totalInterval = $derived(interval.union(predictedInterval) as Interval<true>);
-
-  let wpathRange = $derived(e2.wpathRange(e2.conversionFactor()));
-  // let idealTrough = $derived(dosage && e2.idealE2Trough(dosage, e2.conversionFactor()));
-  // let idealAverage = $derived(dosage && e2.idealE2Average(dosage, e2.conversionFactor()));
 
   let plotDiv: HTMLDivElement | null = null;
   let plotWidth = $state(0);
@@ -143,7 +188,10 @@
 
   // Watch changes to data.
   $effect(() => {
-    if (!chart || !dosage) {
+    chart;
+    data;
+
+    if (!chart) {
       return;
     }
 
@@ -151,22 +199,18 @@
     e2.plotPreferences.plotHighDensity = plotWidth > 512;
 
     chart.wpathFake.setData([
-      { time: interval.start.toUnixInteger() as charts.UTCTimestamp },
-      { time: interval.end.toUnixInteger() as charts.UTCTimestamp },
+      { time: data.interval.start.toUnixInteger() as charts.UTCTimestamp },
+      { time: data.interval.end.toUnixInteger() as charts.UTCTimestamp },
     ]);
-    chart.wpathLower.applyOptions({ price: wpathRange.lower });
-    chart.wpathUpper.applyOptions({ price: wpathRange.upper });
+    chart.wpathLower.applyOptions({ price: data.wpathRange.lower });
+    chart.wpathUpper.applyOptions({ price: data.wpathRange.upper });
 
-    const lastDoseAt = history[history.length - 1]?.takenAt ?? interval.end;
-    const idealData = e2.fillE2IdealData(totalInterval, dosage, e2.conversionFactor(), lastDoseAt);
-    const actualData = e2.fillE2ActualData(totalInterval, history, e2.conversionFactor());
-
-    chart.idealLevel.setData(idealData);
-    chart.currentLevel.setData(e2.dataWithinInterval(actualData, interval));
-    chart.currentLevelPrediction.setData(e2.dataWithinInterval(actualData, predictedInterval));
+    chart.idealLevel.setData(data.idealData);
+    chart.currentLevel.setData(data.actualData);
+    chart.currentLevelPrediction.setData(data.actualPredictionData);
 
     chart.currentLevel.setMarkers(
-      history.map((dose) => ({
+      data.history.map((dose) => ({
         time: dose.takenAt.toUnixInteger() as charts.UTCTimestamp,
         position: "belowBar",
         color: styles.primary,
@@ -175,8 +219,8 @@
     );
 
     chart.timeScale().setVisibleRange({
-      from: interval.end.minus({ weeks: 2 }).toUnixInteger() as charts.UTCTimestamp,
-      to: predictedInterval.end.toUnixInteger() as charts.UTCTimestamp,
+      from: data.interval.end.minus({ weeks: 2 }).toUnixInteger() as charts.UTCTimestamp,
+      to: data.predictedInterval!.end.toUnixInteger() as charts.UTCTimestamp,
     });
   });
 </script>

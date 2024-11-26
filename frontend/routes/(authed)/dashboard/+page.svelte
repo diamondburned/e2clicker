@@ -21,16 +21,17 @@
 
 <script lang="ts">
   import LoadingPage from "$lib/components/LoadingPage.svelte";
-  import Dialog from "$lib/components/Dialog.svelte";
   import Icon from "$lib/components/Icon.svelte";
 
   import NextDoseCountdown from "./NextDoseCountdown.svelte";
+  import CurrentLevels from "./CurrentLevels.svelte";
   import DoseHistoryTable from "./DoseHistoryTable.svelte";
   import DosagePlot from "./DosagePlot.svelte";
   import DoseInfo from "./DoseInfo.svelte";
 
   import * as e2 from "$lib/e2.svelte";
   import * as api from "$lib/api.svelte";
+  import { Data as DosageData } from "./DosagePlot.svelte";
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
 
@@ -82,6 +83,13 @@
     };
   });
 
+  let dosageData = $derived(
+    new DosageData({
+      doses,
+      interval: historyInterval,
+    }),
+  );
+
   let editingDoses = $state(false);
 </script>
 
@@ -112,7 +120,7 @@
 
       <article id="estrannaise-plot">
         <h3>Estrogen Levels</h3>
-        <DosagePlot {doses} interval={historyInterval} />
+        <DosagePlot data={dosageData} />
       </article>
 
       <article id="dose-info">
@@ -121,6 +129,7 @@
 
       <article id="levels-info">
         <h3>Current Levels</h3>
+        <CurrentLevels data={dosageData} />
       </article>
     </section>
 

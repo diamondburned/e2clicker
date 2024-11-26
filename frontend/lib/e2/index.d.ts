@@ -4,6 +4,14 @@ declare module "estrannaise/src/models" {
 
   import type { DeliveryMethod } from "estrannaise/src/modeldata";
 
+  // Generate a curve representing average menstrual cycle with 5th and 95 percentiles.
+  export function fillMenstrualCycleCurve(
+    xMin: number,
+    xMax: number,
+    nbSteps: number,
+    conversionFactor?: number,
+  ): { Time: number; E2: number; E2p5: number; E2p95: number }[];
+
   // Generate the "curve" for target mean levels for transfeminine HRT,
   // based on WPATH SOC 8 + Endocrine Society Guidelines.
   export function fillTargetRange(
@@ -37,7 +45,7 @@ declare module "estrannaise/src/models" {
 
   // Calculate a given set of multi-doses.
   // Offset values of `doses`, `times`, and `types` need to match.
-  export function e2multidosedose3C(
+  export function e2multidose3C(
     // time offset for dose calculation
     t: number,
     // Dose amounts, in mg
@@ -61,6 +69,49 @@ declare module "estrannaise/src/models" {
     k1: number,
     k2: number,
     k3: number,
+  ): number;
+
+  export function randomMCMCSample(
+    type: string,
+    idx?: number | null,
+  ): [number, number, number, number];
+
+  // parameters ds and d2 are optional initial conditions
+  // Es(0) = ds and E2(0) = d2 for the second and third compartments
+  export function e2Curve3C(
+    t: number,
+    dose: number,
+    d: number,
+    k1: number,
+    k2: number,
+    k3: number,
+    Ds?: number,
+    D2?: number,
+    steadystate?: boolean,
+    T?: number,
+  ): number;
+
+  export function e2Patch3C(
+    t: number,
+    dose: number,
+    d: number,
+    k1: number,
+    k2: number,
+    k3: number,
+    W: number,
+    steadystate?: boolean,
+    T?: number,
+  ): number;
+
+  export function e2SteadyStatePatch3C(
+    t: number,
+    dose: number,
+    T: number,
+    d: number,
+    k1: number,
+    k2: number,
+    k3: number,
+    W: number,
   ): number;
 
   // This is an approximation, but it's good enough for our purposes
