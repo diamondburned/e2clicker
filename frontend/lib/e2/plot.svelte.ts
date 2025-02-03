@@ -44,7 +44,7 @@ export function fixed<XType extends number | undefined>(
   x: XType,
   units_?: string,
 ): XType extends undefined ? string | undefined : string {
-  if (!x) {
+  if (x === undefined) {
     return undefined as any;
   }
   return x.toFixed(precision()) + (units_ ? " " + units_ : "");

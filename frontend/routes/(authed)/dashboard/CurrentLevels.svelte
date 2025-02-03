@@ -8,7 +8,6 @@
     data: DosageData;
   } = $props();
 
-  // let dosage = $derived(data.dosage);
   let currentLevel = $derived(data.actualData.at(-1));
 </script>
 
@@ -23,7 +22,7 @@
   <!--   {delivery.name} -->
   <!-- </p> -->
 {:else}
-  <p class="current-levels empty">You have no data yet.</p>
+  <p class="current-levels empty">No data</p>
 {/if}
 
 <style lang="scss">
