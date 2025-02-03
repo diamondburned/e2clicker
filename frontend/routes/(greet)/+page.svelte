@@ -3,7 +3,6 @@
   import Footer from "$lib/components/Footer.svelte";
 
   import { isLoggedIn } from "$lib/api.svelte";
-  import { dev } from "$app/environment";
 </script>
 
 <svelte:head>
@@ -45,18 +44,14 @@
   </p>
 
   <section>
-    {#if dev}
-      {#if $isLoggedIn}
-        <a href="/dashboard" role="button">
-          Go to Dashboard <Icon name="arrow-forward" />
-        </a>
-      {:else}
-        <a href="/login" role="button">
-          Get Started <Icon name="arrow-forward" />
-        </a>
-      {/if}
+    {#if $isLoggedIn}
+      <a href="/dashboard" role="button">
+        Go to Dashboard <Icon name="arrow-forward" />
+      </a>
     {:else}
-      <h3>Coming soon!</h3>
+      <a href="/login" role="button">
+        Get Started <Icon name="arrow-forward" />
+      </a>
     {/if}
   </section>
 </main>

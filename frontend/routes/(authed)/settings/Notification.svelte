@@ -5,7 +5,6 @@
 <script lang="ts">
   import ErrorBox from "$lib/components/ErrorBox.svelte";
   import Icon from "$lib/components/Icon.svelte";
-  import Tooltip from "$lib/components/popovers/Tooltip.svelte";
   import PreferenceGroup from "$lib/components/preference/PreferenceGroup.svelte";
   import PreferenceItem from "$lib/components/preference/PreferenceItem.svelte";
 
@@ -36,7 +35,9 @@
   <PreferenceItem name="Push Notifications">
     {#snippet description()}
       Receive notifications via your browser. This will only work for this particular device.
-      <b>This method may be unreliable! Prefer other methods if possible.</b>
+      <!-- <b>This method may be unreliable! Prefer other methods if possible.</b> -->
+      <b>Warning! Notifications are not implemented yet!</b>
+      You will NOT receive any notifications yet.
     {/snippet}
 
     {#await promise}
