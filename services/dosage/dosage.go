@@ -143,10 +143,10 @@ func (d Dose) ToOpenAPI() openapi.Dose {
 // CSVDoseRecord is a single dose record in a CSV file.
 // This is version 1.
 type CSVDoseRecord struct {
-	TakenAt        string  `csv:"takenAt"`    // RFC3339
-	TakenOffAt     string  `csv:"takenOffAt"` // RFC3339 or ""
 	DeliveryMethod string  `csv:"deliveryMethod"`
 	Dose           float32 `csv:"dose"`
+	TakenAt        string  `csv:"takenAt"`    // RFC3339
+	TakenOffAt     string  `csv:"takenOffAt"` // RFC3339 or ""
 	Comment        string  `csv:"comment"`
 }
 
@@ -166,8 +166,8 @@ func doseFromCSV(r CSVDoseRecord) (Dose, error) {
 	}
 
 	return Dose{
-		Dose:           r.Dose,
 		DeliveryMethod: r.DeliveryMethod,
+		Dose:           r.Dose,
 		TakenAt:        takenAt,
 		TakenOffAt:     takenOffAt,
 		Comment:        r.Comment,
@@ -176,8 +176,8 @@ func doseFromCSV(r CSVDoseRecord) (Dose, error) {
 
 func (d Dose) ToCSV() CSVDoseRecord {
 	return CSVDoseRecord{
-		Dose:           d.Dose,
 		DeliveryMethod: d.DeliveryMethod,
+		Dose:           d.Dose,
 		TakenAt:        formatCSVTime(d.TakenAt),
 		TakenOffAt:     optionalStr(d.TakenOffAt, formatCSVTime),
 		Comment:        d.Comment,

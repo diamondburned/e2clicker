@@ -333,11 +333,11 @@ components:
     DosageHistoryCSV:
       type: string
       example: |-
-        dose,method,takenAt,takenOffAt,comment
-        100,patch tw,2020-01-01T00:00:00Z,,
-        100,patch tw,2020-01-02T12:00:00Z,,
-        100,patch tw,2020-01-04T00:00:00Z,,
-        100,patch tw,2020-01-05T12:00:00Z,,
+        deliveryMethod,dose,takenAt,takenOffAt,comment
+        patch tw,100,2020-01-01T00:00:00Z,,
+        patch tw,100,2020-01-02T12:00:00Z,,
+        patch tw,100,2020-01-04T00:00:00Z,,
+        patch tw,100,2020-01-05T12:00:00Z,,
       description: >-
         The CSV format of the user's dosage history.
 
