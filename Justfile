@@ -86,8 +86,9 @@ generate-docs: openapi-docs
 [private]
 generate-vapid:
     #!/bin/sh
-    if [ ! -f vapid-keys.json ]; then
-        go run ./cmd/vapid-generate > vapid-keys.json
+    if [ ! -f secrets/vapid-keys.json ]; then
+        mkdir -p secrets
+        go run ./cmd/vapid-generate > secrets/vapid-keys.json
     fi
 
 ###

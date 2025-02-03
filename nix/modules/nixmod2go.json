@@ -1,6 +1,6 @@
 {
   "format": "go",
-  "initials": ["(?i)API", "(?i)SQL", "(?i)JSON", "(?i)VAPID"],
+  "initials": ["(?i)API", "(?i)SQL", "(?i)JSON", "(?i)VAPID", "(?i)SMTP"],
   "initials-replace": {
     "Postgresql": "PostgreSQL"
   }

@@ -29,13 +29,13 @@ func convertSubscription(subscription openapi.PushSubscription) *webpush.Subscri
 
 // WebPushService is a service for sending notifications via the Push API.
 type WebPushService struct {
-	http *http.Client
-	keys *e2clickermodule.VAPIDKeysSubmodule
+	http   *http.Client
+	config *e2clickermodule.WebPushSubmodule
 }
 
 // NewWebPushSevice creates a new Push API service.
 func NewWebPushSevice(config e2clickermodule.Notification) (*WebPushService, error) {
-	if !config.WebPush.Enable {
+	if config.WebPush == nil {
 		return nil, nil
 	}
 
@@ -44,17 +44,17 @@ func NewWebPushSevice(config e2clickermodule.Notification) (*WebPushService, err
 		return nil, fmt.Errorf("invalid client timeout %q: %w", config.ClientTimeout, err)
 	}
 
-	var keys *e2clickermodule.VAPIDKeysSubmodule
+	var keys *e2clickermodule.WebPushSubmodule
 
-	switch value := config.WebPush.VAPIDKeys.Value.(type) {
-	case e2clickermodule.VAPIDKeysSubmodule:
+	switch value := config.WebPush.Value.(type) {
+	case e2clickermodule.WebPushSubmodule:
 		keys = &value
-	case e2clickermodule.VAPIDKeysPath:
+	case e2clickermodule.WebPushPath:
 		b, err := os.ReadFile(string(value))
 		if err != nil {
 			return nil, fmt.Errorf("cannot read WebPushKeys file at %s: %w", value, err)
 		}
-		keys = new(e2clickermodule.VAPIDKeysSubmodule)
+		keys = new(e2clickermodule.WebPushSubmodule)
 		if err := json.Unmarshal(b, keys); err != nil {
 			return nil, fmt.Errorf("cannot unmarshal WebPushKeys at %s: %w", value, err)
 		}
@@ -63,14 +63,14 @@ func NewWebPushSevice(config e2clickermodule.Notification) (*WebPushService, err
 	}
 
 	return &WebPushService{
-		http: &http.Client{Timeout: timeout},
-		keys: keys,
+		http:   &http.Client{Timeout: timeout},
+		config: keys,
 	}, nil
 }
 
 // VAPIDPublicKey returns the VAPID public key.
 func (s WebPushService) VAPIDPublicKey() string {
-	return s.keys.PublicKey
+	return s.config.PublicKey
 }
 
 func (s WebPushService) Notify(ctx context.Context, n Notification, config WebPushNotificationConfig) error {
@@ -87,8 +87,8 @@ func (s WebPushService) Notify(ctx context.Context, n Notification, config WebPu
 		HTTPClient:      s.http,
 		Urgency:         webpush.UrgencyHigh,
 		Subscriber:      n.Username,
-		VAPIDPublicKey:  s.keys.PublicKey,
-		VAPIDPrivateKey: s.keys.PrivateKey,
+		VAPIDPublicKey:  s.config.PublicKey,
+		VAPIDPrivateKey: s.config.PrivateKey,
 	}
 
 	resp, err := webpush.SendNotificationWithContext(ctx, m, convertSubscription(config), opts)

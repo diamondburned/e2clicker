@@ -55,28 +55,74 @@ in
           };
 
           webPush = mkOption {
-            description = "The path to the file containing the VAPID keys encoded in JSON";
-            type = types.submodule {
+            description = ''
+              The web push notification configuration. This contains the VAPID
+              keys that are used to encrypt the notifications. Use `just
+              generate-vapid` to generate the keys.
+            '';
+            type = types.nullOr (typeJSONFile {
               options = {
-                enable = mkEnableOption "VAPID-encrypted Web Push notifications support";
+                privateKey = mkOption {
+                  type = types.str;
+                  description = "The VAPID private key.";
+                };
+                publicKey = mkOption {
+                  type = types.str;
+                  description = "The VAPID public key.";
+                };
+              };
+            });
+          };
 
-                vapidKeys = mkOption {
-                  description = "The VAPID keys to use for sending notifications.";
-                  type = typeJSONFile {
+          email = mkOption {
+            description = ''
+              The path to the file containing the email configuration in
+              JSON. See `secrets/email-config.example.json` for an
+              example.
+            '';
+            type = types.nullOr (typeJSONFile {
+              options = {
+                from = mkOption {
+                  type = types.str;
+                  description = "The email address to send notifications from.";
+                };
+
+                smtp = mkOption {
+                  description = "The SMTP server configuration.";
+                  type = types.submodule {
                     options = {
-                      privateKey = mkOption {
+                      host = mkOption {
                         type = types.str;
-                        description = "The VAPID private key.";
+                        description = "The SMTP server host.";
                       };
-                      publicKey = mkOption {
-                        type = types.str;
-                        description = "The VAPID public key.";
+                      port = mkOption {
+                        type = types.int;
+                        description = "The SMTP server port.";
+                      };
+                      secure = mkOption {
+                        type = types.bool;
+                        default = true;
+                        description = "Whether to use a secure connection.";
+                      };
+                      auth = mkOption {
+                        type = types.submodule {
+                          options = {
+                            username = mkOption {
+                              type = types.str;
+                              description = "The SMTP server username.";
+                            };
+                            password = mkOption {
+                              type = types.str;
+                              description = "The SMTP server password.";
+                            };
+                          };
+                        };
                       };
                     };
                   };
                 };
               };
-            };
+            });
           };
         };
       };

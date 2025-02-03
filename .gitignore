@@ -4,4 +4,6 @@ package-lock.json
 .svelte-kit
 /result
 *.qcow2
-/vapid-keys.json
+/secrets/*
+!/secrets/.gitkeep
+!/secrets/*.example.*

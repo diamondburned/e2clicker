@@ -33,16 +33,32 @@ type PostgreSQL struct {
 type Notification struct {
 	// ClientTimeout: HTTP timeout when making requests to notification servers.
 	ClientTimeout string `json:"clientTimeout"`
-	// WebPush: path to the file containing the VAPID keys encoded in JSON.
-	WebPush WebPush `json:"webPush"`
+	// Email: path to the file containing the email configuration in JSON.
+	// See `secrets/email-config.json.example` for an example.
+	Email *EmailJSON `json:"email"`
+	// WebPush: web push notification configuration. This contains the
+	// VAPID keys that are used to encrypt the notifications. Use `just
+	// generate-vapid` to generate the keys.
+	WebPush *WebPushJSON `json:"webPush"`
 }
 
-// WebPush is the struct type for `config.notification.webPush`.
-type WebPush struct {
-	// Enable: whether to enable VAPID-encrypted Web Push notifications support.
-	Enable bool `json:"enable"`
-	// VAPIDKeys: VAPID keys to use for sending notifications.
-	VAPIDKeys VAPIDKeysJSON `json:"vapidKeys"`
+// SMTP is the struct type for `config.notification.email.smtp`.
+type SMTP struct {
+	Auth Auth `json:"auth"`
+	// Host: SMTP server host.
+	Host string `json:"host"`
+	// Port: SMTP server port.
+	Port int `json:"port"`
+	// Secure: whether to use a secure connection.
+	Secure bool `json:"secure"`
+}
+
+// Auth is the struct type for `config.notification.email.smtp.auth`.
+type Auth struct {
+	// Password: SMTP server password.
+	Password string `json:"password"`
+	// Username: SMTP server username.
+	Username string `json:"username"`
 }
 
 // API is the struct type for `config.api`.
@@ -60,65 +76,139 @@ const (
 	LogFormatText  LogFormat = "text"
 )
 
-// VAPIDKeys describes the `either` type for `config.notification.webPush.vapidKeys`.
-type VAPIDKeys interface {
-	isVAPIDKeys()
+// Email describes the `either` type for `config.notification.email`.
+type Email interface {
+	isEmail()
 }
 
-// VAPIDKeysPath is one of the types that satisfy [VAPIDKeys].
-type VAPIDKeysPath string
+// EmailPath is one of the types that satisfy [Email].
+type EmailPath string
 
-// VAPIDKeysSubmodule is one of the types that satisfy [VAPIDKeys].
-type VAPIDKeysSubmodule struct {
-	// PrivateKey: VAPID private key.
-	PrivateKey string `json:"privateKey"`
-	// PublicKey: VAPID public key.
-	PublicKey string `json:"publicKey"`
+// EmailSubmodule is one of the types that satisfy [Email].
+type EmailSubmodule struct {
+	// From: email address to send notifications from.
+	From string `json:"from"`
+	// SMTP: SMTP server configuration.
+	SMTP SMTP `json:"smtp"`
 }
 
-func (v VAPIDKeysPath) isVAPIDKeys() {
+func (e EmailPath) isEmail() {
 }
-func (v VAPIDKeysSubmodule) isVAPIDKeys() {
-}
-
-// NewVAPIDKeysPath constructs a value of type `path` that satisfies [VAPIDKeys].
-func NewVAPIDKeysPath(v string) VAPIDKeys {
-	return VAPIDKeysPath(v)
+func (e EmailSubmodule) isEmail() {
 }
 
-// NewVAPIDKeysSubmodule constructs a value of type `submodule` that satisfies [VAPIDKeys].
-func NewVAPIDKeysSubmodule(v struct {
-	// PrivateKey: VAPID private key.
-	PrivateKey string `json:"privateKey"`
-	// PublicKey: VAPID public key.
-	PublicKey string `json:"publicKey"`
-}) VAPIDKeys {
-	return VAPIDKeysSubmodule(v)
+// NewEmailPath constructs a value of type `path` that satisfies [Email].
+func NewEmailPath(e string) Email {
+	return EmailPath(e)
 }
 
-// VAPIDKeysJSON wraps [VAPIDKeys] and implements the json.Unmarshaler interface.
-type VAPIDKeysJSON struct{ Value VAPIDKeys }
+// NewEmailSubmodule constructs a value of type `submodule` that satisfies [Email].
+func NewEmailSubmodule(e struct {
+	// From: email address to send notifications from.
+	From string `json:"from"`
+	// SMTP: SMTP server configuration.
+	SMTP SMTP `json:"smtp"`
+}) Email {
+	return EmailSubmodule(e)
+}
 
-// UnmarshalJSON implements the [json.Unmarshaler] interface for [VAPIDKeys].
-func (v *VAPIDKeysJSON) UnmarshalJSON(data []byte) error {
-	_v, err := unmarshalVAPIDKeys(data)
+// EmailJSON wraps [Email] and implements the json.Unmarshaler interface.
+type EmailJSON struct{ Value Email }
+
+// UnmarshalJSON implements the [json.Unmarshaler] interface for [Email].
+func (e *EmailJSON) UnmarshalJSON(data []byte) error {
+	_v, err := unmarshalEmail(data)
 	if err != nil {
 		return err
 	}
-	v.Value = _v
+	e.Value = _v
 	return nil
 }
 
-// MarshalJSON implements the [json.Marshaler] interface for [VAPIDKeys].
-func (v VAPIDKeysJSON) MarshalJSON() ([]byte, error) {
-	return json.Marshal(v.Value)
+// MarshalJSON implements the [json.Marshaler] interface for [Email].
+func (e EmailJSON) MarshalJSON() ([]byte, error) {
+	return json.Marshal(e.Value)
 }
 
-func unmarshalVAPIDKeys(data json.RawMessage) (VAPIDKeys, error) {
+func unmarshalEmail(data json.RawMessage) (Email, error) {
 
 	var v0 string
 	if err := json.Unmarshal(data, &v0); err == nil {
-		return VAPIDKeysPath(v0), nil
+		return EmailPath(v0), nil
+	}
+
+	var v1 struct {
+		// From: email address to send notifications from.
+		From string `json:"from"`
+		// SMTP: SMTP server configuration.
+		SMTP SMTP `json:"smtp"`
+	}
+	if err := json.Unmarshal(data, &v1); err == nil {
+		return EmailSubmodule(v1), nil
+	}
+
+	return nil, errors.New("failed to unmarshal Email: unknown type received")
+}
+
+// WebPush describes the `either` type for `config.notification.webPush`.
+type WebPush interface {
+	isWebPush()
+}
+
+// WebPushPath is one of the types that satisfy [WebPush].
+type WebPushPath string
+
+// WebPushSubmodule is one of the types that satisfy [WebPush].
+type WebPushSubmodule struct {
+	// PrivateKey: VAPID private key.
+	PrivateKey string `json:"privateKey"`
+	// PublicKey: VAPID public key.
+	PublicKey string `json:"publicKey"`
+}
+
+func (w WebPushPath) isWebPush() {
+}
+func (w WebPushSubmodule) isWebPush() {
+}
+
+// NewWebPushPath constructs a value of type `path` that satisfies [WebPush].
+func NewWebPushPath(w string) WebPush {
+	return WebPushPath(w)
+}
+
+// NewWebPushSubmodule constructs a value of type `submodule` that satisfies [WebPush].
+func NewWebPushSubmodule(w struct {
+	// PrivateKey: VAPID private key.
+	PrivateKey string `json:"privateKey"`
+	// PublicKey: VAPID public key.
+	PublicKey string `json:"publicKey"`
+}) WebPush {
+	return WebPushSubmodule(w)
+}
+
+// WebPushJSON wraps [WebPush] and implements the json.Unmarshaler interface.
+type WebPushJSON struct{ Value WebPush }
+
+// UnmarshalJSON implements the [json.Unmarshaler] interface for [WebPush].
+func (w *WebPushJSON) UnmarshalJSON(data []byte) error {
+	_v, err := unmarshalWebPush(data)
+	if err != nil {
+		return err
+	}
+	w.Value = _v
+	return nil
+}
+
+// MarshalJSON implements the [json.Marshaler] interface for [WebPush].
+func (w WebPushJSON) MarshalJSON() ([]byte, error) {
+	return json.Marshal(w.Value)
+}
+
+func unmarshalWebPush(data json.RawMessage) (WebPush, error) {
+
+	var v0 string
+	if err := json.Unmarshal(data, &v0); err == nil {
+		return WebPushPath(v0), nil
 	}
 
 	var v1 struct {
@@ -128,8 +218,8 @@ func unmarshalVAPIDKeys(data json.RawMessage) (VAPIDKeys, error) {
 		PublicKey string `json:"publicKey"`
 	}
 	if err := json.Unmarshal(data, &v1); err == nil {
-		return VAPIDKeysSubmodule(v1), nil
+		return WebPushSubmodule(v1), nil
 	}
 
-	return nil, errors.New("failed to unmarshal VAPIDKeys: unknown type received")
+	return nil, errors.New("failed to unmarshal WebPush: unknown type received")
 }

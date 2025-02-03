@@ -9,6 +9,12 @@ let
   devFlags = lib.splitString " " (builtins.getEnv "E2CLICKER_DEVFLAGS");
   hasFlag = flag: lib.elem flag devFlags;
   noFlag = flag: !(hasFlag flag);
+
+  root = ../..;
+  rootPath = path: "${root}/${path}";
+  rootPathOrNull =
+    path: warn:
+    if builtins.pathExists (rootPath path) then rootPath path else lib.warn "${warn}: at ${path}" null;
 in
 
 {
@@ -58,15 +64,9 @@ in
         databaseURI = "postgresql://e2clicker-backend@/e2clicker-backend";
       };
       notification = {
+        email = rootPathOrNull "secrets/email-config.json" "No SMTP support because SMTP credentials missing";
+        webPush = rootPathOrNull "secrets/vapid-keys.json" "No push notification support because VAPID keys missing";
         clientTimeout = "15s";
-        webPush =
-          let
-            path = ../../vapid-keys.json;
-          in
-          lib.optionalAttrs (builtins.pathExists path) {
-            enable = true;
-            vapidKeys = path;
-          };
       };
     };
   };
