@@ -57,8 +57,10 @@ export function dataWithinInterval(
 
 export type Dose = Omit<api.Dose, "deliveryMethod" | "takenAt" | "takenOffAt"> & {
   deliveryMethod: api.DeliveryMethod;
-  takenAt: DateTime;
-  takenOffAt?: DateTime;
+  takenAt: DateTime<true>;
+  takenOffAt?: DateTime<true>;
+  _takenAt: string;
+  _takenOffAt?: string;
 };
 
 export type DosageHistory = Dose[];
@@ -71,8 +73,18 @@ export function convertDoseHistory(history: api.DosageHistory): DosageHistory {
       ({
         ...dose,
         deliveryMethod: deliveryMethod(dose.deliveryMethod)!,
-        takenAt: DateTime.fromISO(dose.takenAt),
-        takenOffAt: dose.takenOffAt ? DateTime.fromISO(dose.takenOffAt) : undefined,
+        takenAt: mustDateTimeFromISO(dose.takenAt),
+        takenOffAt: dose.takenOffAt ? mustDateTimeFromISO(dose.takenOffAt) : undefined,
+        _takenAt: dose.takenAt,
+        _takenOffAt: dose.takenOffAt,
       }) as Dose,
   );
+}
+
+function mustDateTimeFromISO(iso: string): DateTime<true> {
+  const dt = DateTime.fromISO(iso);
+  if (!dt.isValid) {
+    throw new Error(`invalid ISO date ${iso}: ${dt.invalidExplanation}`);
+  }
+  return dt;
 }

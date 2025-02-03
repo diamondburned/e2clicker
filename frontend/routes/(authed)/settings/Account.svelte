@@ -46,7 +46,7 @@
 </PreferenceGroup>
 
 {#if $user}
-  <Dialog bind:open={showSecretDialog} dismissible --max-width="400px">
+  <Dialog bind:open={showSecretDialog} class="account-qr max-w-[400px]" dismissible>
     <header>
       <h3 class="text-center">Your Account Secret</h3>
     </header>

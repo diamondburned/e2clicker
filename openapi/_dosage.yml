@@ -154,6 +154,9 @@ paths:
           $ref: "./_base.yml#/components/responses/ErrorResponse"
     delete:
       summary: Delete a dosage from the user's history
+      description: |
+        This operation is broken in the backend due to a parsing error and
+        should not be used. Instead, prefer using [forgetDoses].
       operationId: forgetDose
       parameters:
         - in: path

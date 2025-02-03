@@ -135,7 +135,7 @@
 
     <section id="dose-history" class="as-card">
       <h2>Dose History</h2>
-      <DoseHistoryTable {now} {doses} bind:editing={editingDoses} />
+      <DoseHistoryTable {now} {doses} {update} bind:editing={editingDoses} />
     </section>
   {:else}
     <section id="setup-required" class="w-fit mx-auto">

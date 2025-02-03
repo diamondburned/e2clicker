@@ -5,6 +5,7 @@ import { writable } from "svelte/store";
 export type Toast = {
   message: string | Snippet;
   description?: string | Snippet;
+  error?: any;
   urgency?: "info" | "error";
   timeout?: Duration;
 };
@@ -18,18 +19,27 @@ export const toasts = writable<AssignedToast[]>([]);
 
 let nextToastID = 0;
 
-export function addToast(toast: Toast) {
-  toasts.update((toasts) => {
-    toast.timeout ??= Duration.fromObject({ seconds: 5 });
-    toast.urgency ??= "info";
+export function logErrorToast(what: string, error: any) {
+  console.error(what, error);
+  addToast({
+    urgency: "error",
+    message: what,
+    description: error.message ?? error,
+  });
+}
 
+export function addToast(toast: Toast) {
+  toast.timeout ??= Duration.fromObject({ seconds: 5 });
+  toast.urgency ??= "info";
+
+  toasts.update((toasts) => {
     toasts.push({
       id: ++nextToastID,
-      deleteAt: DateTime.now().plus(toast.timeout),
+      deleteAt: DateTime.now().plus(toast.timeout!),
       ...toast,
     });
 
-    setTimeout(clearToasts, toast.timeout.as("milliseconds"));
+    setTimeout(clearToasts, toast.timeout!.as("milliseconds"));
     return toasts;
   });
 }
