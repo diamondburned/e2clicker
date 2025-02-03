@@ -34,7 +34,7 @@ type Notification struct {
 	// ClientTimeout: HTTP timeout when making requests to notification servers.
 	ClientTimeout string `json:"clientTimeout"`
 	// Email: path to the file containing the email configuration in JSON.
-	// See `secrets/email-config.json.example` for an example.
+	// See `secrets/email-config.example.json` for an example.
 	Email *EmailJSON `json:"email"`
 	// WebPush: web push notification configuration. This contains the
 	// VAPID keys that are used to encrypt the notifications. Use `just

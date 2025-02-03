@@ -69,7 +69,7 @@ let
     '';
 
     passthru = {
-      assets = "${self}/share/frontend/client";
+      assets = "${frontend}/share/frontend/client";
     };
 
     meta = {

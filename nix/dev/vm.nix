@@ -53,6 +53,7 @@ in
     frontend = {
       enable = noFlag "no-frontend";
       socket = true;
+      trustProxy = true;
     };
     backend = {
       enable = noFlag "no-backend";

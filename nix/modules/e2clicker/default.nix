@@ -182,6 +182,12 @@ in
         '';
       };
 
+      trustProxy = mkOption {
+        type = types.bool;
+        default = false;
+        description = "Trust the X-Forwarded-Proto and X-Forwarded-Host headers.";
+      };
+
       package = mkOption {
         type = types.package;
         default = self.packages.${pkgs.system}.e2clicker-frontend;
@@ -210,15 +216,18 @@ in
 
     systemd.services.e2clicker-frontend = mkIf e2clicker.frontend.enable {
       description = "e2clicker frontend";
-      environment = {
-        NODE_ENV = "production";
-        HOST_HEADER = "x-forwarded-host";
-        PROTOCOL_HEADER = "x-forwarded-proto";
-        # the frontend doesn't even handle POST requests.
-        BODY_SIZE_LIMIT = "4K";
-        IDLE_TIMEOUT = toString (1 * 60 * 60); # 1 hour
-      };
-      wantedBy = [ "multi-user.target" ];
+      environment =
+        {
+          NODE_ENV = "production";
+          IDLE_TIMEOUT = toString (1 * 60 * 60); # 1 hour
+          # the frontend doesn't even handle POST requests.
+          BODY_SIZE_LIMIT = "4K";
+        }
+        // (lib.optionalAttrs e2clicker.frontend.trustProxy {
+          HOST_HEADER = "x-forwarded-host";
+          PROTOCOL_HEADER = "x-forwarded-proto";
+        });
+      # wantedBy = [ "multi-user.target" ];
       serviceConfig = {
         ExecStart = "${getExe e2clicker.frontend.package}";
         Restart = "always";
@@ -229,7 +238,6 @@ in
 
     systemd.sockets.e2clicker-frontend = mkIf e2clicker.frontend.enable {
       description = "e2clicker frontend socket";
-      after = [ "network.target" ];
       wantedBy = [ "sockets.target" ];
       socketConfig = {
         ListenStream =
@@ -239,8 +247,6 @@ in
             "${e2clicker.frontend.host}:${toString e2clicker.frontend.port}"
           else
             "${toString e2clicker.frontend.port}";
-        Accept = false;
-        NoDelay = true;
         SocketMode = "0666";
         DirectoryMode = "0777";
       };
