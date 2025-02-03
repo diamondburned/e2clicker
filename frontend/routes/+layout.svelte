@@ -41,13 +41,13 @@
   onunhandledrejection={(ev) => {
     ev.preventDefault();
     try {
-      // insert exception checks here.
       if (ev.reason.status == 401) return;
+      if (ev.reason.toString().includes("TypeError: ServiceWorker script")) return;
     } catch (e) {
       // do nothing
     }
     setPromise(ev.promise);
-    console.error("An unhandled exception occured:", { reason: ev.reason });
+    console.error("An unhandled exception occured:", ev.reason);
   }}
 />
 
