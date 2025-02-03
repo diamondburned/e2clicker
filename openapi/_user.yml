@@ -100,38 +100,6 @@ paths:
         default:
           $ref: "./_base.yml#/components/responses/ErrorResponse"
 
-  /me/avatar:
-    get:
-      summary: Get the current user's avatar
-      operationId: currentUserAvatar
-      responses:
-        "200":
-          description: >-
-            Successfully retrieved the user's avatar.
-          content:
-            image/*:
-              schema:
-                type: string
-                format: binary
-        default:
-          $ref: "./_base.yml#/components/responses/ErrorResponse"
-    put:
-      summary: Set the current user's avatar
-      operationId: setCurrentUserAvatar
-      requestBody:
-        required: true
-        content:
-          image/*:
-            schema:
-              type: string
-              format: binary
-      responses:
-        "204":
-          description: >-
-            Successfully set the user's avatar.
-        default:
-          $ref: "./_base.yml#/components/responses/ErrorResponse"
-
   /me/sessions:
     get:
       summary: List the current user's sessions
@@ -193,7 +161,7 @@ components:
       description: >-
         A user of the system.
       type: object
-      required: [name, locale, hasAvatar]
+      required: [name, locale]
       properties:
         name:
           type: string
@@ -202,11 +170,6 @@ components:
         locale:
           $ref: "#/components/schemas/Locale"
           x-order: 2
-        hasAvatar:
-          type: boolean
-          description: >-
-            Whether the user has an avatar.
-          x-order: 3
 
     Session:
       description: >-

@@ -12,7 +12,6 @@ func init() {
 		ErrUnknownUser,
 		ErrPasswordTooShort,
 		ErrInvalidSession,
-		ErrNoAvatar,
 	)
 }
 
@@ -28,6 +27,3 @@ var ErrPasswordTooShort = errors.New("password too short")
 // ErrInvalidSession is returned when the session is invalid, either because it
 // is unknown or expired.
 var ErrInvalidSession = errors.New("invalid session")
-
-// ErrNoAvatar is returned when the user has no avatar.
-var ErrNoAvatar = errors.New("no avatar")

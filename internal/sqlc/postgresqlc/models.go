@@ -56,12 +56,6 @@ type User struct {
 	NotificationPreferences notificationservice.UserPreferences
 }
 
-type UserAvatar struct {
-	UserSecret  userservice.Secret
-	MIMEType    string
-	AvatarImage []byte
-}
-
 type UserSession struct {
 	ID         int64
 	UserSecret userservice.Secret
@@ -69,11 +63,4 @@ type UserSession struct {
 	CreatedAt  pgtype.Timestamp
 	LastUsed   pgtype.Timestamp
 	UserAgent  pgtype.Text
-}
-
-type UsersWithAvatar struct {
-	Secret    userservice.Secret
-	Name      string
-	Locale    userservice.Locale
-	HasAvatar bool
 }

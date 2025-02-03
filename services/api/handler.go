@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"go.uber.org/fx"
-	"libdb.so/e2clicker/internal/asset"
 	"libdb.so/e2clicker/internal/publicerrors"
 	"libdb.so/e2clicker/services/api/openapi"
 	"libdb.so/e2clicker/services/dosage"
@@ -77,7 +76,6 @@ func (h *openAPIHandler) Register(ctx context.Context, request openapi.RegisterR
 	return openapi.Register200JSONResponse{
 		Name:      u.Name,
 		Locale:    u.Locale,
-		HasAvatar: u.HasAvatar,
 		Secret:    u.Secret,
 	}, nil
 }
@@ -106,45 +104,10 @@ func (h *openAPIHandler) CurrentUser(ctx context.Context, request openapi.Curren
 	}
 
 	return openapi.CurrentUser200JSONResponse{
-		Name:      u.Name,
-		Locale:    u.Locale,
-		HasAvatar: u.HasAvatar,
-		Secret:    session.UserSecret,
+		Name:   u.Name,
+		Locale: u.Locale,
+		Secret: session.UserSecret,
 	}, nil
-}
-
-// Get the current user's avatar
-// (GET /me/avatar)
-func (h *openAPIHandler) CurrentUserAvatar(ctx context.Context, request openapi.CurrentUserAvatarRequestObject) (openapi.CurrentUserAvatarResponseObject, error) {
-	session := sessionFromCtx(ctx)
-
-	a, err := h.users.UserAvatar(ctx, session.UserSecret)
-	if err != nil {
-		return nil, err
-	}
-
-	return openapi.CurrentUserAvatar200ImageResponse{
-		Body:          a.Reader(),
-		ContentType:   a.ContentType,
-		ContentLength: a.ContentLength,
-	}, nil
-}
-
-// Set the current user's avatar
-// (POST /me/avatar)
-func (h *openAPIHandler) SetCurrentUserAvatar(ctx context.Context, request openapi.SetCurrentUserAvatarRequestObject) (openapi.SetCurrentUserAvatarResponseObject, error) {
-	session := sessionFromCtx(ctx)
-
-	err := h.users.SetUserAvatar(ctx, session.UserSecret, asset.NewAssetReader(
-		request.Body,
-		request.ContentType,
-		-1,
-	))
-	if err != nil {
-		return nil, err
-	}
-
-	return openapi.SetCurrentUserAvatar204Response{}, nil
 }
 
 // List the current user's sessions

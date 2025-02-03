@@ -791,7 +791,6 @@ bearerAuth
 {
   "name": "string",
   "locale": "string",
-  "hasAvatar": true,
   "secret": "string"
 }
 ```
@@ -873,7 +872,6 @@ This operation does not require authentication
 {
   "name": "string",
   "locale": "string",
-  "hasAvatar": true,
   "secret": "string"
 }
 ```
@@ -886,96 +884,6 @@ This operation does not require authentication
 |default|Default|The request is invalid.|[Error](#schemaerror)|
 
 <h3 id="get-the-current-user-responseschema">Response Schema</h3>
-
-<aside class="warning">
-To perform this operation, you must be authenticated by means of one of the following methods:
-bearerAuth
-</aside>
-
-## Get the current user's avatar
-
-<a id="opIdcurrentUserAvatar"></a>
-
-`GET /me/avatar`
-
-> Example responses
-
-> 200 Response
-
-> default Response
-
-```json
-{
-  "message": "string",
-  "errors": [
-    {
-      "message": "string",
-      "errors": [],
-      "details": null,
-      "internal": true,
-      "internalCode": "string"
-    }
-  ],
-  "details": null,
-  "internal": true,
-  "internalCode": "string"
-}
-```
-
-<h3 id="get-the-current-user's-avatar-responses">Responses</h3>
-
-|Status|Meaning|Description|Schema|
-|---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Successfully retrieved the user's avatar.|string|
-|default|Default|The request is invalid.|[Error](#schemaerror)|
-
-<aside class="warning">
-To perform this operation, you must be authenticated by means of one of the following methods:
-bearerAuth
-</aside>
-
-## Set the current user's avatar
-
-<a id="opIdsetCurrentUserAvatar"></a>
-
-`PUT /me/avatar`
-
-> Body parameter
-
-<h3 id="set-the-current-user's-avatar-parameters">Parameters</h3>
-
-|Name|In|Type|Required|Description|
-|---|---|---|---|---|
-|body|body|string(binary)|true|none|
-
-> Example responses
-
-> default Response
-
-```json
-{
-  "message": "string",
-  "errors": [
-    {
-      "message": "string",
-      "errors": [],
-      "details": null,
-      "internal": true,
-      "internalCode": "string"
-    }
-  ],
-  "details": null,
-  "internal": true,
-  "internalCode": "string"
-}
-```
-
-<h3 id="set-the-current-user's-avatar-responses">Responses</h3>
-
-|Status|Meaning|Description|Schema|
-|---|---|---|---|
-|204|[No Content](https://tools.ietf.org/html/rfc7231#section-6.3.5)|Successfully set the user's avatar.|None|
-|default|Default|The request is invalid.|[Error](#schemaerror)|
 
 <aside class="warning">
 To perform this operation, you must be authenticated by means of one of the following methods:
@@ -1514,8 +1422,7 @@ A locale identifier.
 ```json
 {
   "name": "string",
-  "locale": "string",
-  "hasAvatar": true
+  "locale": "string"
 }
 
 ```

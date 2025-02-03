@@ -108,25 +108,6 @@ func (q *Queries) RegisterSession(ctx context.Context, arg RegisterSessionParams
 	return err
 }
 
-const setUserAvatar = `-- name: SetUserAvatar :exec
-INSERT INTO user_avatars (user_secret, avatar_image, mime_type)
-  VALUES ($1, $2, $3)
-ON CONFLICT (user_secret)
-  DO UPDATE SET
-    avatar_image = $2, mime_type = $3
-`
-
-type SetUserAvatarParams struct {
-	UserSecret  userservice.Secret
-	AvatarImage []byte
-	MIMEType    string
-}
-
-func (q *Queries) SetUserAvatar(ctx context.Context, arg SetUserAvatarParams) error {
-	_, err := q.db.Exec(ctx, setUserAvatar, arg.UserSecret, arg.AvatarImage, arg.MIMEType)
-	return err
-}
-
 const setUserNotificationPreferences = `-- name: SetUserNotificationPreferences :exec
 UPDATE
   users
@@ -179,41 +160,21 @@ func (q *Queries) UpdateUserName(ctx context.Context, arg UpdateUserNameParams) 
 }
 
 const user = `-- name: User :one
-SELECT secret, name, locale, has_avatar
-FROM users_with_avatar
+SELECT secret, name, locale, registered_at, notification_preferences
+FROM users
 WHERE secret = $1
 `
 
-func (q *Queries) User(ctx context.Context, secret userservice.Secret) (UsersWithAvatar, error) {
+func (q *Queries) User(ctx context.Context, secret userservice.Secret) (User, error) {
 	row := q.db.QueryRow(ctx, user, secret)
-	var i UsersWithAvatar
+	var i User
 	err := row.Scan(
 		&i.Secret,
 		&i.Name,
 		&i.Locale,
-		&i.HasAvatar,
+		&i.RegisteredAt,
+		&i.NotificationPreferences,
 	)
-	return i, err
-}
-
-const userAvatar = `-- name: UserAvatar :one
-/*
- * User Avatar
- */
-SELECT avatar_image, mime_type
-FROM user_avatars
-WHERE user_secret = $1
-`
-
-type UserAvatarRow struct {
-	AvatarImage []byte
-	MIMEType    string
-}
-
-func (q *Queries) UserAvatar(ctx context.Context, userSecret userservice.Secret) (UserAvatarRow, error) {
-	row := q.db.QueryRow(ctx, userAvatar, userSecret)
-	var i UserAvatarRow
-	err := row.Scan(&i.AvatarImage, &i.MIMEType)
 	return i, err
 }
 

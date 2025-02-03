@@ -36,22 +36,6 @@ CREATE TABLE users (
 
 CREATE INDEX users_secret ON users USING HASH (secret);
 
-CREATE TABLE user_avatars (
-  -- The user's secret.
-  user_secret usersecret PRIMARY KEY REFERENCES users (secret) ON DELETE CASCADE,
-  -- The MIME type of the image.
-  mime_type text NOT NULL,
-  -- The user's avatar image, limited to 1MB.
-  avatar_image bytea NOT NULL CHECK (octet_length(avatar_image) <= 1048576)
-);
-
-CREATE VIEW users_with_avatar AS
-SELECT secret, name, locale, EXISTS (
-    SELECT user_secret
-    FROM user_avatars
-    WHERE user_secret = users.secret) AS has_avatar
-FROM users;
-
 CREATE TABLE user_sessions (
   -- The session ID. This should never be used to log in, but it can be used
   -- to revoke a session.

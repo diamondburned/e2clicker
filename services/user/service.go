@@ -5,14 +5,12 @@ import (
 	"fmt"
 
 	"go.uber.org/fx"
-	"libdb.so/e2clicker/internal/asset"
 	"libdb.so/e2clicker/services/user/naming"
 )
 
 // UserService is a service for managing users.
 type UserService struct {
 	users        UserStorage
-	userAvatars  UserAvatarStorage
 	userSessions UserSessionStorage
 }
 
@@ -21,7 +19,6 @@ type UserServiceConfig struct {
 	fx.In
 
 	UserStorage
-	UserAvatarStorage
 	UserSessionStorage
 }
 
@@ -29,7 +26,6 @@ type UserServiceConfig struct {
 func NewUserService(c UserServiceConfig) (*UserService, error) {
 	return &UserService{
 		c.UserStorage,
-		c.UserAvatarStorage,
 		c.UserSessionStorage,
 	}, nil
 }
@@ -59,14 +55,6 @@ func (s UserService) UpdateUserLocale(ctx context.Context, secret Secret, locale
 		return fmt.Errorf("invalid locale: %w", err)
 	}
 	return s.users.UpdateUserLocale(ctx, secret, locale)
-}
-
-func (s UserService) UserAvatar(ctx context.Context, secret Secret) (asset.ReadCloser, error) {
-	return s.userAvatars.UserAvatar(ctx, secret)
-}
-
-func (s UserService) SetUserAvatar(ctx context.Context, secret Secret, a asset.Reader) error {
-	return s.userAvatars.SetUserAvatar(ctx, secret, a)
 }
 
 func (s UserService) CreateSession(ctx context.Context, userSecret Secret, userAgent string) (SessionToken, error) {

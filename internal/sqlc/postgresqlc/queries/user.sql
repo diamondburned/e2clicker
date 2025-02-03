@@ -8,7 +8,7 @@ RETURNING *;
 
 -- name: User :one
 SELECT *
-FROM users_with_avatar
+FROM users
 WHERE secret = $1;
 
 -- name: UpdateUserName :exec
@@ -37,22 +37,6 @@ UPDATE
   users
 SET notification_preferences = $2::jsonb
 WHERE secret = $1;
-
-
-/*
- * User Avatar
- */
--- name: UserAvatar :one
-SELECT avatar_image, mime_type
-FROM user_avatars
-WHERE user_secret = $1;
-
--- name: SetUserAvatar :exec
-INSERT INTO user_avatars (user_secret, avatar_image, mime_type)
-  VALUES ($1, $2, $3)
-ON CONFLICT (user_secret)
-  DO UPDATE SET
-    avatar_image = $2, mime_type = $3;
 
 
 /*                                                                                 

@@ -111,8 +111,6 @@ export type User = {
     /** The user's name */
     name: string;
     locale: Locale;
-    /** Whether the user has an avatar. */
-    hasAvatar: boolean;
 };
 export type UserSecret = string;
 export type Session = {
@@ -438,35 +436,6 @@ export function currentUser(opts?: Oazapfts.RequestOpts) {
         data: Error;
     }>("/me", {
         ...opts
-    }));
-}
-/**
- * Get the current user's avatar
- */
-export function currentUserAvatar(opts?: Oazapfts.RequestOpts) {
-    return oazapfts.ok(oazapfts.fetchJson<{
-        status: 200;
-        data: Blob;
-    } | {
-        status: number;
-        data: Error;
-    }>("/me/avatar", {
-        ...opts
-    }));
-}
-/**
- * Set the current user's avatar
- */
-export function setCurrentUserAvatar(body: Blob, opts?: Oazapfts.RequestOpts) {
-    return oazapfts.ok(oazapfts.fetchJson<{
-        status: 204;
-    } | {
-        status: number;
-        data: Error;
-    }>("/me/avatar", {
-        ...opts,
-        method: "PUT",
-        body
     }));
 }
 /**

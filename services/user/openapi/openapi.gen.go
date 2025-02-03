@@ -34,9 +34,6 @@ type User struct {
 
 	// Locale A locale identifier.
 	Locale Locale `json:"locale"`
-
-	// HasAvatar Whether the user has an avatar.
-	HasAvatar bool `json:"hasAvatar"`
 }
 
 // UserSecret A secret and unique user identifier. This secret is generated once and never changes. It is used to both authenticate and identify a user, so it should be kept secret.

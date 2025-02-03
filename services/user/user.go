@@ -7,15 +7,12 @@ import (
 	"encoding"
 	"encoding/base32"
 	"strings"
-
-	"libdb.so/e2clicker/internal/asset"
 )
 
 // User is a user in the system.
 type User struct {
-	Name      string
-	Locale    Locale
-	HasAvatar bool
+	Name   string
+	Locale Locale
 }
 
 // UserWithSecret is a user with their secret.
@@ -33,15 +30,6 @@ type UserStorage interface {
 	UpdateUserName(ctx context.Context, secret Secret, name string) error
 	// UpdateUserLocale updates the user's locale.
 	UpdateUserLocale(ctx context.Context, secret Secret, locale Locale) error
-}
-
-type UserAvatarStorage interface {
-	// UserAvatar returns the user's avatar.
-	// The returned asset is an open reader that must be closed by the caller.
-	UserAvatar(ctx context.Context, secret Secret) (asset.ReadCloser, error)
-	// SetUserAvatar sets the user's avatar.
-	// The caller must still close the given reader.
-	SetUserAvatar(ctx context.Context, secret Secret, a asset.Reader) error
 }
 
 // Secret is a secret identifier for a user. This secret is generated once

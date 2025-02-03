@@ -742,57 +742,6 @@
         ]
       }
     },
-    "/me/avatar": {
-      "get": {
-        "summary": "Get the current user's avatar",
-        "operationId": "currentUserAvatar",
-        "responses": {
-          "200": {
-            "description": "Successfully retrieved the user's avatar.",
-            "content": {
-              "image/*": {
-                "schema": {
-                  "type": "string",
-                  "format": "binary"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/ErrorResponse"
-          }
-        },
-        "tags": [
-          "user"
-        ]
-      },
-      "put": {
-        "summary": "Set the current user's avatar",
-        "operationId": "setCurrentUserAvatar",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "image/*": {
-              "schema": {
-                "type": "string",
-                "format": "binary"
-              }
-            }
-          }
-        },
-        "responses": {
-          "204": {
-            "description": "Successfully set the user's avatar."
-          },
-          "default": {
-            "$ref": "#/components/responses/ErrorResponse"
-          }
-        },
-        "tags": [
-          "user"
-        ]
-      }
-    },
     "/me/sessions": {
       "get": {
         "summary": "List the current user's sessions",
@@ -1195,8 +1144,7 @@
         "type": "object",
         "required": [
           "name",
-          "locale",
-          "hasAvatar"
+          "locale"
         ],
         "properties": {
           "name": {
@@ -1207,11 +1155,6 @@
           "locale": {
             "$ref": "#/components/schemas/Locale",
             "x-order": 2
-          },
-          "hasAvatar": {
-            "type": "boolean",
-            "description": "Whether the user has an avatar.",
-            "x-order": 3
           }
         }
       },
