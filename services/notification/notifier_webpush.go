@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/SherClockHolmes/webpush-go"
-	"libdb.so/e2clicker/services/notification/openapi"
+	"e2clicker.app/services/notification/openapi"
 
-	e2clickermodule "libdb.so/e2clicker/nix/modules/e2clicker"
+	e2clickermodule "e2clicker.app/nix/modules/e2clicker"
 )
 
 // WebPushNotificationConfig is a configuration for the Push API service.

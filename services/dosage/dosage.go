@@ -7,9 +7,9 @@ import (
 	"iter"
 	"time"
 
-	"libdb.so/e2clicker/internal/publicerrors"
-	"libdb.so/e2clicker/services/dosage/openapi"
-	"libdb.so/e2clicker/services/user"
+	"e2clicker.app/internal/publicerrors"
+	"e2clicker.app/services/dosage/openapi"
+	"e2clicker.app/services/user"
 )
 
 func init() {

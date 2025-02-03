@@ -11,11 +11,11 @@ import (
 
 	"go.uber.org/fx"
 	"golang.org/x/time/rate"
-	"libdb.so/e2clicker/internal/jsonarray"
-	"libdb.so/e2clicker/internal/publicerrors"
-	"libdb.so/e2clicker/internal/userlimit"
-	"libdb.so/e2clicker/services/dosage/openapi"
-	"libdb.so/e2clicker/services/user"
+	"e2clicker.app/internal/jsonarray"
+	"e2clicker.app/internal/publicerrors"
+	"e2clicker.app/internal/userlimit"
+	"e2clicker.app/services/dosage/openapi"
+	"e2clicker.app/services/user"
 	"libdb.so/xcsv"
 )
 

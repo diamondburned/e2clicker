@@ -11,7 +11,7 @@ output-options:
 # TODO: This works, but oapi-codegen really dies with PathToRawSpec.
 # For now, we override it in generate.sh.
 import-mapping:
-  ./_base.yml: libdb.so/e2clicker/services/base/openapi
-  ./_dosage.yml: libdb.so/e2clicker/services/dosage/openapi
-  ./_notification.yml: libdb.so/e2clicker/services/notification/openapi
-  ./_user.yml: libdb.so/e2clicker/services/user/openapi
+  ./_base.yml: e2clicker.app/services/base/openapi
+  ./_dosage.yml: e2clicker.app/services/dosage/openapi
+  ./_notification.yml: e2clicker.app/services/notification/openapi
+  ./_user.yml: e2clicker.app/services/user/openapi

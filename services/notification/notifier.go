@@ -8,8 +8,8 @@ import (
 	"slices"
 
 	"go.uber.org/fx"
-	"libdb.so/e2clicker/internal/validating"
-	"libdb.so/e2clicker/services/notification/openapi"
+	"e2clicker.app/internal/validating"
+	"e2clicker.app/services/notification/openapi"
 )
 
 // NotificationConfigs contains all the configurations for a notification.

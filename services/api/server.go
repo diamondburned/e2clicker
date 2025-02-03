@@ -12,11 +12,11 @@ import (
 
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"go.uber.org/fx"
-	"libdb.so/e2clicker/internal/fxhooking"
-	"libdb.so/e2clicker/services/api/openapi"
+	"e2clicker.app/internal/fxhooking"
+	"e2clicker.app/services/api/openapi"
 	"libdb.so/hserve"
 
-	e2clickermodule "libdb.so/e2clicker/nix/modules/e2clicker"
+	e2clickermodule "e2clicker.app/nix/modules/e2clicker"
 )
 
 // Server provides an HTTP server that serves a [Handler].

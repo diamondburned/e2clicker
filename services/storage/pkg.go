@@ -2,7 +2,7 @@ package storage
 
 import (
 	"go.uber.org/fx"
-	"libdb.so/e2clicker/services/storage/postgresql"
+	"e2clicker.app/services/storage/postgresql"
 )
 
 var Module = fx.Module("storage",

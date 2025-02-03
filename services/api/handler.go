@@ -9,13 +9,13 @@ import (
 	"time"
 
 	"go.uber.org/fx"
-	"libdb.so/e2clicker/internal/publicerrors"
-	"libdb.so/e2clicker/services/api/openapi"
-	"libdb.so/e2clicker/services/dosage"
-	"libdb.so/e2clicker/services/notification"
-	"libdb.so/e2clicker/services/user"
+	"e2clicker.app/internal/publicerrors"
+	"e2clicker.app/services/api/openapi"
+	"e2clicker.app/services/dosage"
+	"e2clicker.app/services/notification"
+	"e2clicker.app/services/user"
 
-	notificationapi "libdb.so/e2clicker/services/notification/openapi"
+	notificationapi "e2clicker.app/services/notification/openapi"
 )
 
 // openAPIHandler is the handler for the OpenAPI service.

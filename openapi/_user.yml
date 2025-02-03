@@ -145,7 +145,7 @@ components:
       type: string
       x-go-type: user.Secret
       x-go-type-import:
-        path: libdb.so/e2clicker/services/user
+        path: e2clicker.app/services/user
         name: userservice
 
     Locale:
@@ -154,7 +154,7 @@ components:
       type: string
       x-go-type: user.Locale
       x-go-type-import:
-        path: libdb.so/e2clicker/services/user
+        path: e2clicker.app/services/user
         name: userservice
 
     User:

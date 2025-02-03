@@ -6,7 +6,7 @@
   "private": true,
   "version": "0.0.1",
   "imports": {
-    "#/libdb.so/e2clicker*": "./*"
+    "#/e2clicker.app*": "./*"
   },
   "description": "",
   "prettier": {

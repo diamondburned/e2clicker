@@ -6,7 +6,7 @@ package openapi
 import (
 	"time"
 
-	"libdb.so/e2clicker/services/user"
+	"e2clicker.app/services/user"
 )
 
 // Locale A locale identifier.

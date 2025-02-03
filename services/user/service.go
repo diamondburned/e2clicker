@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"go.uber.org/fx"
-	"libdb.so/e2clicker/services/user/naming"
+	"e2clicker.app/services/user/naming"
 )
 
 // UserService is a service for managing users.

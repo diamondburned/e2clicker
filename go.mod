@@ -1,4 +1,4 @@
-module libdb.so/e2clicker
+module e2clicker.app
 
 go 1.23
 

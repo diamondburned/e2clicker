@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/timewasted/go-accept-headers"
-	"libdb.so/e2clicker/internal/publicerrors"
-	"libdb.so/e2clicker/services/api/openapi"
-	"libdb.so/e2clicker/services/dosage"
+	"e2clicker.app/internal/publicerrors"
+	"e2clicker.app/services/api/openapi"
+	"e2clicker.app/services/dosage"
 )
 
 type openAPIHandlerForImportExport struct {

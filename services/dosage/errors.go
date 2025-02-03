@@ -1,7 +1,7 @@
 package dosage
 
 import (
-	"libdb.so/e2clicker/internal/publicerrors"
+	"e2clicker.app/internal/publicerrors"
 	"libdb.so/xcsv"
 )
 

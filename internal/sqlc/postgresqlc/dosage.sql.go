@@ -9,9 +9,9 @@ import (
 	"context"
 	"iter"
 
+	userservice "e2clicker.app/services/user"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
-	userservice "libdb.so/e2clicker/services/user"
 )
 
 const deleteDosageSchedule = `-- name: DeleteDosageSchedule :exec

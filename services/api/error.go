@@ -11,10 +11,10 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/go-chi/chi/v5/middleware"
-	"libdb.so/e2clicker/internal/publicerrors"
-	"libdb.so/e2clicker/internal/slogutil"
-	"libdb.so/e2clicker/internal/userlimit"
-	"libdb.so/e2clicker/services/api/openapi"
+	"e2clicker.app/internal/publicerrors"
+	"e2clicker.app/internal/slogutil"
+	"e2clicker.app/internal/userlimit"
+	"e2clicker.app/services/api/openapi"
 )
 
 func init() {

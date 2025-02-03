@@ -13,10 +13,10 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/fx"
-	"libdb.so/e2clicker/internal/slogutil"
-	"libdb.so/e2clicker/internal/sqlc/postgresqlc"
+	"e2clicker.app/internal/slogutil"
+	"e2clicker.app/internal/sqlc/postgresqlc"
 
-	e2clickermodule "libdb.so/e2clicker/nix/modules/e2clicker"
+	e2clickermodule "e2clicker.app/nix/modules/e2clicker"
 )
 
 // Storage is the PostgreSQL-backed storage.

@@ -3,7 +3,7 @@ package notification
 import (
 	"context"
 
-	"libdb.so/e2clicker/services/notification/openapi"
+	"e2clicker.app/services/notification/openapi"
 )
 
 // Notification describes a notification message to be sent to the user.

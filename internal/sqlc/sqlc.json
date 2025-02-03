@@ -18,7 +18,7 @@
             {
               "db_type": "usersecret",
               "go_type": {
-                "import": "libdb.so/e2clicker/services/user",
+                "import": "e2clicker.app/services/user",
                 "package": "userservice",
                 "type": "Secret"
               }
@@ -26,7 +26,7 @@
             {
               "db_type": "locale",
               "go_type": {
-                "import": "libdb.so/e2clicker/services/user",
+                "import": "e2clicker.app/services/user",
                 "package": "userservice",
                 "type": "Locale"
               }
@@ -34,7 +34,7 @@
             {
               "db_type": "notificationpreferences",
               "go_type": {
-                "import": "libdb.so/e2clicker/services/notification",
+                "import": "e2clicker.app/services/notification",
                 "package": "notificationservice",
                 "type": "UserPreferences"
               }

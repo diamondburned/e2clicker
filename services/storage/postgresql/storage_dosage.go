@@ -7,9 +7,9 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
-	"libdb.so/e2clicker/internal/sqlc/postgresqlc"
-	"libdb.so/e2clicker/services/dosage"
-	"libdb.so/e2clicker/services/user"
+	"e2clicker.app/internal/sqlc/postgresqlc"
+	"e2clicker.app/services/dosage"
+	"e2clicker.app/services/user"
 )
 
 type dosageStorage Storage

@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"libdb.so/e2clicker/internal/validating"
+	"e2clicker.app/internal/validating"
 )
 
 type GotifyNotificationConfig struct {

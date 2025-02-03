@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"golang.org/x/time/rate"
-	"libdb.so/e2clicker/internal/publicerrors"
+	"e2clicker.app/internal/publicerrors"
 )
 
 // LimitExceededError is an error that is returned when the user has reached the

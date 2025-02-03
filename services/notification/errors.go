@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"libdb.so/e2clicker/internal/publicerrors"
+	"e2clicker.app/internal/publicerrors"
 )
 
 func init() {

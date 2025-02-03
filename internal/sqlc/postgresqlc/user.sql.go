@@ -8,9 +8,9 @@ package postgresqlc
 import (
 	"context"
 
+	notificationservice "e2clicker.app/services/notification"
+	userservice "e2clicker.app/services/user"
 	"github.com/jackc/pgx/v5/pgtype"
-	notificationservice "libdb.so/e2clicker/services/notification"
-	userservice "libdb.so/e2clicker/services/user"
 )
 
 const createUser = `-- name: CreateUser :one

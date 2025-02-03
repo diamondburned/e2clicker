@@ -12,13 +12,13 @@ import (
 	"github.com/spf13/pflag"
 	"go.uber.org/fx"
 	"go.uber.org/fx/fxevent"
-	"libdb.so/e2clicker/services/api"
-	"libdb.so/e2clicker/services/dosage"
-	"libdb.so/e2clicker/services/notification"
-	"libdb.so/e2clicker/services/storage"
-	"libdb.so/e2clicker/services/user"
+	"e2clicker.app/services/api"
+	"e2clicker.app/services/dosage"
+	"e2clicker.app/services/notification"
+	"e2clicker.app/services/storage"
+	"e2clicker.app/services/user"
 
-	e2clickermodule "libdb.so/e2clicker/nix/modules/e2clicker"
+	e2clickermodule "e2clicker.app/nix/modules/e2clicker"
 )
 
 var (

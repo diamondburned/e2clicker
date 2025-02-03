@@ -1,8 +1,8 @@
 package api
 
 import (
-	"libdb.so/e2clicker/services/api/openapi"
-	"libdb.so/e2clicker/services/user"
+	"e2clicker.app/services/api/openapi"
+	"e2clicker.app/services/user"
 )
 
 func optstr(s *string) string {

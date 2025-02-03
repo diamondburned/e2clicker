@@ -7,8 +7,8 @@ import (
 	"slices"
 
 	"go.uber.org/fx"
-	"libdb.so/e2clicker/services/notification/openapi"
-	"libdb.so/e2clicker/services/user"
+	"e2clicker.app/services/notification/openapi"
+	"e2clicker.app/services/user"
 )
 
 // UserPreferences is the preferences of a user.

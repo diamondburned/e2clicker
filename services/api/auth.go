@@ -7,8 +7,8 @@ import (
 
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"libdb.so/ctxt"
-	"libdb.so/e2clicker/internal/publicerrors"
-	"libdb.so/e2clicker/services/user"
+	"e2clicker.app/internal/publicerrors"
+	"e2clicker.app/services/user"
 )
 
 func init() {

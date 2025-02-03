@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"libdb.so/e2clicker/internal/sqlc/postgresqlc"
-	"libdb.so/e2clicker/services/notification"
-	"libdb.so/e2clicker/services/user"
+	"e2clicker.app/internal/sqlc/postgresqlc"
+	"e2clicker.app/services/notification"
+	"e2clicker.app/services/user"
 )
 
 func (s *Storage) notificationUserStorage() notification.UserNotificationStorage {
