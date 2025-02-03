@@ -28,16 +28,12 @@
     }
   }
 
-  function setError(error: any) {
-    setPromise(new Promise((_, reject) => reject(error)));
-  }
+  // function setError(error: any) {
+  //   setPromise(new Promise((_, reject) => reject(error)));
+  // }
 </script>
 
 <svelte:window
-  onerror={(ev) => {
-    ev.preventDefault();
-    setError("An unknown browser error occured :(");
-  }}
   onunhandledrejection={(ev) => {
     ev.preventDefault();
     try {
