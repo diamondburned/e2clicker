@@ -3,7 +3,7 @@
 /// <reference lib="esnext" />
 /// <reference lib="webworker" />
 
-import { cleanupOutdatedCaches } from "workbox-precaching";
+import { cleanupOutdatedCaches, precache } from "workbox-precaching";
 
 import type * as api from "./lib/api";
 // import { updatePushSubscription } from "./lib/notification";
