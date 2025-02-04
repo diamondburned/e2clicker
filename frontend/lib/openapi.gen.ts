@@ -65,19 +65,8 @@ export type PushInfo = {
     /** A Base64-encoded string or ArrayBuffer containing an ECDSA P-256 public key that the push server will use to authenticate your application server. If specified, all messages from your application server must use the VAPID authentication scheme, and include a JWT signed with the corresponding private key. This key IS NOT the same ECDH key that you use to encrypt the data. For more information, see "Using VAPID with WebPush". */
     applicationServerKey: string;
 };
+export type NotificationMethodSupports = ("webPush" | "email")[];
 export type PushDeviceId = string;
-export type ReturnedPushSubscription = {
-    deviceID: PushDeviceId;
-    /** The time at which the subscription expires. This is the time when the subscription will be automatically deleted by the browser. */
-    expirationTime?: string;
-    keys: {
-        /** An Elliptic curve Diffie–Hellman public key on the P-256 curve (that is, the NIST secp256r1 elliptic curve). The resulting key is an uncompressed point in ANSI X9.62 format. */
-        p256dh: string;
-    };
-};
-export type ReturnedNotificationMethods = {
-    webPush?: ReturnedPushSubscription[];
-};
 export type PushSubscription = {
     deviceID: PushDeviceId;
     /** The endpoint to send the notification to. */
@@ -92,13 +81,29 @@ export type PushSubscription = {
         auth: string;
     };
 };
-export type NotificationType = "welcome_message" | "reminder_message" | "account_notice_message" | "web_push_expiring_message";
+export type EmailSubscription = {
+    /** The email address to send the notification to. This email address will appear in the `To` field of the email. */
+    address: string;
+    /** The name of the user to send the email to. This name will be used with the email address in the `To` field. */
+    name?: string;
+};
 export type NotificationMessage = {
     /** The title of the notification. */
     title: string;
     /** The message of the notification. */
     message: string;
 };
+export type CustomNotifications = {
+    [key: string]: NotificationMessage;
+};
+export type NotificationPreferences = {
+    notificationConfigs: {
+        webPush?: PushSubscription[];
+        email?: EmailSubscription[];
+    };
+    customNotifications?: CustomNotifications;
+};
+export type NotificationType = "welcome_message" | "reminder_message" | "account_notice_message" | "web_push_expiring_message" | "test_message";
 export type Notification = {
     "type": NotificationType;
     /** The message of the notification. */
@@ -308,12 +313,12 @@ export function webPushInfo(opts?: Oazapfts.RequestOpts) {
     }));
 }
 /**
- * Get the user's notification methods
+ * Get the server's supported notification methods
  */
-export function userNotificationMethods(opts?: Oazapfts.RequestOpts) {
+export function supportedNotificationMethods(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
-        data: ReturnedNotificationMethods;
+        data: NotificationMethodSupports;
     } | {
         status: number;
         data: Error;
@@ -322,49 +327,51 @@ export function userNotificationMethods(opts?: Oazapfts.RequestOpts) {
     }));
 }
 /**
- * Get the user's push notification subscription
+ * Send a test notification
  */
-export function userPushSubscription(deviceId: PushDeviceId, opts?: Oazapfts.RequestOpts) {
+export function sendTestNotification(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
-        status: 200;
-        data: PushSubscription;
-    } | {
-        status: 404;
-        data: Error;
+        status: 204;
     } | {
         status: number;
         data: Error;
-    }>(`/notifications/methods/push/${encodeURIComponent(deviceId)}`, {
+    }>("/notifications/test", {
+        ...opts,
+        method: "POST"
+    }));
+}
+/**
+ * Get the user's notification preferences
+ */
+export function userNotificationPreferences(opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 200;
+        data: NotificationPreferences;
+    } | {
+        status: number;
+        data: Error;
+    }>("/notifications/preferences", {
         ...opts
     }));
 }
 /**
- * Unsubscribe from push notifications
+ * Update the user's notification preferences
  */
-export function userUnsubscribePush(deviceId: PushDeviceId, opts?: Oazapfts.RequestOpts) {
+export function userUpdateNotificationPreferences(body: NotificationPreferences & {
+    /** The current notification preferences. This is used to determine whether the notification method update is still valid.
+    This field is very much optional and is only used to guard against race conditions.
+    TODO: Implement this field. */
+    _current?: NotificationPreferences;
+}, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 204;
     } | {
         status: number;
         data: Error;
-    }>(`/notifications/methods/push/${encodeURIComponent(deviceId)}`, {
-        ...opts,
-        method: "DELETE"
-    }));
-}
-/**
- * Create or update a push subscription
- */
-export function userSubscribePush(pushSubscription: PushSubscription, opts?: Oazapfts.RequestOpts) {
-    return oazapfts.ok(oazapfts.fetchJson<{
-        status: 204;
-    } | {
-        status: number;
-        data: Error;
-    }>("/notifications/methods/push", oazapfts.json({
+    }>("/notifications/preferences", oazapfts.json({
         ...opts,
         method: "PUT",
-        body: pushSubscription
+        body
     })));
 }
 export function getIgnoreNotificationHahaAnythingCanGoHereLol(opts?: Oazapfts.RequestOpts) {

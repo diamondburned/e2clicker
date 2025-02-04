@@ -5,12 +5,15 @@ package openapi
 
 import (
 	"time"
+
+	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 // Defines values for NotificationType.
 const (
 	AccountNoticeMessage   NotificationType = "account_notice_message"
 	ReminderMessage        NotificationType = "reminder_message"
+	TestMessage            NotificationType = "test_message"
 	WebPushExpiringMessage NotificationType = "web_push_expiring_message"
 	WelcomeMessage         NotificationType = "welcome_message"
 )
@@ -29,10 +32,20 @@ type PushDeviceID = string
 //     to check their account.
 //   - `web_push_expiring_message` is sent to notify the user that their
 //     web push subscription is expiring.
+//   - `test_message` is sent to test your notification settings.
 type NotificationType string
 
 // CustomNotifications Custom notifications that the user can override with. The object keys are the notification types.
 type CustomNotifications map[string]NotificationMessage
+
+// EmailSubscription defines model for EmailSubscription.
+type EmailSubscription struct {
+	// Address The email address to send the notification to. This email address will appear in the `To` field of the email.
+	Address openapi_types.Email `json:"address"`
+
+	// Name The name of the user to send the email to. This name will be used with the email address in the `To` field.
+	Name *string `json:"name,omitempty"`
+}
 
 // Notification defines model for Notification.
 type Notification struct {
@@ -44,6 +57,7 @@ type Notification struct {
 	//     to check their account.
 	//   - `web_push_expiring_message` is sent to notify the user that their
 	//     web push subscription is expiring.
+	//   - `test_message` is sent to test your notification settings.
 	Type NotificationType `json:"type"`
 
 	// Message The message of the notification.
@@ -60,6 +74,19 @@ type NotificationMessage struct {
 
 	// Message The message of the notification.
 	Message string `json:"message"`
+}
+
+// NotificationMethodSupports A list of notification methods that the server supports.
+type NotificationMethodSupports = []string
+
+// NotificationPreferences The user's notification preferences.
+// Each key is a notification type and the value is the notification configuration for that type. It may be nil if the server does not support a particular notification type.
+type NotificationPreferences struct {
+	CustomNotifications CustomNotifications `json:"customNotifications,omitempty"`
+	NotificationConfigs struct {
+		Email   *[]EmailSubscription `json:"email,omitempty"`
+		WebPush *[]PushSubscription  `json:"webPush,omitempty"`
+	} `json:"notificationConfigs"`
 }
 
 // PushInfo This is returned by the server and contains information that the client would need to subscribe to push notifications.
@@ -93,22 +120,18 @@ type PushSubscription struct {
 	} `json:"keys"`
 }
 
-// ReturnedNotificationMethods defines model for ReturnedNotificationMethods.
-type ReturnedNotificationMethods struct {
-	WebPush *[]ReturnedPushSubscription `json:"webPush,omitempty"`
+// UserUpdateNotificationPreferencesJSONBody defines parameters for UserUpdateNotificationPreferences.
+type UserUpdateNotificationPreferencesJSONBody struct {
+	// Current The current notification preferences. This is used to determine whether the notification method update is still valid.
+	// This field is very much optional and is only used to guard against race conditions.
+	// TODO: Implement this field.
+	Current             *NotificationPreferences `json:"_current,omitempty"`
+	CustomNotifications CustomNotifications      `json:"customNotifications,omitempty"`
+	NotificationConfigs struct {
+		Email   *[]EmailSubscription `json:"email,omitempty"`
+		WebPush *[]PushSubscription  `json:"webPush,omitempty"`
+	} `json:"notificationConfigs"`
 }
 
-// ReturnedPushSubscription Similar to a [PushSubscription], but specifically for returning to the user. This type contains no secrets.
-type ReturnedPushSubscription struct {
-	DeviceID PushDeviceID `json:"deviceID"`
-	Keys     struct {
-		// P256Dh An Elliptic curve Diffie–Hellman public key on the P-256 curve (that is, the NIST secp256r1 elliptic curve). The resulting key is an uncompressed point in ANSI X9.62 format.
-		P256Dh string `json:"p256dh"`
-	} `json:"keys"`
-
-	// ExpirationTime The time at which the subscription expires. This is the time when the subscription will be automatically deleted by the browser.
-	ExpirationTime time.Time `json:"expirationTime,omitempty"`
-}
-
-// UserSubscribePushJSONRequestBody defines body for UserSubscribePush for application/json ContentType.
-type UserSubscribePushJSONRequestBody = PushSubscription
+// UserUpdateNotificationPreferencesJSONRequestBody defines body for UserUpdateNotificationPreferences for application/json ContentType.
+type UserUpdateNotificationPreferencesJSONRequestBody UserUpdateNotificationPreferencesJSONBody

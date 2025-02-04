@@ -16,8 +16,9 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/timewasted/go-accept-headers v0.0.0-20130320203746-c78f304b1b09
 	go.uber.org/fx v1.23.0
-	golang.org/x/text v0.19.0
+	golang.org/x/text v0.21.0
 	golang.org/x/time v0.5.0
+	gopkg.in/mail.v2 v2.3.1
 	libdb.so/ctxt v0.0.0-20240229093153-2db38a5d3c12
 	libdb.so/hserve v0.0.0-20230404043009-95e112a6e0a5
 	libdb.so/lazymigrate v0.0.0-20240811151247-0597fc52ac48
@@ -46,8 +47,9 @@ require (
 	go.uber.org/dig v1.18.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
-	golang.org/x/crypto v0.28.0 // indirect
-	golang.org/x/sync v0.8.0 // indirect
-	golang.org/x/sys v0.26.0 // indirect
+	golang.org/x/crypto v0.32.0 // indirect
+	golang.org/x/sync v0.10.0 // indirect
+	golang.org/x/sys v0.29.0 // indirect
+	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

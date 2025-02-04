@@ -32,6 +32,11 @@ func LoadNotification(ctx context.Context, t openapi.NotificationType) (openapi.
 			Title:   "Notifications will stop working soon 😟",
 			Message: "Your browser's push subscription is expiring soon. You need to refresh it!",
 		}, nil
+	case openapi.TestMessage:
+		return openapi.NotificationMessage{
+			Title:   "Test Message",
+			Message: "This is a test message to check your notification settings.",
+		}, nil
 	default:
 		return openapi.NotificationMessage{}, ErrUnknownNotificationType
 	}

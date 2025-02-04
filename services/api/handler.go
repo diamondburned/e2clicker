@@ -8,12 +8,12 @@ import (
 	"slices"
 	"time"
 
-	"go.uber.org/fx"
 	"e2clicker.app/internal/publicerrors"
 	"e2clicker.app/services/api/openapi"
 	"e2clicker.app/services/dosage"
 	"e2clicker.app/services/notification"
 	"e2clicker.app/services/user"
+	"go.uber.org/fx"
 
 	notificationapi "e2clicker.app/services/notification/openapi"
 )
@@ -24,6 +24,7 @@ type openAPIHandler struct {
 	logger      *slog.Logger
 	users       *user.UserService
 	notifs      *notification.UserNotificationService
+	notif       *notification.NotificationService
 	dosage      dosage.DosageStorage
 	doseHistory dosage.DoseHistoryStorage
 }
@@ -35,6 +36,7 @@ type OpenAPIHandlerServices struct {
 
 	Users             *user.UserService
 	UserNotifications *notification.UserNotificationService
+	Notification      *notification.NotificationService
 	Dosage            dosage.DosageStorage
 	DoseHistory       dosage.DoseHistoryStorage
 }
@@ -45,6 +47,7 @@ func newOpenAPIHandler(deps OpenAPIHandlerServices, logger *slog.Logger) *openAP
 		logger:      logger,
 		users:       deps.Users,
 		notifs:      deps.UserNotifications,
+		notif:       deps.Notification,
 		dosage:      deps.Dosage,
 		doseHistory: deps.DoseHistory,
 	}
@@ -74,9 +77,9 @@ func (h *openAPIHandler) Register(ctx context.Context, request openapi.RegisterR
 	}
 
 	return openapi.Register200JSONResponse{
-		Name:      u.Name,
-		Locale:    u.Locale,
-		Secret:    u.Secret,
+		Name:   u.Name,
+		Locale: u.Locale,
+		Secret: u.Secret,
 	}, nil
 }
 
@@ -304,7 +307,30 @@ func (h *openAPIHandler) WebPushInfo(ctx context.Context, request openapi.WebPus
 	return openapi.WebPushInfo200JSONResponse(openapi.PushInfo(i)), nil
 }
 
-func (h *openAPIHandler) UserNotificationMethods(ctx context.Context, request openapi.UserNotificationMethodsRequestObject) (openapi.UserNotificationMethodsResponseObject, error) {
+// Get the server's supported notification methods
+// (GET /notifications/methods)
+func (h *openAPIHandler) SupportedNotificationMethods(ctx context.Context, request openapi.SupportedNotificationMethodsRequestObject) (openapi.SupportedNotificationMethodsResponseObject, error) {
+	addIfTrue := func(ret []string, b bool, value string) []string {
+		if b {
+			ret = append(ret, value)
+		}
+		return ret
+	}
+
+	supports := h.notif.Supports()
+
+	var ret openapi.NotificationMethodSupports
+	ret = addIfTrue(ret, supports.Gotify, "gotify")
+	ret = addIfTrue(ret, supports.Pushover, "pushover")
+	ret = addIfTrue(ret, supports.WebPush, "webPush")
+	ret = addIfTrue(ret, supports.Email, "email")
+
+	return openapi.SupportedNotificationMethods200JSONResponse(openapi.NotificationMethodSupports(ret)), nil
+}
+
+// Get the user's notification preferences
+// (GET /notifications/preferences)
+func (h *openAPIHandler) UserNotificationPreferences(ctx context.Context, request openapi.UserNotificationPreferencesRequestObject) (openapi.UserNotificationPreferencesResponseObject, error) {
 	session := sessionFromCtx(ctx)
 
 	p, err := h.notifs.UserPreferences(ctx, session.UserSecret)
@@ -312,60 +338,81 @@ func (h *openAPIHandler) UserNotificationMethods(ctx context.Context, request op
 		return nil, err
 	}
 
-	var ret openapi.ReturnedNotificationMethods
+	var ret openapi.NotificationPreferences
+
+	if len(p.CustomNotifications) > 0 {
+		ret.CustomNotifications = make(map[string]openapi.NotificationMessage, len(p.CustomNotifications))
+		for k, v := range p.CustomNotifications {
+			ret.CustomNotifications[k] = openapi.NotificationMessage(v)
+		}
+	}
 
 	if len(p.NotificationConfigs.WebPush) > 0 {
-		s := make([]openapi.ReturnedPushSubscription, len(p.NotificationConfigs.WebPush))
+		s := make([]openapi.PushSubscription, len(p.NotificationConfigs.WebPush))
 		for i, sub := range p.NotificationConfigs.WebPush {
-			s[i] = openapi.ReturnedPushSubscription{
+			s[i] = openapi.PushSubscription{
 				DeviceID:       sub.DeviceID,
 				ExpirationTime: sub.ExpirationTime,
 			}
 			s[i].Keys.P256Dh = sub.Keys.P256Dh
 		}
-		ret.WebPush = &s
+		ret.NotificationConfigs.WebPush = &s
 	}
 
-	return openapi.UserNotificationMethods200JSONResponse(ret), nil
+	if len(p.NotificationConfigs.Email) > 0 {
+		s := make([]openapi.EmailSubscription, len(p.NotificationConfigs.Email))
+		for i, sub := range p.NotificationConfigs.Email {
+			s[i] = openapi.EmailSubscription(sub)
+		}
+		ret.NotificationConfigs.Email = &s
+	}
+
+	return openapi.UserNotificationPreferences200JSONResponse(ret), nil
 }
 
-func (h *openAPIHandler) UserPushSubscription(ctx context.Context, request openapi.UserPushSubscriptionRequestObject) (openapi.UserPushSubscriptionResponseObject, error) {
+// Update the user's notification preferences
+// (PUT /notifications/preferences)
+func (h *openAPIHandler) UserUpdateNotificationPreferences(ctx context.Context, request openapi.UserUpdateNotificationPreferencesRequestObject) (openapi.UserUpdateNotificationPreferencesResponseObject, error) {
 	session := sessionFromCtx(ctx)
 
-	p, err := h.notifs.UserPreferences(ctx, session.UserSecret)
-	if err != nil {
+	newPreferences := &notification.UserPreferences{}
+
+	if request.Body.CustomNotifications != nil {
+		newPreferences.CustomNotifications = make(notificationapi.CustomNotifications, len(request.Body.CustomNotifications))
+		for k, v := range request.Body.CustomNotifications {
+			newPreferences.CustomNotifications[k] = notificationapi.NotificationMessage(v)
+		}
+	}
+
+	if request.Body.NotificationConfigs.Email != nil {
+		newPreferences.NotificationConfigs.Email = make([]notificationapi.EmailSubscription, len(*request.Body.NotificationConfigs.Email))
+		for i, v := range *request.Body.NotificationConfigs.Email {
+			newPreferences.NotificationConfigs.Email[i] = notificationapi.EmailSubscription(v)
+		}
+	}
+
+	if request.Body.NotificationConfigs.WebPush != nil {
+		newPreferences.NotificationConfigs.WebPush = make([]notificationapi.PushSubscription, len(*request.Body.NotificationConfigs.WebPush))
+		for i, v := range *request.Body.NotificationConfigs.WebPush {
+			newPreferences.NotificationConfigs.WebPush[i] = notificationapi.PushSubscription(v)
+		}
+	}
+
+	if err := h.notifs.SetUserPreferences(ctx, session.UserSecret, newPreferences); err != nil {
 		return nil, err
 	}
 
-	ix := slices.IndexFunc(p.NotificationConfigs.WebPush,
-		func(c notificationapi.PushSubscription) bool { return c.DeviceID == request.DeviceID },
-	)
-	if ix == -1 {
-		return openapi.UserPushSubscription404JSONResponse(openapi.Error{
-			Message: "subscription not found",
-			Details: anyPtr(map[string]string{
-				"deviceID": string(request.DeviceID),
-			}),
-		}), nil
-	}
-
-	return openapi.UserPushSubscription200JSONResponse(openapi.PushSubscription(
-		p.NotificationConfigs.WebPush[ix],
-	)), nil
+	return openapi.UserUpdateNotificationPreferences204Response{}, nil
 }
 
-func (h *openAPIHandler) UserSubscribePush(ctx context.Context, request openapi.UserSubscribePushRequestObject) (openapi.UserSubscribePushResponseObject, error) {
+// Send a test notification
+// (POST /notifications/test)
+func (h *openAPIHandler) SendTestNotification(ctx context.Context, request openapi.SendTestNotificationRequestObject) (openapi.SendTestNotificationResponseObject, error) {
 	session := sessionFromCtx(ctx)
-	if err := h.notifs.SubscribeWebPush(ctx, session.UserSecret, notificationapi.PushSubscription(*request.Body)); err != nil {
-		return nil, err
-	}
-	return openapi.UserSubscribePush204Response{}, nil
-}
 
-func (h *openAPIHandler) UserUnsubscribePush(ctx context.Context, request openapi.UserUnsubscribePushRequestObject) (openapi.UserUnsubscribePushResponseObject, error) {
-	session := sessionFromCtx(ctx)
-	if err := h.notifs.UnsubscribeWebPush(ctx, session.UserSecret, request.DeviceID); err != nil {
-		return nil, err
+	if err := h.notifs.NotifyUser(ctx, session.UserSecret, notificationapi.NotificationType(openapi.TestMessage)); err != nil {
+		return nil, fmt.Errorf("cannot send test notification: %w", err)
 	}
-	return openapi.UserUnsubscribePush204Response{}, nil
+
+	return openapi.SendTestNotification204Response{}, nil
 }

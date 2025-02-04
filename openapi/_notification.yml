@@ -24,82 +24,72 @@ paths:
 
   /notifications/methods:
     get:
-      summary: Get the user's notification methods
-      operationId: userNotificationMethods
+      summary: Get the server's supported notification methods
+      operationId: supportedNotificationMethods
+      security: []
       responses:
         "200":
           description: >-
-            Successfully retrieved the user's push notification subscription.
+            Successfully retrieved the server's notification methods.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ReturnedNotificationMethods"
+                $ref: "#/components/schemas/NotificationMethodSupports"
         default:
           $ref: "./_base.yml#/components/responses/ErrorResponse"
 
-  /notifications/methods/push/{deviceID}:
-    get:
-      summary: Get the user's push notification subscription
-      operationId: userPushSubscription
-      parameters:
-        - name: deviceID
-          in: path
-          schema:
-            $ref: "#/components/schemas/PushDeviceID"
-          required: true
-          description: >-
-            The device ID of the push subscription to retrieve.
-      responses:
-        "200":
-          description: >-
-            Successfully retrieved the user's push notification subscription.
-            The returned object will contain secrets.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/PushSubscription"
-        "404":
-          description: >-
-            The user does not have a push notification subscription for the
-            specified device ID.
-          content:
-            application/json:
-              schema:
-                $ref: "./_base.yml#/components/schemas/Error"
-        default:
-          $ref: "./_base.yml#/components/responses/ErrorResponse"
-    delete:
-      summary: Unsubscribe from push notifications
-      operationId: userUnsubscribePush
-      parameters:
-        - name: deviceID
-          in: path
-          schema:
-            $ref: "#/components/schemas/PushDeviceID"
-          required: true
-          description: >-
-            The device ID of the push subscription to unsubscribe from.
+  /notifications/test:
+    post:
+      summary: Send a test notification
+      operationId: sendTestNotification
       responses:
         "204":
           description: >-
-            Successfully unsubscribed from push notifications.
+            Successfully sent the test notification.
         default:
           $ref: "./_base.yml#/components/responses/ErrorResponse"
 
-  /notifications/methods/push:
+  /notifications/preferences:
+    get:
+      summary: Get the user's notification preferences
+      operationId: userNotificationPreferences
+      responses:
+        "200":
+          description: >-
+            Successfully retrieved the user's notification preferences.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationPreferences"
+        default:
+          $ref: "./_base.yml#/components/responses/ErrorResponse"
     put:
-      summary: Create or update a push subscription
-      operationId: userSubscribePush
+      summary: Update the user's notification preferences
+      operationId: userUpdateNotificationPreferences
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/PushSubscription"
+              allOf:
+                - $ref: "#/components/schemas/NotificationPreferences"
+                - properties:
+                    _current:
+                      description: >-
+                        The current notification preferences.
+                        This is used to determine whether the notification
+                        method update is still valid.
+
+                        This field is very much optional and is only used to
+                        guard against race conditions.
+
+                        TODO: Implement this field.
+                      allOf:
+                        - $ref: "#/components/schemas/NotificationPreferences"
       responses:
         "204":
           description: >-
-            Successfully subscribed to push notifications.
+            Successfully updated the user's notification methods.
         default:
           $ref: "./_base.yml#/components/responses/ErrorResponse"
 
@@ -146,6 +136,7 @@ components:
         - reminder_message
         - account_notice_message
         - web_push_expiring_message
+        - test_message
       description: >-
         The type of notification:
           - `welcome_message` is sent to welcome the user. Realistically, it is
@@ -155,6 +146,7 @@ components:
             to check their account.
           - `web_push_expiring_message` is sent to notify the user that their
             web push subscription is expiring.
+          - `test_message` is sent to test your notification settings.
       x-order: -50
 
     NotificationMessage:
@@ -256,43 +248,57 @@ components:
               x-order: 2
           x-order: 3
 
-    ReturnedNotificationMethods:
+    EmailSubscription:
+      required: [address]
       properties:
-        webPush:
-          type: array
-          items:
-            $ref: "#/components/schemas/ReturnedPushSubscription"
-        # TODO: email
-        # TODO: gotify
-        # TODO: pushover
-
-    ReturnedPushSubscription:
-      description: >-
-        Similar to a [PushSubscription], but specifically for returning to the user.
-        This type contains no secrets.
-      required: [deviceID, keys]
-      properties:
-        deviceID:
-          allOf:
-            - $ref: "#/components/schemas/PushDeviceID"
-          x-order: 1
-        expirationTime:
-          type: string
-          format: date-time
+        address:
           description: >-
-            The time at which the subscription expires. This is the time when
-            the subscription will be automatically deleted by the browser.
-          x-go-type-skip-optional-pointer: true
-        keys:
-          required: [p256dh]
+            The email address to send the notification to.
+            This email address will appear in the `To` field of the email.
+          type: string
+          format: email
+        name:
+          description: >-
+            The name of the user to send the email to.
+            This name will be used with the email address in the `To` field.
+          type: string
+
+    # TODO: gotify
+    # TODO: pushover
+
+    NotificationPreferences:
+      description: >-
+        The user's notification preferences.
+
+        Each key is a notification type and the value is the notification
+        configuration for that type. It may be nil if the server does not
+        support a particular notification type.
+      required: [notificationConfigs]
+      properties:
+        notificationConfigs:
           properties:
-            p256dh:
-              type: string
-              description: >-
-                An Elliptic curve Diffie–Hellman public key on the P-256 curve
-                (that is, the NIST secp256r1 elliptic curve). The resulting key
-                is an uncompressed point in ANSI X9.62 format.
-          x-order: 2
+            webPush:
+              type: array
+              items:
+                $ref: "#/components/schemas/PushSubscription"
+            email:
+              type: array
+              items:
+                $ref: "#/components/schemas/EmailSubscription"
+        customNotifications:
+          allOf:
+            - $ref: "#/components/schemas/CustomNotifications"
+          x-go-type-skip-optional-pointer: true
+
+    NotificationMethodSupports:
+      description: >-
+        A list of notification methods that the server supports.
+      type: array
+      items:
+        type: string
+        enum:
+          - webPush
+          - email
 
     CustomNotifications:
       description: >-

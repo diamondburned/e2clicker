@@ -542,9 +542,9 @@ bearerAuth
 This operation does not require authentication
 </aside>
 
-## Get the user's notification methods
+## Get the server's supported notification methods
 
-<a id="opIduserNotificationMethods"></a>
+<a id="opIdsupportedNotificationMethods"></a>
 
 `GET /notifications/methods`
 
@@ -553,24 +553,55 @@ This operation does not require authentication
 > 200 Response
 
 ```json
-{
-  "webPush": [
-    {
-      "deviceID": "7996e974",
-      "expirationTime": "2019-08-24T14:15:22Z",
-      "keys": {
-        "p256dh": "string"
-      }
-    }
-  ]
-}
+[
+  "webPush"
+]
 ```
 
-<h3 id="get-the-user's-notification-methods-responses">Responses</h3>
+<h3 id="get-the-server's-supported-notification-methods-responses">Responses</h3>
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Successfully retrieved the user's push notification subscription.|[ReturnedNotificationMethods](#schemareturnednotificationmethods)|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Successfully retrieved the server's notification methods.|[NotificationMethodSupports](#schemanotificationmethodsupports)|
+|default|Default|The request is invalid.|[Error](#schemaerror)|
+
+<aside class="success">
+This operation does not require authentication
+</aside>
+
+## Send a test notification
+
+<a id="opIdsendTestNotification"></a>
+
+`POST /notifications/test`
+
+> Example responses
+
+> default Response
+
+```json
+{
+  "message": "string",
+  "errors": [
+    {
+      "message": "string",
+      "errors": [],
+      "details": null,
+      "internal": true,
+      "internalCode": "string"
+    }
+  ],
+  "details": null,
+  "internal": true,
+  "internalCode": "string"
+}
+```
+
+<h3 id="send-a-test-notification-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|204|[No Content](https://tools.ietf.org/html/rfc7231#section-6.3.5)|Successfully sent the test notification.|None|
 |default|Default|The request is invalid.|[Error](#schemaerror)|
 
 <aside class="warning">
@@ -578,17 +609,11 @@ To perform this operation, you must be authenticated by means of one of the foll
 bearerAuth
 </aside>
 
-## Get the user's push notification subscription
+## Get the user's notification preferences
 
-<a id="opIduserPushSubscription"></a>
+<a id="opIduserNotificationPreferences"></a>
 
-`GET /notifications/methods/push/{deviceID}`
-
-<h3 id="get-the-user's-push-notification-subscription-parameters">Parameters</h3>
-
-|Name|In|Type|Required|Description|
-|---|---|---|---|---|
-|deviceID|path|[PushDeviceID](#schemapushdeviceid)|true|The device ID of the push subscription to retrieve.|
+`GET /notifications/preferences`
 
 > Example responses
 
@@ -596,22 +621,43 @@ bearerAuth
 
 ```json
 {
-  "deviceID": "7996e974",
-  "endpoint": "string",
-  "expirationTime": "2019-08-24T14:15:22Z",
-  "keys": {
-    "p256dh": "string",
-    "auth": "string"
+  "notificationConfigs": {
+    "webPush": [
+      {
+        "deviceID": "7996e974",
+        "endpoint": "string",
+        "expirationTime": "2019-08-24T14:15:22Z",
+        "keys": {
+          "p256dh": "string",
+          "auth": "string"
+        }
+      }
+    ],
+    "email": [
+      {
+        "address": "user@example.com",
+        "name": "string"
+      }
+    ]
+  },
+  "customNotifications": {
+    "property1": {
+      "title": "string",
+      "message": "string"
+    },
+    "property2": {
+      "title": "string",
+      "message": "string"
+    }
   }
 }
 ```
 
-<h3 id="get-the-user's-push-notification-subscription-responses">Responses</h3>
+<h3 id="get-the-user's-notification-preferences-responses">Responses</h3>
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Successfully retrieved the user's push notification subscription. The returned object will contain secrets.|[PushSubscription](#schemapushsubscription)|
-|404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|The user does not have a push notification subscription for the specified device ID.|[Error](#schemaerror)|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Successfully retrieved the user's notification preferences.|[NotificationPreferences](#schemanotificationpreferences)|
 |default|Default|The request is invalid.|[Error](#schemaerror)|
 
 <aside class="warning">
@@ -619,77 +665,23 @@ To perform this operation, you must be authenticated by means of one of the foll
 bearerAuth
 </aside>
 
-## Unsubscribe from push notifications
+## Update the user's notification preferences
 
-<a id="opIduserUnsubscribePush"></a>
+<a id="opIduserUpdateNotificationPreferences"></a>
 
-`DELETE /notifications/methods/push/{deviceID}`
-
-<h3 id="unsubscribe-from-push-notifications-parameters">Parameters</h3>
-
-|Name|In|Type|Required|Description|
-|---|---|---|---|---|
-|deviceID|path|[PushDeviceID](#schemapushdeviceid)|true|The device ID of the push subscription to unsubscribe from.|
-
-> Example responses
-
-> default Response
-
-```json
-{
-  "message": "string",
-  "errors": [
-    {
-      "message": "string",
-      "errors": [],
-      "details": null,
-      "internal": true,
-      "internalCode": "string"
-    }
-  ],
-  "details": null,
-  "internal": true,
-  "internalCode": "string"
-}
-```
-
-<h3 id="unsubscribe-from-push-notifications-responses">Responses</h3>
-
-|Status|Meaning|Description|Schema|
-|---|---|---|---|
-|204|[No Content](https://tools.ietf.org/html/rfc7231#section-6.3.5)|Successfully unsubscribed from push notifications.|None|
-|default|Default|The request is invalid.|[Error](#schemaerror)|
-
-<aside class="warning">
-To perform this operation, you must be authenticated by means of one of the following methods:
-bearerAuth
-</aside>
-
-## Create or update a push subscription
-
-<a id="opIduserSubscribePush"></a>
-
-`PUT /notifications/methods/push`
+`PUT /notifications/preferences`
 
 > Body parameter
 
 ```json
-{
-  "deviceID": "7996e974",
-  "endpoint": "string",
-  "expirationTime": "2019-08-24T14:15:22Z",
-  "keys": {
-    "p256dh": "string",
-    "auth": "string"
-  }
-}
+null
 ```
 
-<h3 id="create-or-update-a-push-subscription-parameters">Parameters</h3>
+<h3 id="update-the-user's-notification-preferences-parameters">Parameters</h3>
 
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
-|body|body|[PushSubscription](#schemapushsubscription)|true|none|
+|body|body|any|true|none|
 
 > Example responses
 
@@ -713,11 +705,11 @@ bearerAuth
 }
 ```
 
-<h3 id="create-or-update-a-push-subscription-responses">Responses</h3>
+<h3 id="update-the-user's-notification-preferences-responses">Responses</h3>
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
-|204|[No Content](https://tools.ietf.org/html/rfc7231#section-6.3.5)|Successfully subscribed to push notifications.|None|
+|204|[No Content](https://tools.ietf.org/html/rfc7231#section-6.3.5)|Successfully updated the user's notification methods.|None|
 |default|Default|The request is invalid.|[Error](#schemaerror)|
 
 <aside class="warning">
@@ -1184,12 +1176,13 @@ The type of notification:
     to check their account.
   - `web_push_expiring_message` is sent to notify the user that their
     web push subscription is expiring.
+  - `test_message` is sent to test your notification settings.
 
 ### Properties
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|*anonymous*|string|false|none|The type of notification:<br><br>  - `welcome_message` is sent to welcome the user. Realistically, it is<br>    used as a test message.<br>  - `reminder_message` is sent to remind the user of their hormone dose.<br>  - `account_notice_message` is sent to notify the user that they need<br>    to check their account.<br>  - `web_push_expiring_message` is sent to notify the user that their<br>    web push subscription is expiring.|
+|*anonymous*|string|false|none|The type of notification:<br><br>  - `welcome_message` is sent to welcome the user. Realistically, it is<br>    used as a test message.<br>  - `reminder_message` is sent to remind the user of their hormone dose.<br>  - `account_notice_message` is sent to notify the user that they need<br>    to check their account.<br>  - `web_push_expiring_message` is sent to notify the user that their<br>    web push subscription is expiring.<br>  - `test_message` is sent to test your notification settings.|
 
 #### Enumerated Values
 
@@ -1199,6 +1192,7 @@ The type of notification:
 |*anonymous*|reminder_message|
 |*anonymous*|account_notice_message|
 |*anonymous*|web_push_expiring_message|
+|*anonymous*|test_message|
 
 <h2 id="tocS_NotificationMessage">NotificationMessage</h2>
 <!-- backwards compatibility -->
@@ -1296,24 +1290,17 @@ This is the object that is returned by calling PushSubscription.toJSON(). More i
 
 *None*
 
-<h2 id="tocS_ReturnedNotificationMethods">ReturnedNotificationMethods</h2>
+<h2 id="tocS_EmailSubscription">EmailSubscription</h2>
 <!-- backwards compatibility -->
-<a id="schemareturnednotificationmethods"></a>
-<a id="schema_ReturnedNotificationMethods"></a>
-<a id="tocSreturnednotificationmethods"></a>
-<a id="tocsreturnednotificationmethods"></a>
+<a id="schemaemailsubscription"></a>
+<a id="schema_EmailSubscription"></a>
+<a id="tocSemailsubscription"></a>
+<a id="tocsemailsubscription"></a>
 
 ```json
 {
-  "webPush": [
-    {
-      "deviceID": "7996e974",
-      "expirationTime": "2019-08-24T14:15:22Z",
-      "keys": {
-        "p256dh": "string"
-      }
-    }
-  ]
+  "address": "user@example.com",
+  "name": "string"
 }
 
 ```
@@ -1322,27 +1309,76 @@ This is the object that is returned by calling PushSubscription.toJSON(). More i
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|webPush|[[ReturnedPushSubscription](#schemareturnedpushsubscription)]|false|none|[Similar to a [PushSubscription], but specifically for returning to the user. This type contains no secrets.]|
+|address|string(email)|true|none|The email address to send the notification to. This email address will appear in the `To` field of the email.|
+|name|string|false|none|The name of the user to send the email to. This name will be used with the email address in the `To` field.|
 
-<h2 id="tocS_ReturnedPushSubscription">ReturnedPushSubscription</h2>
+<h2 id="tocS_NotificationPreferences">NotificationPreferences</h2>
 <!-- backwards compatibility -->
-<a id="schemareturnedpushsubscription"></a>
-<a id="schema_ReturnedPushSubscription"></a>
-<a id="tocSreturnedpushsubscription"></a>
-<a id="tocsreturnedpushsubscription"></a>
+<a id="schemanotificationpreferences"></a>
+<a id="schema_NotificationPreferences"></a>
+<a id="tocSnotificationpreferences"></a>
+<a id="tocsnotificationpreferences"></a>
 
 ```json
 {
-  "deviceID": "7996e974",
-  "expirationTime": "2019-08-24T14:15:22Z",
-  "keys": {
-    "p256dh": "string"
+  "notificationConfigs": {
+    "webPush": [
+      {
+        "deviceID": "7996e974",
+        "endpoint": "string",
+        "expirationTime": "2019-08-24T14:15:22Z",
+        "keys": {
+          "p256dh": "string",
+          "auth": "string"
+        }
+      }
+    ],
+    "email": [
+      {
+        "address": "user@example.com",
+        "name": "string"
+      }
+    ]
+  },
+  "customNotifications": {
+    "property1": {
+      "title": "string",
+      "message": "string"
+    },
+    "property2": {
+      "title": "string",
+      "message": "string"
+    }
   }
 }
 
 ```
 
-Similar to a [PushSubscription], but specifically for returning to the user. This type contains no secrets.
+The user's notification preferences.
+Each key is a notification type and the value is the notification configuration for that type. It may be nil if the server does not support a particular notification type.
+
+### Properties
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|notificationConfigs|object|true|none|none|
+|» webPush|[[PushSubscription](#schemapushsubscription)]|false|none|[The configuration for a push notification subscription.<br>This is the object that is returned by calling PushSubscription.toJSON(). More information can be found at: https://developer.mozilla.org/en-US/docs/Web/API/PushSubscription/toJSON]|
+
+<h2 id="tocS_NotificationMethodSupports">NotificationMethodSupports</h2>
+<!-- backwards compatibility -->
+<a id="schemanotificationmethodsupports"></a>
+<a id="schema_NotificationMethodSupports"></a>
+<a id="tocSnotificationmethodsupports"></a>
+<a id="tocsnotificationmethodsupports"></a>
+
+```json
+[
+  "webPush"
+]
+
+```
+
+A list of notification methods that the server supports.
 
 ### Properties
 

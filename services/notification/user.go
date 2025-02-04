@@ -1,14 +1,15 @@
 package notification
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
-	"slices"
 
-	"go.uber.org/fx"
 	"e2clicker.app/services/notification/openapi"
 	"e2clicker.app/services/user"
+	"go.uber.org/fx"
 )
 
 // UserPreferences is the preferences of a user.
@@ -88,6 +89,36 @@ func (s *UserNotificationService) NotifyUser(ctx context.Context, secret user.Se
 	return s.notification.Notify(ctx, n, prefs.NotificationConfigs)
 }
 
+// UserPreferences returns the preferences of a user.
+func (s *UserNotificationService) UserPreferences(ctx context.Context, secret user.Secret) (UserPreferences, error) {
+	return s.userNotifications.UserPreferences(ctx, secret)
+}
+
+// SetUserPreferences sets the preferences of a user.
+func (s *UserNotificationService) SetUserPreferences(ctx context.Context, secret user.Secret, preferences *UserPreferences) error {
+	return s.SetUserPreferencesSafe(ctx, secret, preferences, nil)
+}
+
+// SetUserPreferencesSafe sets the preferences of a user in a safer manner than
+// [SetUserPreferences]. It requires the old preferences to be passed in order
+// to prevent overwriting changes made by other clients.
+//
+// Realistically, this doesn't happen unless the user is deliberately trying to
+// cause the issue.
+func (s *UserNotificationService) SetUserPreferencesSafe(ctx context.Context, secret user.Secret, newPreferences, oldPreferences *UserPreferences) error {
+	return s.userNotifications.SetUserPreferencesTx(ctx, secret, func(p *UserPreferences) error {
+		if oldPreferences != nil {
+			b1, _ := json.Marshal(oldPreferences)
+			b2, _ := json.Marshal(p)
+			if !bytes.Equal(b1, b2) {
+				return fmt.Errorf("preferences have changed since you last read them")
+			}
+		}
+		*p = *newPreferences
+		return nil
+	})
+}
+
 // WebPushInfo returns the web push information of the server.
 func (s *UserNotificationService) WebPushInfo(ctx context.Context) (openapi.PushInfo, error) {
 	if s.notification.services.WebPush == nil {
@@ -98,11 +129,7 @@ func (s *UserNotificationService) WebPushInfo(ctx context.Context) (openapi.Push
 	}, nil
 }
 
-// UserPreferences returns the preferences of a user.
-func (s *UserNotificationService) UserPreferences(ctx context.Context, secret user.Secret) (UserPreferences, error) {
-	return s.userNotifications.UserPreferences(ctx, secret)
-}
-
+/*
 // SubscribeWebPush sets the web push subscription of a user.
 // The particular subscription is identified by the device ID.
 func (s *UserNotificationService) SubscribeWebPush(ctx context.Context, secret user.Secret, subscription openapi.PushSubscription) error {
@@ -135,3 +162,4 @@ func (s *UserNotificationService) UnsubscribeWebPush(ctx context.Context, secret
 		return nil
 	})
 }
+*/
