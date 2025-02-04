@@ -3,7 +3,7 @@
 /// <reference lib="esnext" />
 /// <reference lib="webworker" />
 
-import { cleanupOutdatedCaches, precacheAndRoute } from "workbox-precaching";
+import { cleanupOutdatedCaches } from "workbox-precaching";
 
 import type * as api from "./lib/api";
 // import { updatePushSubscription } from "./lib/notification";
@@ -14,8 +14,12 @@ import { WorkerError, type WorkerMessage } from "./lib/shared-worker";
 // https://vite-pwa-org.netlify.app/guide/inject-manifest.html#service-worker-code-3
 declare let self: ServiceWorkerGlobalScope;
 
+// Clean up old workbox caches.
 cleanupOutdatedCaches();
-precacheAndRoute(self.__WB_MANIFEST);
+
+// Do not route the service worker. We're not trying to make this work offline
+// yet, and there are some issues with doing so.
+// precache(self.__WB_MANIFEST);
 
 self.addEventListener("message", (ev) => {
   console.debug("Service Worker received message", ev.data);
