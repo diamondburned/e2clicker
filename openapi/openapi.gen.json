@@ -241,6 +241,7 @@
       },
       "delete": {
         "summary": "Delete a dosage from the user's history",
+        "description": "This operation is broken in the backend due to a parsing error and\nshould not be used. Instead, prefer using [forgetDoses].\n",
         "operationId": "forgetDose",
         "parameters": [
           {
@@ -907,7 +908,7 @@
       },
       "DosageHistoryCSV": {
         "type": "string",
-        "example": "dose,method,takenAt,takenOffAt,comment\n100,patch tw,2020-01-01T00:00:00Z,,\n100,patch tw,2020-01-02T12:00:00Z,,\n100,patch tw,2020-01-04T00:00:00Z,,\n100,patch tw,2020-01-05T12:00:00Z,,",
+        "example": "deliveryMethod,dose,takenAt,takenOffAt,comment\npatch tw,100,2020-01-01T00:00:00Z,,\npatch tw,100,2020-01-02T12:00:00Z,,\npatch tw,100,2020-01-04T00:00:00Z,,\npatch tw,100,2020-01-05T12:00:00Z,,",
         "description": "The CSV format of the user's dosage history."
       },
       "Dose": {

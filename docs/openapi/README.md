@@ -347,6 +347,9 @@ bearerAuth
 
 `DELETE /dosage/dose/{doseTime}`
 
+This operation is broken in the backend due to a parsing error and
+should not be used. Instead, prefer using [forgetDoses].
+
 <h3 id="delete-a-dosage-from-the-user's-history-parameters">Parameters</h3>
 
 |Name|In|Type|Required|Description|
@@ -453,7 +456,7 @@ bearerAuth
 > Body parameter
 
 ```json
-"dose,method,takenAt,takenOffAt,comment\n100,patch tw,2020-01-01T00:00:00Z,,\n100,patch tw,2020-01-02T12:00:00Z,,\n100,patch tw,2020-01-04T00:00:00Z,,\n100,patch tw,2020-01-05T12:00:00Z,,"
+"deliveryMethod,dose,takenAt,takenOffAt,comment\npatch tw,100,2020-01-01T00:00:00Z,,\npatch tw,100,2020-01-02T12:00:00Z,,\npatch tw,100,2020-01-04T00:00:00Z,,\npatch tw,100,2020-01-05T12:00:00Z,,"
 ```
 
 <h3 id="import-a-csv-file-of-dosage-history-parameters">Parameters</h3>
@@ -1098,7 +1101,7 @@ bearerAuth
 <a id="tocsdosagehistorycsv"></a>
 
 ```json
-"dose,method,takenAt,takenOffAt,comment\n100,patch tw,2020-01-01T00:00:00Z,,\n100,patch tw,2020-01-02T12:00:00Z,,\n100,patch tw,2020-01-04T00:00:00Z,,\n100,patch tw,2020-01-05T12:00:00Z,,"
+"deliveryMethod,dose,takenAt,takenOffAt,comment\npatch tw,100,2020-01-01T00:00:00Z,,\npatch tw,100,2020-01-02T12:00:00Z,,\npatch tw,100,2020-01-04T00:00:00Z,,\npatch tw,100,2020-01-05T12:00:00Z,,"
 
 ```
 
