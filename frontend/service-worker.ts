@@ -19,7 +19,7 @@ cleanupOutdatedCaches();
 
 // Do not route the service worker. We're not trying to make this work offline
 // yet, and there are some issues with doing so.
-// precache(self.__WB_MANIFEST);
+precache(self.__WB_MANIFEST);
 
 self.addEventListener("message", (ev) => {
   console.debug("Service Worker received message", ev.data);
