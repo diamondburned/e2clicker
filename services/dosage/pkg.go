@@ -12,5 +12,6 @@ var Module = fx.Module("dosage",
 	}),
 	fx.Provide(
 		NewExporterService,
+		NewDosageReminderService,
 	),
 )

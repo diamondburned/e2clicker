@@ -11,6 +11,7 @@ require (
 	github.com/go-chi/chi/v5 v5.1.0
 	github.com/jackc/pgx/v5 v5.6.0
 	github.com/lmittmann/tint v1.0.5
+	github.com/neilotoole/slogt v1.1.0
 	github.com/oapi-codegen/runtime v1.1.1
 	github.com/puzpuzpuz/xsync/v3 v3.4.0
 	github.com/spf13/pflag v1.0.5
