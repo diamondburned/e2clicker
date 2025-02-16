@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"e2clicker.app/services/notification"
+	notificationapi "e2clicker.app/services/notification/openapi"
 	"e2clicker.app/services/user"
 	"go.uber.org/fx"
 )
@@ -14,7 +15,8 @@ import (
 // DosageReminderStorage is a storage for dosage reminder data.
 type DosageReminderStorage interface {
 	// UpcomingDosageReminders returns the upcoming dosage reminders as a
-	// streaming iterator.
+	// streaming iterator. A satisfying but least optimized implementation
+	// can return every single person with a dosage schedule and history.
 	//
 	// No strict ordering is required, but the reminders should be returned in
 	// the order of the last dosage time.
@@ -115,45 +117,86 @@ func NewDosageReminderService(
 }
 
 func (s *DosageReminderService) run(ctx context.Context, slog *slog.Logger) {
-	// nextRun := time.NewTimer(0)
-	// now := time.Now()
-	//
-	//	for {
-	//		slog.Debug("DosageReminderService: running update cycle")
-	//
-	//		dosageRemindersIter := s.storage.UpcomingDosageReminders(ctx)
-	//
-	//		tracked, err := ingestReminders(now, dosageRemindersIter, slog)
-	//		if err != nil {
-	//			slog.Error(
-	//				"DosageReminderService: error ingesting reminders",
-	//				"error", err)
-	//			nextRun.Reset(nextUpdateIntervalOnError)
-	//			goto skipToTimer
-	//		}
-	//
-	//		for _, r := range tracked.relevantReminders {
-	//		}
-	//
-	// skipToTimer:
-	//
-	//		select {
-	//		case <-ctx.Done():
-	//			return
-	//		case now = <-nextRun.C:
-	//			// keep running
-	//		}
-	//	}
+	nextRun := time.NewTimer(0)
+	now := time.Now()
+
+	for {
+		slog.Debug("DosageReminderService: running update cycle")
+
+		dosageRemindersIter := s.storage.UpcomingDosageReminders(ctx)
+
+		tracked, err := ingestReminders(now, dosageRemindersIter, slog)
+		if err != nil {
+			slog.Error(
+				"DosageReminderService: error ingesting reminders",
+				"err", err)
+			nextRun.Reset(nextUpdateIntervalOnError)
+			goto skipToTimer
+		}
+
+		nextRun.Reset(tracked.nextRun.Sub(now))
+		slog.Debug(
+			"DosageReminderService: scheduling next run",
+			"nextRun", tracked.nextRun)
+
+		for _, r := range tracked.notifyingReminders {
+			start := time.Now()
+			err := s.notifs.NotifyUser(ctx, r.UserSecret, notificationapi.ReminderMessage)
+			taken := time.Since(start)
+
+			if err != nil {
+				slog.ErrorContext(ctx,
+					"DosageReminderService: error notifying user",
+					"reminder.username", r.Username,
+					"timeTaken", taken,
+					"err", err)
+			} else {
+				slog.DebugContext(ctx,
+					"DosageReminderService: notified user",
+					"reminder.username", r.Username,
+					"timeTaken", taken)
+			}
+
+			if err := s.storage.RecordRemindedDoses(ctx, []RemindedDose{r.toRemindedDose()}); err != nil {
+				slog.ErrorContext(ctx,
+					"DosageReminderService: error recording reminded doses",
+					"reminder.username", r.Username,
+					"err", err)
+			}
+		}
+
+	skipToTimer:
+		select {
+		case <-ctx.Done():
+			slog.Debug("DosageReminderService: stopping update cycle")
+			return
+		case now = <-nextRun.C:
+			// keep running
+		}
+	}
 }
 
 type trackedDosageReminders struct {
-	relevantReminders []DosageReminder
-	nextRun           time.Time
+	notifyingReminders []notifyingReminder
+	nextRun            time.Time
+}
+
+type notifyingReminder struct {
+	DosageReminder
+	ClearSnooze bool
+}
+
+func (r notifyingReminder) toRemindedDose() RemindedDose {
+	return RemindedDose{
+		UserSecret:   r.UserSecret,
+		RemindedDose: r.LastDose.TakenAt,
+		ClearSnooze:  r.ClearSnooze,
+	}
 }
 
 // ingestReminders ingests the streaming reminders into the tracker.
 func ingestReminders(now time.Time, reminders iter.Seq2[DosageReminder, error], slog *slog.Logger) (*trackedDosageReminders, error) {
-	notifyingReminders := make([]DosageReminder, 0, 12)
+	notifyingReminders := make([]notifyingReminder, 0, 12)
 
 	cutoffPoint := now.Add(nextUpdateInterval)
 	earliestNextNotification := cutoffPoint
@@ -187,7 +230,10 @@ func ingestReminders(now time.Time, reminders iter.Seq2[DosageReminder, error], 
 				"reminder.username", r.Username,
 				"reminder.nextNotification", nextNotification)
 
-			notifyingReminders = append(notifyingReminders, r)
+			notifyingReminders = append(notifyingReminders, notifyingReminder{
+				DosageReminder: r,
+				ClearSnooze:    false, // TODO(diamondburned): implement snoozing
+			})
 			continue
 		}
 
@@ -220,7 +266,7 @@ func ingestReminders(now time.Time, reminders iter.Seq2[DosageReminder, error], 
 		"earliestNextNotification", earliestNextNotification)
 
 	return &trackedDosageReminders{
-		relevantReminders: notifyingReminders,
-		nextRun:           earliestNextNotification,
+		notifyingReminders: notifyingReminders,
+		nextRun:            earliestNextNotification,
 	}, nil
 }

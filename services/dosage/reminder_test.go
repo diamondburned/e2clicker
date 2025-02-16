@@ -138,8 +138,8 @@ func TestIngestReminders(t *testing.T) {
 			tracked, err := ingestReminders(now, remindersIter, slogt.New(t))
 			assert.NoError(t, err, "ingestReminders must not return an error")
 
-			relevantUsers := make(userSet, len(tracked.relevantReminders))
-			for _, r := range tracked.relevantReminders {
+			relevantUsers := make(userSet, len(tracked.notifyingReminders))
+			for _, r := range tracked.notifyingReminders {
 				relevantUsers[r.Username] = struct{}{}
 			}
 			assert.Equal(t, tc.remindedUsers, relevantUsers, "ingestReminders must return the expected result")
