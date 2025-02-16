@@ -41,3 +41,20 @@ WHERE user_secret = $1
   AND taken_at < sqlc.arg('end')
   -- order latest last
 ORDER BY taken_at ASC;
+
+-- name: UpcomingDosageReminders :iter
+SELECT DISTINCT ON (users.secret)
+  users.secret AS user_secret, users.name AS user_name, sqlc.embed(dosage_schedule),
+    sqlc.embed(dosage_history), -- 
+  (
+    SELECT supposed_entity_time
+    FROM notification_history
+    WHERE user_secret = users.secret ORDER BY supposed_entity_time DESC LIMIT 1) AS last_notification_time
+FROM users
+  INNER JOIN dosage_schedule ON users.secret = dosage_schedule.user_secret
+  INNER JOIN dosage_history ON users.secret = dosage_history.user_secret
+ORDER BY users.secret, dosage_history.taken_at DESC;
+
+-- name: RecordRemindedDoseAttempt :exec
+INSERT INTO notification_history (user_secret, sent_at, supposed_entity_time, error_reason, errored)
+  VALUES ($1, $2, $3, $4, $4 IS NOT NULL);

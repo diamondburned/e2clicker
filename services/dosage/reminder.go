@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"time"
 
+	"e2clicker.app/internal/ptr"
 	"e2clicker.app/services/notification"
 	notificationapi "e2clicker.app/services/notification/openapi"
 	"e2clicker.app/services/user"
@@ -25,9 +26,9 @@ type DosageReminderStorage interface {
 	// results.
 	UpcomingDosageReminders(ctx context.Context) iter.Seq2[DosageReminder, error]
 
-	// RecordRemindedDoses records the reminded doses.
-	// This is used to mark the reminder as sent.
-	RecordRemindedDoses(ctx context.Context, remindedDoses []RemindedDose) error
+	// RecordRemindedDoseAttempts records the reminded dose attempts.
+	// This is used to mark the reminder as sent or failed.
+	RecordRemindedDoseAttempts(ctx context.Context, remindedDoses []RemindedDoseAttempt) error
 }
 
 // DosageReminder is a reminder for a dosage.
@@ -49,16 +50,20 @@ type DosageReminder struct {
 	SnoozedUntil *time.Time
 }
 
-// RemindedDose is a dose that has been reminded.
-type RemindedDose struct {
+// RemindedDoseAttempt is a dose that has been reminded.
+type RemindedDoseAttempt struct {
 	// UserSecret is the secret of the user.
 	UserSecret user.Secret
+	// RemindedAt is the time when the reminder was sent.
+	RemindedAt time.Time
 	// RemindedDose is the dose that was reminded.
 	// This is the TakenAt time of the dose.
 	RemindedDose time.Time
 	// ClearSnooze is true if the snooze should be cleared.
 	// This is the case if the reminder was sent at the snoozed time.
 	ClearSnooze bool
+	// ErrorReason is the error reason if the reminder failed, if any.
+	ErrorReason *string
 }
 
 // NextNotification returns the time of the next notification.
@@ -134,7 +139,7 @@ func (s *DosageReminderService) run(ctx context.Context, slog *slog.Logger) {
 			goto skipToTimer
 		}
 
-		nextRun.Reset(tracked.nextRun.Sub(now))
+		nextRun.Reset(time.Until(tracked.nextRun))
 		slog.Debug(
 			"DosageReminderService: scheduling next run",
 			"nextRun", tracked.nextRun)
@@ -144,7 +149,16 @@ func (s *DosageReminderService) run(ctx context.Context, slog *slog.Logger) {
 			err := s.notifs.NotifyUser(ctx, r.UserSecret, notificationapi.ReminderMessage)
 			taken := time.Since(start)
 
+			attempt := RemindedDoseAttempt{
+				UserSecret:   r.UserSecret,
+				RemindedAt:   now,
+				RemindedDose: r.LastDose.TakenAt,
+				ClearSnooze:  r.ClearSnooze,
+			}
+
 			if err != nil {
+				attempt.ErrorReason = ptr.To(err.Error())
+
 				slog.ErrorContext(ctx,
 					"DosageReminderService: error notifying user",
 					"reminder.username", r.Username,
@@ -157,7 +171,7 @@ func (s *DosageReminderService) run(ctx context.Context, slog *slog.Logger) {
 					"timeTaken", taken)
 			}
 
-			if err := s.storage.RecordRemindedDoses(ctx, []RemindedDose{r.toRemindedDose()}); err != nil {
+			if err := s.storage.RecordRemindedDoses(ctx, []RemindedDoseAttempt{attempt}); err != nil {
 				slog.ErrorContext(ctx,
 					"DosageReminderService: error recording reminded doses",
 					"reminder.username", r.Username,
@@ -184,14 +198,6 @@ type trackedDosageReminders struct {
 type notifyingReminder struct {
 	DosageReminder
 	ClearSnooze bool
-}
-
-func (r notifyingReminder) toRemindedDose() RemindedDose {
-	return RemindedDose{
-		UserSecret:   r.UserSecret,
-		RemindedDose: r.LastDose.TakenAt,
-		ClearSnooze:  r.ClearSnooze,
-	}
 }
 
 // ingestReminders ingests the streaming reminders into the tracker.

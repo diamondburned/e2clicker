@@ -22,3 +22,12 @@ func DerefOr[T any](v *T, or T) T {
 	}
 	return *v
 }
+
+// ToIf returns a pointer to the value passed as argument if ok is true, or nil
+// if ok is false.
+func ToIf[T any](v T, ok bool) *T {
+	if !ok {
+		return nil
+	}
+	return &v
+}

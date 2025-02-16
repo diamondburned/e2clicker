@@ -5,11 +5,11 @@ import (
 	"errors"
 	"math"
 
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
 	"e2clicker.app/internal/sqlc/postgresqlc"
 	"e2clicker.app/services/dosage"
 	"e2clicker.app/services/user"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type dosageStorage Storage
@@ -36,18 +36,23 @@ func (s *dosageStorage) Dosage(ctx context.Context, secret user.Secret) (*dosage
 		return nil, err
 	}
 
-	var interval dosage.Days = 0 +
+	d2 := convertDosage(d)
+	return &d2, nil
+}
+
+func convertDosage(d postgresqlc.DosageSchedule) dosage.Dosage {
+	interval := dosage.Days(0) +
 		(dosage.Days(d.Interval.Days)) +
 		(dosage.Days(d.Interval.Microseconds) / 1e6 / (60 * 60 * 24)) +
 		(dosage.Days(d.Interval.Months) * 30)
 
-	return &dosage.Dosage{
-		UserSecret:     secret,
+	return dosage.Dosage{
+		UserSecret:     d.UserSecret,
 		DeliveryMethod: d.DeliveryMethod.String,
 		Dose:           d.Dose,
 		Interval:       interval,
 		Concurrence:    maybePtr(int(d.Concurrence.Int16), d.Concurrence.Valid),
-	}, nil
+	}
 }
 
 func (s *dosageStorage) SetDosage(ctx context.Context, d dosage.Dosage) error {

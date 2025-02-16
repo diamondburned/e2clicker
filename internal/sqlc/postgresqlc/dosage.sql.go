@@ -191,6 +191,28 @@ func (q *Queries) RecordDose(ctx context.Context, arg RecordDoseParams) error {
 	return err
 }
 
+const recordRemindedDoseAttempt = `-- name: RecordRemindedDoseAttempt :exec
+INSERT INTO notification_history (user_secret, sent_at, supposed_entity_time, error_reason, errored)
+  VALUES ($1, $2, $3, $4, $4 IS NOT NULL)
+`
+
+type RecordRemindedDoseAttemptParams struct {
+	UserSecret         userservice.Secret
+	SentAt             pgtype.Timestamptz
+	SupposedEntityTime pgtype.Timestamptz
+	ErrorReason        pgtype.Text
+}
+
+func (q *Queries) RecordRemindedDoseAttempt(ctx context.Context, arg RecordRemindedDoseAttemptParams) error {
+	_, err := q.db.Exec(ctx, recordRemindedDoseAttempt,
+		arg.UserSecret,
+		arg.SentAt,
+		arg.SupposedEntityTime,
+		arg.ErrorReason,
+	)
+	return err
+}
+
 const setDosageSchedule = `-- name: SetDosageSchedule :exec
 INSERT INTO dosage_schedule (user_secret, delivery_method, dose, interval, concurrence)
   VALUES ($1, $2, $3, $4, $5)
@@ -216,4 +238,88 @@ func (q *Queries) SetDosageSchedule(ctx context.Context, arg SetDosageSchedulePa
 		arg.Concurrence,
 	)
 	return err
+}
+
+const upcomingDosageReminders = `-- name: UpcomingDosageReminders :iter
+SELECT DISTINCT ON (users.secret)
+  users.secret AS user_secret, users.name AS user_name, dosage_schedule.user_secret, dosage_schedule.delivery_method, dosage_schedule.dose, dosage_schedule.interval, dosage_schedule.concurrence,
+    dosage_history.user_secret, dosage_history.delivery_method, dosage_history.dose, dosage_history.taken_at, dosage_history.taken_off_at, dosage_history.comment, -- 
+  (
+    SELECT supposed_entity_time
+    FROM notification_history
+    WHERE user_secret = users.secret ORDER BY supposed_entity_time DESC LIMIT 1) AS last_notification_time
+FROM users
+  INNER JOIN dosage_schedule ON users.secret = dosage_schedule.user_secret
+  INNER JOIN dosage_history ON users.secret = dosage_history.user_secret
+ORDER BY users.secret, dosage_history.taken_at DESC
+`
+
+type UpcomingDosageRemindersRow struct {
+	UserSecret           userservice.Secret
+	UserName             string
+	DosageSchedule       DosageSchedule
+	DosageHistory        DosageHistory
+	LastNotificationTime pgtype.Timestamptz
+}
+
+func (q *Queries) UpcomingDosageReminders(ctx context.Context) UpcomingDosageRemindersRows {
+	rows, err := q.db.Query(ctx, upcomingDosageReminders)
+	if err != nil {
+		return UpcomingDosageRemindersRows{err: err}
+	}
+	return UpcomingDosageRemindersRows{rows: rows}
+}
+
+type UpcomingDosageRemindersRows struct {
+	rows pgx.Rows
+	err  error
+}
+
+func (r *UpcomingDosageRemindersRows) Iterate() iter.Seq[UpcomingDosageRemindersRow] {
+	if r.rows == nil {
+		return func(yield func(UpcomingDosageRemindersRow) bool) {}
+	}
+
+	return func(yield func(UpcomingDosageRemindersRow) bool) {
+		defer r.rows.Close()
+
+		for r.rows.Next() {
+			var i UpcomingDosageRemindersRow
+			err := r.rows.Scan(
+				&i.UserSecret,
+				&i.UserName,
+				&i.DosageSchedule.UserSecret,
+				&i.DosageSchedule.DeliveryMethod,
+				&i.DosageSchedule.Dose,
+				&i.DosageSchedule.Interval,
+				&i.DosageSchedule.Concurrence,
+				&i.DosageHistory.UserSecret,
+				&i.DosageHistory.DeliveryMethod,
+				&i.DosageHistory.Dose,
+				&i.DosageHistory.TakenAt,
+				&i.DosageHistory.TakenOffAt,
+				&i.DosageHistory.Comment,
+				&i.LastNotificationTime,
+			)
+			if err != nil {
+				r.err = err
+				return
+			}
+
+			if !yield(i) {
+				return
+			}
+		}
+	}
+}
+
+func (r *UpcomingDosageRemindersRows) Close() {
+	r.rows.Close()
+}
+
+func (r *UpcomingDosageRemindersRows) Err() error {
+	if r.err != nil {
+		return r.err
+	}
+	return r.rows.Err()
 }
