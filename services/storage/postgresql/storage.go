@@ -10,11 +10,11 @@ import (
 	"iter"
 	"log/slog"
 
+	"e2clicker.app/internal/slogutil"
+	"e2clicker.app/internal/sqlc/postgresqlc"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/fx"
-	"e2clicker.app/internal/slogutil"
-	"e2clicker.app/internal/sqlc/postgresqlc"
 
 	e2clickermodule "e2clicker.app/nix/modules/e2clicker"
 )
@@ -49,25 +49,6 @@ func NewStorage(lc fx.Lifecycle, config e2clickermodule.PostgreSQL, logger *slog
 		pool:    nil,
 		conncfg: conncfg,
 		logger:  logger,
-	}
-
-	poolStatLogs := func() slog.Attr {
-		if s.pool == nil {
-			return slog.Attr{}
-		}
-		poolStat := s.pool.Stat()
-		return slog.Group("pool_stat",
-			"total_conns", poolStat.TotalConns(),
-			"idle_conns", poolStat.IdleConns())
-	}
-
-	conncfg.AfterConnect = func(ctx context.Context, conn *pgx.Conn) error {
-		logger.DebugContext(ctx, "adding new PostgreSQL connection to pool", poolStatLogs())
-		return nil
-	}
-
-	conncfg.BeforeClose = func(conn *pgx.Conn) {
-		logger.Debug("closing PostgreSQL connection in pool", poolStatLogs())
 	}
 
 	lc.Append(fx.Hook{
