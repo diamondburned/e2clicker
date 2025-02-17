@@ -171,7 +171,7 @@ func (s *DosageReminderService) run(ctx context.Context, slog *slog.Logger) {
 					"timeTaken", taken)
 			}
 
-			if err := s.storage.RecordRemindedDoses(ctx, []RemindedDoseAttempt{attempt}); err != nil {
+			if err := s.storage.RecordRemindedDoseAttempts(ctx, []RemindedDoseAttempt{attempt}); err != nil {
 				slog.ErrorContext(ctx,
 					"DosageReminderService: error recording reminded doses",
 					"reminder.username", r.Username,
