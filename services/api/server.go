@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/getkin/kin-openapi/openapi3filter"
-	"go.uber.org/fx"
 	"e2clicker.app/internal/fxhooking"
 	"e2clicker.app/services/api/openapi"
+	"github.com/getkin/kin-openapi/openapi3filter"
+	"go.uber.org/fx"
 	"libdb.so/hserve"
 
 	e2clickermodule "e2clicker.app/nix/modules/e2clicker"
@@ -60,8 +60,12 @@ func NewServer(
 		},
 	)
 
+	if config.DebugRequests {
+		logger.Debug("requests debug logging enabled")
+		handler = logRequest(logger)(handler)
+	}
+
 	handler = applyMiddleware(handler, []middlewareFunc{
-		logRequest(logger), // runs first
 		recovererMiddleware,
 		requestValidatorMiddleware,
 	})

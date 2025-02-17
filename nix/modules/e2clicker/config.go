@@ -63,6 +63,8 @@ type Auth struct {
 
 // API is the struct type for `config.api`.
 type API struct {
+	// DebugRequests: enable debug logging for requests.
+	DebugRequests bool `json:"debugRequests"`
 	// ListenAddress address the API server should listen on.
 	ListenAddress string `json:"listenAddress"`
 }

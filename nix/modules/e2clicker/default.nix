@@ -32,6 +32,12 @@ in
             default = ":8080";
             description = "The address the API server should listen on.";
           };
+
+          debugRequests = mkOption {
+            type = types.bool;
+            default = false;
+            description = "Enable debug logging for requests.";
+          };
         };
       };
 
