@@ -8,15 +8,15 @@ import (
 	"os"
 	"strings"
 
-	"github.com/lmittmann/tint"
-	"github.com/spf13/pflag"
-	"go.uber.org/fx"
-	"go.uber.org/fx/fxevent"
 	"e2clicker.app/services/api"
 	"e2clicker.app/services/dosage"
 	"e2clicker.app/services/notification"
 	"e2clicker.app/services/storage"
 	"e2clicker.app/services/user"
+	"github.com/lmittmann/tint"
+	"github.com/spf13/pflag"
+	"go.uber.org/fx"
+	"go.uber.org/fx/fxevent"
 
 	e2clickermodule "e2clicker.app/nix/modules/e2clicker"
 )
@@ -83,8 +83,13 @@ func main() {
 			l.UseLogLevel(slog.LevelDebug)
 			return l
 		}),
+		// Invoke the HTTP API server.
 		fx.Invoke(func(*api.Server) {
 			slog.Info("API server started successfully")
+		}),
+		// Invoke the background dosage reminder service.
+		fx.Invoke(func(*dosage.DosageReminderService) {
+			slog.Info("Dosage reminder service started successfully")
 		}),
 	).Run()
 }
