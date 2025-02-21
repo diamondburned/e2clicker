@@ -192,8 +192,8 @@ func (q *Queries) RecordDose(ctx context.Context, arg RecordDoseParams) error {
 }
 
 const recordRemindedDoseAttempt = `-- name: RecordRemindedDoseAttempt :exec
-INSERT INTO notification_history (user_secret, sent_at, supposed_entity_time, error_reason, errored)
-  VALUES ($1, $2, $3, $4, $4 IS NOT NULL)
+INSERT INTO notification_history (user_secret, sent_at, supposed_entity_time, error_reason)
+  VALUES ($1, $2, $3, $4)
 `
 
 type RecordRemindedDoseAttemptParams struct {
