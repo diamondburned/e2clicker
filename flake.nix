@@ -83,7 +83,7 @@
                 };
               });
 
-              sqlc = super.sqlc.overrideAttrs (old: rec {
+              sqlc = super.sqlc.overrideAttrs (old: {
                 version = "pr-3631-" + inputs.sqlc-iter-pr.rev;
                 src = inputs.sqlc-iter-pr;
                 doCheck = false;
@@ -94,13 +94,6 @@
               pgformatter = import ./nix/pgformatter.nix { pkgs = super; };
             })
           ];
-        };
-
-        lib = pkgs.lib;
-
-        hashes = {
-          goModules = "sha256-5pWXRiZcnhk4N7wQYyiHGfOVhqUplyeiIJs9+PLn8fc=";
-          pnpmPackages = "sha256-Qioex2l82EeJAQTaFQX/cT+ZFLJeT6ULI/+UfxaE9tk=";
         };
       in
       {
@@ -156,15 +149,23 @@
         e2clicker-postgresql = import ./nix/modules/e2clicker-postgresql;
       };
 
-      nixosConfigurations = {
-        dev-vm = nixpkgs.lib.nixosSystem {
-          system = "x86_64-linux";
-          specialArgs = inputs;
-          modules = [
-            inputs.nixos-shell.nixosModules.nixos-shell
-            ./nix/dev/vm.nix
-          ];
-        };
-      };
+      nixosConfigurations = builtins.listToAttrs (
+        nixpkgs.lib.flip map
+          [
+            "x86_64-linux"
+            "aarch64-linux"
+          ]
+          (system: {
+            name = "dev-vm-${system}";
+            value = nixpkgs.lib.nixosSystem {
+              inherit system;
+              specialArgs = inputs;
+              modules = [
+                inputs.nixos-shell.nixosModules.nixos-shell
+                ./nix/dev/vm.nix
+              ];
+            };
+          })
+      );
     };
 }

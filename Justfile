@@ -39,9 +39,11 @@ dev *$E2CLICKER_DEVFLAGS:
 
 [private]
 dev-vm: generate
+    #!/bin/sh
+    system=$(nix eval --impure --raw --expr 'builtins.currentSystem')
     # Force a path to the flake instead of a git+path to include the
     # vapid-keys.json file, which is gitignore'd.
-    nix run "path://$PWD"'#nixosConfigurations.dev-vm.config.system.build.nixos-shell'
+    nix run "path://${PWD}#nixosConfigurations.dev-vm-${system}.config.system.build.nixos-shell"
 
 [private]
 dev-backend:
