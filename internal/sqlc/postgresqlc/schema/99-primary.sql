@@ -107,3 +107,17 @@ CREATE TABLE notification_history (
   -- True if the notification errored.
   errored boolean GENERATED ALWAYS AS (error_reason IS NOT NULL) STORED
 );
+
+-- NEW VERSION
+UPDATE
+  meta
+SET v = 3;
+
+-- Set dosage_history's timestamp accuracy to 0. This allows for better dose
+-- time lookups.
+ALTER TABLE dosage_history
+  ALTER COLUMN taken_at SET DATA TYPE timestamptz(0),
+  ALTER COLUMN taken_off_at SET DATA TYPE timestamptz(0);
+
+ALTER TABLE notification_history
+  ALTER COLUMN supposed_entity_time SET DATA TYPE timestamptz(0);

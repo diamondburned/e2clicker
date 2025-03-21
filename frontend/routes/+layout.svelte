@@ -1,7 +1,4 @@
 <script lang="ts">
-  import "$lib/styles/google-fonts.css";
-  import "$lib/styles/styles.scss";
-
   import LoadingPage from "$lib/components/LoadingPage.svelte";
 
   import { onNavigate } from "$app/navigation";
@@ -64,3 +61,11 @@
 <ToastOverlay />
 
 {@render children()}
+
+<style global lang="scss">
+  // Use @layer to avoid these styles from overriding unoCSS.
+  @layer fonts, styles;
+
+  @import "$lib/styles/google-fonts.css" layer(fonts);
+  @import "$lib/styles/styles.scss" layer(styles);
+</style>

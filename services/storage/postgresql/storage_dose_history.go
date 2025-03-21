@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgtype"
 	"e2clicker.app/internal/sqlc/postgresqlc"
 	"e2clicker.app/services/dosage"
 	"e2clicker.app/services/user"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type doseHistoryStorage Storage

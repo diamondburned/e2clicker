@@ -1,28 +1,27 @@
 <script lang="ts">
   import ResizeContainer from "$lib/components/ResizeContainer.svelte";
   import Tooltip from "$lib/components/popovers/Tooltip.svelte";
-  import Dialog from "$lib/components/Dialog.svelte";
   import Icon from "$lib/components/Icon.svelte";
+  import DoseEditor from "./DoseEditor.svelte";
 
   import * as e2 from "$lib/e2.svelte";
   import * as api from "$lib/api";
   import { slide } from "svelte/transition";
   import { DateTime } from "luxon";
-  import { logErrorToast } from "$lib/toasts";
 
   let {
     now,
     doses,
-    update = () => {},
-    editing = $bindable(false),
+    update,
+    editingDoses = $bindable(false),
   }: {
     now: DateTime;
     doses: {
       dosage?: api.Dosage;
       history?: e2.DosageHistory;
     };
-    update?: () => void;
-    editing?: boolean;
+    update: () => void;
+    editingDoses?: boolean;
   } = $props();
 
   let dosage = $derived(doses?.dosage);
@@ -54,27 +53,9 @@
     });
   });
 
-  let deleteDoseOpen = $state(false);
-  let deletingDose = $state<e2.Dose | null>(null);
-  let deletingDoseBusy = $state(false);
-  $effect(() => {
-    if (!deleteDoseOpen) {
-      deletingDose = null;
-    }
-  });
+  let editingDose = $state<e2.Dose>();
+  let editDoseOpen = $state(false);
 </script>
-
-{#snippet doseDisplay_when(dose: e2.Dose)}
-  {e2.formatDoseTime(dose, now)} ago
-{/snippet}
-
-{#snippet doseDisplay_dose(dose: e2.Dose)}
-  {dose.dose}
-  {dose.deliveryMethod.units}
-  {#if dose.deliveryMethod.id != dosage?.deliveryMethod}
-    <small class="delivery">({dose.deliveryMethod.name})</small>
-  {/if}
-{/snippet}
 
 <ResizeContainer>
   <table id="dose-history-table">
@@ -86,18 +67,26 @@
       </tr>
       {#each visibleDoses.toReversed() as dose (dose.takenAt)}
         <tr>
-          <td data-column="When">{@render doseDisplay_when(dose)}</td>
-          <td data-column="Dose">{@render doseDisplay_dose(dose)}</td>
+          <td data-column="When">
+            {e2.formatDoseTime(dose, now)} ago
+          </td>
+          <td data-column="Dose">
+            {dose.dose}
+            {dose.deliveryMethod.units}
+            {#if dose.deliveryMethod.id != dosage?.deliveryMethod}
+              <small class="delivery">({dose.deliveryMethod.name})</small>
+            {/if}
+          </td>
           <td data-column="Misc">
-            {#if editing}
+            {#if editingDoses}
               <button
                 class="minimal inline"
                 onclick={() => {
-                  deletingDose = dose;
-                  deleteDoseOpen = true;
+                  editingDose = dose;
+                  editDoseOpen = true;
                 }}
               >
-                <Icon name="delete" />
+                <Icon name="edit" />
               </button>
             {:else if dose.comment}
               <Tooltip>
@@ -114,61 +103,11 @@
   </table>
 </ResizeContainer>
 
-{#if editing && deletingDose}
-  <Dialog bind:open={deleteDoseOpen} dismissible class="delete-dose-confirmation">
-    <h3>Are you sure you want to delete this dose?</h3>
-
-    <ul class="px-4">
-      <li>
-        <b>When:</b>
-        {@render doseDisplay_when(deletingDose)}
-      </li>
-      <li>
-        <b>Dose:</b>
-        {@render doseDisplay_dose(deletingDose)}
-      </li>
-    </ul>
-
-    <footer>
-      <button
-        class="secondary outline"
-        aria-label="Cancel"
-        onclick={() => {
-          deleteDoseOpen = false;
-        }}
-      >
-        Cancel
-        <Icon name="close" />
-      </button>
-      <button
-        aria-label="Delete"
-        disabled={deletingDoseBusy}
-        onclick={async () => {
-          if (!deletingDose) return;
-          try {
-            deletingDoseBusy = true;
-            await api.forgetDoses([deletingDose._takenAt]);
-            update();
-          } catch (err) {
-            logErrorToast("Failed to delete dose", err);
-          } finally {
-            deletingDoseBusy = false;
-            deleteDoseOpen = false;
-          }
-        }}
-      >
-        Delete
-        {#if deletingDoseBusy}
-          <span aria-busy="true" class="spinner"></span>
-        {:else}
-          <Icon name="delete" />
-        {/if}
-      </button>
-    </footer>
-  </Dialog>
+{#if editingDose}
+  <DoseEditor bind:open={editDoseOpen} dose={editingDose} {update} />
 {/if}
 
-{#if editing}
+{#if editingDoses}
   <p
     class="text-[var(--pico-muted-color)] text-center"
     transition:slide={{
@@ -177,7 +116,7 @@
     }}
   >
     – editing mode –
-    <button class="minimal inline" onclick={() => (editing = false)}>stop</button>
+    <button class="minimal inline" onclick={() => (editingDoses = false)}>stop</button>
     –
   </p>
 {/if}
