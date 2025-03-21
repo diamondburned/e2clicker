@@ -3,6 +3,7 @@
   import Tooltip from "$lib/components/popovers/Tooltip.svelte";
   import Dialog from "$lib/components/Dialog.svelte";
   import Icon from "$lib/components/Icon.svelte";
+  import DoseEditor from "./DoseEditor.svelte";
 
   import * as e2 from "$lib/e2.svelte";
   import * as api from "$lib/api";
@@ -54,14 +55,8 @@
     });
   });
 
-  let deleteDoseOpen = $state(false);
-  let deletingDose = $state<e2.Dose | null>(null);
-  let deletingDoseBusy = $state(false);
-  $effect(() => {
-    if (!deleteDoseOpen) {
-      deletingDose = null;
-    }
-  });
+  let editingDose = $state<e2.Dose>();
+  let editDoseOpen = $state(false);
 </script>
 
 {#snippet doseDisplay_when(dose: e2.Dose)}
@@ -93,11 +88,11 @@
               <button
                 class="minimal inline"
                 onclick={() => {
-                  deletingDose = dose;
-                  deleteDoseOpen = true;
+                  editingDose = dose;
+                  editDoseOpen = true;
                 }}
               >
-                <Icon name="delete" />
+                <Icon name="edit" />
               </button>
             {:else if dose.comment}
               <Tooltip>
@@ -114,59 +109,7 @@
   </table>
 </ResizeContainer>
 
-{#if editing && deletingDose}
-  <Dialog bind:open={deleteDoseOpen} dismissible class="delete-dose-confirmation">
-    <h3>Are you sure you want to delete this dose?</h3>
-
-    <ul class="px-4">
-      <li>
-        <b>When:</b>
-        {@render doseDisplay_when(deletingDose)}
-      </li>
-      <li>
-        <b>Dose:</b>
-        {@render doseDisplay_dose(deletingDose)}
-      </li>
-    </ul>
-
-    <footer>
-      <button
-        class="secondary outline"
-        aria-label="Cancel"
-        onclick={() => {
-          deleteDoseOpen = false;
-        }}
-      >
-        Cancel
-        <Icon name="close" />
-      </button>
-      <button
-        aria-label="Delete"
-        disabled={deletingDoseBusy}
-        onclick={async () => {
-          if (!deletingDose) return;
-          try {
-            deletingDoseBusy = true;
-            await api.forgetDoses([deletingDose._takenAt]);
-            update();
-          } catch (err) {
-            logErrorToast("Failed to delete dose", err);
-          } finally {
-            deletingDoseBusy = false;
-            deleteDoseOpen = false;
-          }
-        }}
-      >
-        Delete
-        {#if deletingDoseBusy}
-          <span aria-busy="true" class="spinner"></span>
-        {:else}
-          <Icon name="delete" />
-        {/if}
-      </button>
-    </footer>
-  </Dialog>
-{/if}
+<DoseEditor bind:open={editDoseOpen} dose={editingDose} />
 
 {#if editing}
   <p
