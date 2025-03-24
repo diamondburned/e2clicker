@@ -8,6 +8,7 @@ import (
 	"slices"
 	"time"
 
+	"e2clicker.app/internal/ptr"
 	"e2clicker.app/internal/publicerrors"
 	"e2clicker.app/services/api/openapi"
 	"e2clicker.app/services/dosage"
@@ -204,6 +205,10 @@ func (h *openAPIHandler) RecordDose(ctx context.Context, request openapi.RecordD
 		DeliveryMethod: d.DeliveryMethod,
 		Dose:           d.Dose,
 		TakenAt:        now,
+	}
+
+	if request.Body != nil {
+		dose.TakenAt = ptr.DerefOr(request.Body.TakenAt, now)
 	}
 
 	if err := h.doseHistory.RecordDose(ctx, session.UserSecret, dose); err != nil {

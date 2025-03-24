@@ -1,7 +1,6 @@
 <script lang="ts">
   import ResizeContainer from "$lib/components/ResizeContainer.svelte";
   import Tooltip from "$lib/components/popovers/Tooltip.svelte";
-  import Dialog from "$lib/components/Dialog.svelte";
   import Icon from "$lib/components/Icon.svelte";
   import DoseEditor from "./DoseEditor.svelte";
 
@@ -9,21 +8,20 @@
   import * as api from "$lib/api";
   import { slide } from "svelte/transition";
   import { DateTime } from "luxon";
-  import { logErrorToast } from "$lib/toasts";
 
   let {
     now,
     doses,
-    update = () => {},
-    editing = $bindable(false),
+    update,
+    editingDoses = $bindable(false),
   }: {
     now: DateTime;
     doses: {
       dosage?: api.Dosage;
       history?: e2.DosageHistory;
     };
-    update?: () => void;
-    editing?: boolean;
+    update: () => void;
+    editingDoses?: boolean;
   } = $props();
 
   let dosage = $derived(doses?.dosage);
@@ -59,18 +57,6 @@
   let editDoseOpen = $state(false);
 </script>
 
-{#snippet doseDisplay_when(dose: e2.Dose)}
-  {e2.formatDoseTime(dose, now)} ago
-{/snippet}
-
-{#snippet doseDisplay_dose(dose: e2.Dose)}
-  {dose.dose}
-  {dose.deliveryMethod.units}
-  {#if dose.deliveryMethod.id != dosage?.deliveryMethod}
-    <small class="delivery">({dose.deliveryMethod.name})</small>
-  {/if}
-{/snippet}
-
 <ResizeContainer>
   <table id="dose-history-table">
     <tbody>
@@ -81,10 +67,18 @@
       </tr>
       {#each visibleDoses.toReversed() as dose (dose.takenAt)}
         <tr>
-          <td data-column="When">{@render doseDisplay_when(dose)}</td>
-          <td data-column="Dose">{@render doseDisplay_dose(dose)}</td>
+          <td data-column="When">
+            {e2.formatDoseTime(dose, now)} ago
+          </td>
+          <td data-column="Dose">
+            {dose.dose}
+            {dose.deliveryMethod.units}
+            {#if dose.deliveryMethod.id != dosage?.deliveryMethod}
+              <small class="delivery">({dose.deliveryMethod.name})</small>
+            {/if}
+          </td>
           <td data-column="Misc">
-            {#if editing}
+            {#if editingDoses}
               <button
                 class="minimal inline"
                 onclick={() => {
@@ -109,9 +103,11 @@
   </table>
 </ResizeContainer>
 
-<DoseEditor bind:open={editDoseOpen} dose={editingDose} />
+{#if editingDose}
+  <DoseEditor bind:open={editDoseOpen} dose={editingDose} {update} />
+{/if}
 
-{#if editing}
+{#if editingDoses}
   <p
     class="text-[var(--pico-muted-color)] text-center"
     transition:slide={{
@@ -120,7 +116,7 @@
     }}
   >
     – editing mode –
-    <button class="minimal inline" onclick={() => (editing = false)}>stop</button>
+    <button class="minimal inline" onclick={() => (editingDoses = false)}>stop</button>
     –
   </p>
 {/if}

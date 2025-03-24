@@ -22,7 +22,7 @@
     flex-direction: column;
     align-items: center;
 
-    z-index: 900;
+    z-index: 1200;
 
     pointer-events: none;
 

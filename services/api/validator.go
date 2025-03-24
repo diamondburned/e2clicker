@@ -7,12 +7,12 @@ import (
 	"net/http"
 	"strings"
 
+	"e2clicker.app/internal/publicerrors"
+	"e2clicker.app/services/user"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/getkin/kin-openapi/routers"
 	"libdb.so/ctxt"
-	"e2clicker.app/internal/publicerrors"
-	"e2clicker.app/services/user"
 
 	legacyrouter "github.com/getkin/kin-openapi/routers/legacy"
 )
@@ -123,8 +123,14 @@ func validateRequest(r *http.Request, router routers.Router, options openapi3fil
 	}
 
 	if err := openapi3filter.ValidateRequest(r.Context(), requestValidationInput); err != nil {
+	errChecker:
 		switch e := err.(type) {
 		case *openapi3filter.RequestError:
+			for _, skip := range skippedRequestErrors {
+				if skip(e) {
+					break errChecker
+				}
+			}
 			err := &validateRequestError{
 				Parameter:   e.Parameter,
 				RequestBody: e.RequestBody,
@@ -155,6 +161,21 @@ func validateRequest(r *http.Request, router routers.Router, options openapi3fil
 	}
 
 	return http.StatusOK, nil
+}
+
+var skippedRequestErrors = []func(*openapi3filter.RequestError) bool{
+	errorIsForDateTimeInPath,
+}
+
+// errorIsForDateTimeInPath returns true if the request error is for an error
+// that is for a path parameter that is a date/time value. The openapi3
+// validator does not implement this properly, so we should skip it.
+func errorIsForDateTimeInPath(err *openapi3filter.RequestError) bool {
+	return true &&
+		err.Parameter != nil &&
+		err.Parameter.In == "path" &&
+		err.Parameter.Schema != nil &&
+		err.Parameter.Schema.Value.Format == "date-time"
 }
 
 func routeBodyContainsApplication(route *routers.Route) bool {

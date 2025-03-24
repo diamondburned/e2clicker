@@ -84,6 +84,12 @@ type ForgetDosesParams struct {
 	DoseTimes []time.Time `form:"doseTimes" json:"doseTimes"`
 }
 
+// RecordDoseJSONBody defines parameters for RecordDose.
+type RecordDoseJSONBody struct {
+	// TakenAt The time the dosage was taken. If not provided, the current time is used.
+	TakenAt *time.Time `json:"takenAt,omitempty"`
+}
+
 // EditDoseJSONBody defines parameters for EditDose.
 type EditDoseJSONBody = Dose
 
@@ -110,6 +116,9 @@ type ImportDosesParamsContentType string
 
 // SetDosageJSONRequestBody defines body for SetDosage for application/json ContentType.
 type SetDosageJSONRequestBody = Dosage
+
+// RecordDoseJSONRequestBody defines body for RecordDose for application/json ContentType.
+type RecordDoseJSONRequestBody RecordDoseJSONBody
 
 // EditDoseJSONRequestBody defines body for EditDose for application/json ContentType.
 type EditDoseJSONRequestBody = EditDoseJSONBody

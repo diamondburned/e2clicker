@@ -95,6 +95,20 @@ paths:
       description: >-
         This endpoint is used to record a new dosage observation to the user's
         history. The current time is automatically used.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              description: >-
+                The dosage observation to record.
+              properties:
+                takenAt:
+                  type: string
+                  format: date-time
+                  description: >-
+                    The time the dosage was taken. If not provided, the current
+                    time is used.
       responses:
         "200":
           description: >-

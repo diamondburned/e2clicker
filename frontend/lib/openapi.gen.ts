@@ -196,14 +196,18 @@ export function clearDosage(opts?: Oazapfts.RequestOpts) {
 /**
  * Record a new dosage to the user's history
  */
-export function recordDose(opts?: Oazapfts.RequestOpts) {
+export function recordDose(body?: {
+    /** The time the dosage was taken. If not provided, the current time is used. */
+    takenAt?: string;
+}, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
         data: Dose;
-    }>("/dosage/dose", {
+    }>("/dosage/dose", oazapfts.json({
         ...opts,
-        method: "POST"
-    }));
+        method: "POST",
+        body
+    })));
 }
 /**
  * Delete multiple dosages from the user's history

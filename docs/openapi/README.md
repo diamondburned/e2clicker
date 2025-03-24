@@ -211,6 +211,20 @@ bearerAuth
 
 This endpoint is used to record a new dosage observation to the user's history. The current time is automatically used.
 
+> Body parameter
+
+```json
+{
+  "takenAt": "2019-08-24T14:15:22Z"
+}
+```
+
+<h3 id="record-a-new-dosage-to-the-user's-history-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|body|body|object|false|none|
+
 > Example responses
 
 > 200 Response
