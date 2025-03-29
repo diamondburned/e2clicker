@@ -96,7 +96,7 @@ paths:
         This endpoint is used to record a new dosage observation to the user's
         history. The current time is automatically used.
       requestBody:
-        required: false
+        required: true
         content:
           application/json:
             schema:

@@ -39,7 +39,7 @@
   async function submitDose() {
     submittingDose = true;
     try {
-      await api.recordDose();
+      await api.recordDose({});
       onsubmit();
     } finally {
       submittingDose = false;

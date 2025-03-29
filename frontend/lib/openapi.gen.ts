@@ -196,7 +196,7 @@ export function clearDosage(opts?: Oazapfts.RequestOpts) {
 /**
  * Record a new dosage to the user's history
  */
-export function recordDose(body?: {
+export function recordDose(body: {
     /** The time the dosage was taken. If not provided, the current time is used. */
     takenAt?: string;
 }, opts?: Oazapfts.RequestOpts) {

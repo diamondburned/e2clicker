@@ -223,7 +223,7 @@ This endpoint is used to record a new dosage observation to the user's history. 
 
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
-|body|body|object|false|none|
+|body|body|object|true|none|
 
 > Example responses
 
