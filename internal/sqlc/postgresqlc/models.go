@@ -27,11 +27,12 @@ type DosageHistory struct {
 }
 
 type DosageSchedule struct {
-	UserSecret     userservice.Secret
-	DeliveryMethod pgtype.Text
-	Dose           float32
-	Interval       pgtype.Interval
-	Concurrence    pgtype.Int2
+	UserSecret         userservice.Secret
+	DeliveryMethod     pgtype.Text
+	Dose               float32
+	Interval           pgtype.Interval
+	Concurrence        pgtype.Int2
+	ReminderRecurrence []pgtype.Interval
 }
 
 type Meta struct {

@@ -31,7 +31,7 @@ type DosageStorage interface {
 	Dosage(ctx context.Context, secret user.Secret) (*Dosage, error)
 	// SetDosage sets the dosage for a user.
 	// The user secret is taken from the Schedule.
-	SetDosage(ctx context.Context, s Dosage) error
+	SetDosage(ctx context.Context, secret user.Secret, s Dosage) error
 	// ClearDosage clears the dosage for a user.
 	ClearDosage(ctx context.Context, secret user.Secret) error
 }
@@ -70,29 +70,7 @@ type RecordedDosesResult struct {
 type DeliveryMethod = openapi.DeliveryMethod
 
 // Dosage describes a dosage schedule.
-type Dosage struct {
-	// UserSecret is the secret of the user who the schedule is for.
-	UserSecret user.Secret
-	// DeliveryMethod is the method of delivery for the medication.
-	// Check the [delivery_methods] table.
-	DeliveryMethod string
-	// Dose is the amount of medication to be delivered/taken.
-	Dose float32
-	// Interval is the interval between doses in days.
-	Interval Days
-	// Concurrence is the number of estrogen patches that are on the body at
-	// once. This is only relevant if DeliveryMethod is "patch".
-	Concurrence *int
-}
-
-// Days is a number of days. It acts as a duration of time, so 1.5 Days is
-// 36 hours.
-type Days float64
-
-// ToDuration converts Days to time.Duration.
-func (d Days) ToDuration() time.Duration {
-	return time.Duration(float64(d) * float64(24*time.Hour))
-}
+type Dosage = openapi.Dosage
 
 // Dose describes a dose of medication in time.
 type Dose struct {

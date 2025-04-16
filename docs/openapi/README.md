@@ -79,7 +79,12 @@ This operation does not require authentication
     "deliveryMethod": "string",
     "dose": 0.1,
     "interval": 0.1,
-    "concurrence": 0
+    "concurrence": 0,
+    "reminderRecurrence": [
+      0.3333,
+      0.5,
+      1
+    ]
   },
   "history": [
     {
@@ -119,7 +124,12 @@ bearerAuth
   "deliveryMethod": "string",
   "dose": 0.1,
   "interval": 0.1,
-  "concurrence": 0
+  "concurrence": 0,
+  "reminderRecurrence": [
+    0.3333,
+    0.5,
+    1
+  ]
 }
 ```
 
@@ -1059,7 +1069,12 @@ bearerAuth
   "deliveryMethod": "string",
   "dose": 0.1,
   "interval": 0.1,
-  "concurrence": 0
+  "concurrence": 0,
+  "reminderRecurrence": [
+    0.3333,
+    0.5,
+    1
+  ]
 }
 
 ```
@@ -1072,6 +1087,7 @@ bearerAuth
 |dose|number(float)|true|none|The dosage amount.|
 |interval|number(double)|true|none|The interval between doses in days.|
 |concurrence|integer|false|none|The number of estrogen patches on the body at once. Only relevant if delivery method is patch.|
+|reminderRecurrence|[number]|false|none|A list of reminder recurrences for the reminder notification.<br>Each recurrence is a number that represents the number of days after the time of the first notification to send the reminder notification.|
 
 <h2 id="tocS_DosageHistory">DosageHistory</h2>
 <!-- backwards compatibility -->

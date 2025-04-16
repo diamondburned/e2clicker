@@ -5,6 +5,7 @@ import (
 	"errors"
 	"iter"
 
+	"e2clicker.app/internal/meta"
 	"e2clicker.app/internal/ptr"
 	"e2clicker.app/internal/sqlc/postgresqlc"
 	"e2clicker.app/services/dosage"
@@ -23,12 +24,19 @@ func (s *dosageReminderStorage) UpcomingDosageReminders(ctx context.Context) ite
 	return func(yield func(dosage.DosageReminder, error) bool) {
 		for o1 := range iter.Iterate() {
 			o2 := dosage.DosageReminder{
-				UserSecret:       o1.UserSecret,
-				Username:         o1.UserName,
-				Dosage:           convertDosage(o1.DosageSchedule),
+				UserSecret: o1.UserSecret,
+				Username:   o1.UserName,
+				Dosage: dosage.Dosage{
+					DeliveryMethod:     o1.DosageSchedule.DeliveryMethod.String,
+					Dose:               o1.DosageSchedule.Dose,
+					Interval:           meta.DaysFromPostgreSQLInterval(o1.DosageSchedule.Interval),
+					Concurrence:        maybePtr(int(o1.DosageSchedule.Concurrence.Int16), o1.DosageSchedule.Concurrence.Valid),
+					ReminderRecurrence: convertList(o1.DosageSchedule.ReminderRecurrence, meta.DaysFromPostgreSQLInterval),
+				},
 				LastDose:         convertDose(o1.DosageHistory),
-				LastRemindedDose: ptr.ToIf(o1.LastNotificationTime.Time, o1.LastNotificationTime.Valid),
-				SnoozedUntil:     nil,
+				LastRemindedDose: ptr.ToIf(o1.LastRemindedDose.Time, o1.LastRemindedDose.Valid),
+				LastRemindedAt:   ptr.ToIf(o1.LastRemindedAt.Time, o1.LastRemindedAt.Valid),
+				SnoozedUntil:     nil, // TODO: support snoozed until
 			}
 
 			if !yield(o2, nil) {

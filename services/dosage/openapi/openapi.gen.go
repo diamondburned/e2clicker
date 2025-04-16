@@ -5,6 +5,8 @@ package openapi
 
 import (
 	"time"
+
+	meta "e2clicker.app/internal/meta"
 )
 
 // Defines values for ExportDosesParamsAccept.
@@ -43,10 +45,14 @@ type Dosage struct {
 	Dose float32 `json:"dose"`
 
 	// Interval The interval between doses in days.
-	Interval float64 `json:"interval"`
+	Interval meta.Days `json:"interval"`
 
 	// Concurrence The number of estrogen patches on the body at once. Only relevant if delivery method is patch.
 	Concurrence *int `json:"concurrence,omitempty"`
+
+	// ReminderRecurrence A list of reminder recurrences for the reminder notification.
+	// Each recurrence is a number that represents the number of days after the time of the first notification to send the reminder notification.
+	ReminderRecurrence []meta.Days `json:"reminderRecurrence,omitempty"`
 }
 
 // DosageHistory defines model for DosageHistory.

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"math"
 
+	"e2clicker.app/internal/meta"
 	"e2clicker.app/internal/sqlc/postgresqlc"
 	"e2clicker.app/services/dosage"
 	"e2clicker.app/services/user"
@@ -36,40 +37,26 @@ func (s *dosageStorage) Dosage(ctx context.Context, secret user.Secret) (*dosage
 		return nil, err
 	}
 
-	d2 := convertDosage(d)
-	return &d2, nil
+	return &dosage.Dosage{
+		DeliveryMethod:     d.DeliveryMethod.String,
+		Dose:               d.Dose,
+		Interval:           meta.DaysFromPostgreSQLInterval(d.Interval),
+		Concurrence:        maybePtr(int(d.Concurrence.Int16), d.Concurrence.Valid),
+		ReminderRecurrence: convertList(d.ReminderRecurrence, meta.DaysFromPostgreSQLInterval),
+	}, nil
 }
 
-func convertDosage(d postgresqlc.DosageSchedule) dosage.Dosage {
-	interval := dosage.Days(0) +
-		(dosage.Days(d.Interval.Days)) +
-		(dosage.Days(d.Interval.Microseconds) / 1e6 / (60 * 60 * 24)) +
-		(dosage.Days(d.Interval.Months) * 30)
-
-	return dosage.Dosage{
-		UserSecret:     d.UserSecret,
-		DeliveryMethod: d.DeliveryMethod.String,
-		Dose:           d.Dose,
-		Interval:       interval,
-		Concurrence:    maybePtr(int(d.Concurrence.Int16), d.Concurrence.Valid),
-	}
-}
-
-func (s *dosageStorage) SetDosage(ctx context.Context, d dosage.Dosage) error {
-	int, frac := math.Modf(float64(d.Interval))
+func (s *dosageStorage) SetDosage(ctx context.Context, secret user.Secret, d dosage.Dosage) error {
 	return s.q.SetDosageSchedule(ctx, postgresqlc.SetDosageScheduleParams{
-		UserSecret:     d.UserSecret,
+		UserSecret:     secret,
 		DeliveryMethod: pgtype.Text{String: d.DeliveryMethod, Valid: true},
 		Dose:           d.Dose,
-		Interval: pgtype.Interval{
-			Days:         int32(int),
-			Microseconds: int64(frac * 24 * 60 * 60 * 1e6),
-			Valid:        true,
-		},
+		Interval:       d.Interval.ToPostgreSQLInterval(),
 		Concurrence: pgtype.Int2{
 			Int16: int16(min(deref(d.Concurrence), math.MaxInt16)),
 			Valid: d.Concurrence != nil && *d.Concurrence > 0,
 		},
+		ReminderRecurrence: convertList(d.ReminderRecurrence, meta.Days.ToPostgreSQLInterval),
 	})
 }
 

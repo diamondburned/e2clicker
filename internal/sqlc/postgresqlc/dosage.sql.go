@@ -28,7 +28,7 @@ const dosageSchedule = `-- name: DosageSchedule :one
 /*
  * Dosage and dosage-related
  */
-SELECT user_secret, delivery_method, dose, interval, concurrence
+SELECT user_secret, delivery_method, dose, interval, concurrence, reminder_recurrence
 FROM dosage_schedule
 WHERE user_secret = $1
 `
@@ -42,6 +42,7 @@ func (q *Queries) DosageSchedule(ctx context.Context, userSecret userservice.Sec
 		&i.Dose,
 		&i.Interval,
 		&i.Concurrence,
+		&i.ReminderRecurrence,
 	)
 	return i, err
 }
@@ -214,19 +215,20 @@ func (q *Queries) RecordRemindedDoseAttempt(ctx context.Context, arg RecordRemin
 }
 
 const setDosageSchedule = `-- name: SetDosageSchedule :exec
-INSERT INTO dosage_schedule (user_secret, delivery_method, dose, interval, concurrence)
-  VALUES ($1, $2, $3, $4, $5)
+INSERT INTO dosage_schedule (user_secret, delivery_method, dose, interval, concurrence, reminder_recurrence)
+  VALUES ($1, $2, $3, $4, $5, $6)
 ON CONFLICT (user_secret)
   DO UPDATE SET
-    delivery_method = $2, dose = $3, interval = $4, concurrence = $5
+    delivery_method = $2, dose = $3, interval = $4, concurrence = $5, reminder_recurrence = $6
 `
 
 type SetDosageScheduleParams struct {
-	UserSecret     userservice.Secret
-	DeliveryMethod pgtype.Text
-	Dose           float32
-	Interval       pgtype.Interval
-	Concurrence    pgtype.Int2
+	UserSecret         userservice.Secret
+	DeliveryMethod     pgtype.Text
+	Dose               float32
+	Interval           pgtype.Interval
+	Concurrence        pgtype.Int2
+	ReminderRecurrence []pgtype.Interval
 }
 
 func (q *Queries) SetDosageSchedule(ctx context.Context, arg SetDosageScheduleParams) error {
@@ -236,30 +238,33 @@ func (q *Queries) SetDosageSchedule(ctx context.Context, arg SetDosageSchedulePa
 		arg.Dose,
 		arg.Interval,
 		arg.Concurrence,
+		arg.ReminderRecurrence,
 	)
 	return err
 }
 
 const upcomingDosageReminders = `-- name: UpcomingDosageReminders :iter
 SELECT DISTINCT ON (users.secret)
-  users.secret AS user_secret, users.name AS user_name, dosage_schedule.user_secret, dosage_schedule.delivery_method, dosage_schedule.dose, dosage_schedule.interval, dosage_schedule.concurrence,
-    dosage_history.user_secret, dosage_history.delivery_method, dosage_history.dose, dosage_history.taken_at, dosage_history.taken_off_at, dosage_history.comment, -- 
-  (
-    SELECT supposed_entity_time
-    FROM notification_history
-    WHERE user_secret = users.secret ORDER BY supposed_entity_time DESC LIMIT 1) AS last_notification_time
+  users.secret AS user_secret, -- 
+  users.name AS user_name, -- 
+  dosage_schedule.user_secret, dosage_schedule.delivery_method, dosage_schedule.dose, dosage_schedule.interval, dosage_schedule.concurrence, dosage_schedule.reminder_recurrence, -- 
+  dosage_history.user_secret, dosage_history.delivery_method, dosage_history.dose, dosage_history.taken_at, dosage_history.taken_off_at, dosage_history.comment, -- 
+  notification_history.supposed_entity_time AS last_reminded_dose, -- 
+  notification_history.sent_at AS last_reminded_at
 FROM users
   INNER JOIN dosage_schedule ON users.secret = dosage_schedule.user_secret
   INNER JOIN dosage_history ON users.secret = dosage_history.user_secret
-ORDER BY users.secret, dosage_history.taken_at DESC
+  LEFT JOIN notification_history ON users.secret = notification_history.user_secret
+ORDER BY users.secret, dosage_history.taken_at DESC, notification_history.supposed_entity_time DESC
 `
 
 type UpcomingDosageRemindersRow struct {
-	UserSecret           userservice.Secret
-	UserName             string
-	DosageSchedule       DosageSchedule
-	DosageHistory        DosageHistory
-	LastNotificationTime pgtype.Timestamptz
+	UserSecret       userservice.Secret
+	UserName         string
+	DosageSchedule   DosageSchedule
+	DosageHistory    DosageHistory
+	LastRemindedDose pgtype.Timestamptz
+	LastRemindedAt   pgtype.Timestamptz
 }
 
 func (q *Queries) UpcomingDosageReminders(ctx context.Context) UpcomingDosageRemindersRows {
@@ -293,13 +298,15 @@ func (r *UpcomingDosageRemindersRows) Iterate() iter.Seq[UpcomingDosageReminders
 				&i.DosageSchedule.Dose,
 				&i.DosageSchedule.Interval,
 				&i.DosageSchedule.Concurrence,
+				&i.DosageSchedule.ReminderRecurrence,
 				&i.DosageHistory.UserSecret,
 				&i.DosageHistory.DeliveryMethod,
 				&i.DosageHistory.Dose,
 				&i.DosageHistory.TakenAt,
 				&i.DosageHistory.TakenOffAt,
 				&i.DosageHistory.Comment,
-				&i.LastNotificationTime,
+				&i.LastRemindedDose,
+				&i.LastRemindedAt,
 			)
 			if err != nil {
 				r.err = err

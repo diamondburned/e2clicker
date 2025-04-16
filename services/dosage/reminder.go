@@ -43,7 +43,13 @@ type DosageReminder struct {
 	LastDose Dose
 	// LastRemindedDose is the TakenAt time of the last reminded dose.
 	// This field is optional and is only set if the reminder was recorded.
+	//
+	// Deprecated: consider removing this field entirely, as it is not used in any
+	// calculations anymore.
 	LastRemindedDose *time.Time
+	// LastRemindedAt is the time when the reminder was last sent, if it was at
+	// all.
+	LastRemindedAt *time.Time // sent_at
 	// SnoozedUntil is the time until the reminder is snoozed.
 	// This field is optional and is only set if the reminder is snoozed by the
 	// user on the last notification.
@@ -66,14 +72,33 @@ type RemindedDoseAttempt struct {
 	ErrorReason *string
 }
 
-// NextNotification returns the time of the next notification.
+// NextNotification returns the time of the next notification only if it should
+// have been sent, meaning that the notification time is in the past of [now].
+//
 // It returns the snoozed time if the reminder is snoozed, otherwise it returns
 // the time of the last dose plus the interval.
-func (r DosageReminder) NextNotification() time.Time {
-	if r.SnoozedUntil != nil {
-		return *r.SnoozedUntil
+func (r DosageReminder) NextNotification() (time.Time, bool) {
+	if r.SnoozedUntil != nil && !r.hasRemindedAtTime(*r.SnoozedUntil) {
+		return *r.SnoozedUntil, true
 	}
-	return r.LastDose.TakenAt.Add(r.Dosage.Interval.ToDuration())
+
+	lastRemindedDose := r.LastDose.TakenAt.Add(r.Dosage.Interval.ToDuration())
+	if !r.hasRemindedAtTime(lastRemindedDose) {
+		return lastRemindedDose, true
+	}
+
+	for _, recurrence := range r.Dosage.ReminderRecurrence {
+		recurrenceTime := lastRemindedDose.Add(recurrence.ToDuration())
+		if !r.hasRemindedAtTime(recurrenceTime) {
+			return recurrenceTime, true
+		}
+	}
+
+	return time.Time{}, false
+}
+
+func (r DosageReminder) hasRemindedAtTime(t time.Time) bool {
+	return r.LastRemindedAt != nil && (r.LastRemindedAt.Equal(t) || r.LastRemindedAt.After(t))
 }
 
 const (
@@ -205,28 +230,19 @@ func ingestReminders(now time.Time, reminders iter.Seq2[DosageReminder, error], 
 	notifyingReminders := make([]notifyingReminder, 0, 12)
 
 	cutoffPoint := now.Add(nextUpdateInterval)
-	earliestNextNotification := cutoffPoint
 
 	for r, err := range reminders {
 		if err != nil {
 			return nil, err
 		}
 
-		nextNotification := r.NextNotification()
-		if nextNotification.After(cutoffPoint) {
+		nextNotification, ok := r.NextNotification()
+		if !ok {
 			slog.Debug(
-				"ingestReminders: reminder is not relevant because it is too far into the future",
+				"ingestReminders: reminder need not be notified yet",
 				"now", now,
 				"reminder.nextNotification", nextNotification,
 				"reminder.username", r.Username)
-			continue
-		}
-
-		if r.LastRemindedDose != nil && r.SnoozedUntil == nil && r.LastRemindedDose.Equal(r.LastDose.TakenAt) {
-			slog.Debug(
-				"ingestReminders: reminder is not relevant because it was already reminded and not snoozed",
-				"reminder.username", r.Username,
-				"reminder.lastDose", r.LastDose.TakenAt)
 			continue
 		}
 
@@ -242,37 +258,16 @@ func ingestReminders(now time.Time, reminders iter.Seq2[DosageReminder, error], 
 			})
 			continue
 		}
-
-		if nextNotification.Before(earliestNextNotification) {
-			slog.Debug(
-				"ingestReminders: found new earliest next notification",
-				"reminder.username", r.Username,
-				"reminder.nextNotification", nextNotification)
-
-			earliestNextNotification = nextNotification
-			continue
-		}
-	}
-
-	// Make sure this is not in the past.
-	if earliestNextNotification.Before(now) {
-		earliestNextNotification = now
-	}
-
-	// Make sure the next notification is at least 5 minutes in the future.
-	if earliestNextNotification.Before(now.Add(shortestNextNotification)) {
-		earliestNextNotification = now.Add(shortestNextNotification)
 	}
 
 	slog.Debug(
 		"ingestReminders: figured out all relevant reminders",
 		"ingestedAt", now,
 		"timeTaken", time.Since(now),
-		"numRelevantReminders", len(notifyingReminders),
-		"earliestNextNotification", earliestNextNotification)
+		"numRelevantReminders", len(notifyingReminders))
 
 	return &trackedDosageReminders{
 		notifyingReminders: notifyingReminders,
-		nextRun:            earliestNextNotification,
+		nextRun:            cutoffPoint,
 	}, nil
 }

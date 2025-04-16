@@ -38,6 +38,10 @@
                 "package": "notificationservice",
                 "type": "UserPreferences"
               }
+            },
+            {
+              "db_type": "positiveinterval",
+              "go_type": "github.com/jackc/pgx/v5/pgtype.Interval"
             }
           ]
         }

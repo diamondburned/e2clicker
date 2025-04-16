@@ -16,6 +16,7 @@ import (
 	"e2clicker.app/services/user"
 	"go.uber.org/fx"
 
+	dosageapi "e2clicker.app/services/dosage/openapi"
 	notificationapi "e2clicker.app/services/notification/openapi"
 )
 
@@ -163,21 +164,14 @@ func (h *openAPIHandler) SetDosage(ctx context.Context, request openapi.SetDosag
 		return nil, err
 	}
 
-	s := dosage.Dosage{
-		UserSecret:     session.UserSecret,
-		DeliveryMethod: request.Body.DeliveryMethod,
-		Dose:           request.Body.Dose,
-		Interval:       dosage.Days(request.Body.Interval),
-		Concurrence:    request.Body.Concurrence,
-	}
-
+	s := *(*dosageapi.Dosage)(request.Body)
 	if !slices.ContainsFunc(methods, func(m dosage.DeliveryMethod) bool {
 		return m.ID == s.DeliveryMethod
 	}) {
 		return nil, publicerrors.Errorf("invalid delivery method %q", s.DeliveryMethod)
 	}
 
-	if err := h.dosage.SetDosage(ctx, s); err != nil {
+	if err := h.dosage.SetDosage(ctx, session.UserSecret, s); err != nil {
 		return nil, err
 	}
 
@@ -257,12 +251,7 @@ func (h *openAPIHandler) Dosage(ctx context.Context, request openapi.DosageReque
 		return nil, fmt.Errorf("cannot get dosage: %w", err)
 	}
 	if dosage != nil {
-		r.Dosage = &openapi.Dosage{
-			DeliveryMethod: dosage.DeliveryMethod,
-			Dose:           dosage.Dose,
-			Interval:       float64(dosage.Interval),
-			Concurrence:    dosage.Concurrence,
-		}
+		r.Dosage = (*openapi.Dosage)(dosage)
 	}
 
 	if request.Params.Start != nil && request.Params.End != nil {

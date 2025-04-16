@@ -121,3 +121,17 @@ ALTER TABLE dosage_history
 
 ALTER TABLE notification_history
   ALTER COLUMN supposed_entity_time SET DATA TYPE timestamptz(0);
+
+-- NEW VERSION
+UPDATE
+  meta
+SET v = 4;
+
+-- Create domain to ensure always positive intervals.
+CREATE DOMAIN positiveinterval AS interval CHECK (value > '0 minutes'::interval);
+
+-- Add a reminder recurrence column to the dosage_schedule table.
+-- It is a list of intervals (in days) that the user wants to be reminded
+-- to take their medication after the last dose.
+ALTER TABLE dosage_schedule
+  ADD COLUMN reminder_recurrence positiveinterval[];

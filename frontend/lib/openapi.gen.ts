@@ -46,6 +46,9 @@ export type Dosage = {
     interval: number;
     /** The number of estrogen patches on the body at once. Only relevant if delivery method is patch. */
     concurrence?: number;
+    /** A list of reminder recurrences for the reminder notification.
+    Each recurrence is a number that represents the number of days after the time of the first notification to send the reminder notification. */
+    reminderRecurrence?: number[];
 };
 export type Dose = {
     /** The delivery method used. */

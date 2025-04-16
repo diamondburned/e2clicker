@@ -7,11 +7,11 @@ FROM dosage_schedule
 WHERE user_secret = $1;
 
 -- name: SetDosageSchedule :exec
-INSERT INTO dosage_schedule (user_secret, delivery_method, dose, interval, concurrence)
-  VALUES ($1, $2, $3, $4, $5)
+INSERT INTO dosage_schedule (user_secret, delivery_method, dose, interval, concurrence, reminder_recurrence)
+  VALUES ($1, $2, $3, $4, $5, $6)
 ON CONFLICT (user_secret)
   DO UPDATE SET
-    delivery_method = $2, dose = $3, interval = $4, concurrence = $5;
+    delivery_method = $2, dose = $3, interval = $4, concurrence = $5, reminder_recurrence = $6;
 
 -- name: DeleteDosageSchedule :exec
 DELETE FROM dosage_schedule
@@ -44,16 +44,17 @@ ORDER BY taken_at ASC;
 
 -- name: UpcomingDosageReminders :iter
 SELECT DISTINCT ON (users.secret)
-  users.secret AS user_secret, users.name AS user_name, sqlc.embed(dosage_schedule),
-    sqlc.embed(dosage_history), -- 
-  (
-    SELECT supposed_entity_time
-    FROM notification_history
-    WHERE user_secret = users.secret ORDER BY supposed_entity_time DESC LIMIT 1) AS last_notification_time
+  users.secret AS user_secret, -- 
+  users.name AS user_name, -- 
+  sqlc.embed(dosage_schedule), -- 
+  sqlc.embed(dosage_history), -- 
+  notification_history.supposed_entity_time AS last_reminded_dose, -- 
+  notification_history.sent_at AS last_reminded_at
 FROM users
   INNER JOIN dosage_schedule ON users.secret = dosage_schedule.user_secret
   INNER JOIN dosage_history ON users.secret = dosage_history.user_secret
-ORDER BY users.secret, dosage_history.taken_at DESC;
+  LEFT JOIN notification_history ON users.secret = notification_history.user_secret
+ORDER BY users.secret, dosage_history.taken_at DESC, notification_history.supposed_entity_time DESC;
 
 -- name: RecordRemindedDoseAttempt :exec
 INSERT INTO notification_history (user_secret, sent_at, supposed_entity_time, error_reason)

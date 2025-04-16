@@ -335,12 +335,36 @@ components:
           description: >-
             The interval between doses in days.
           x-order: 3
+          x-go-type: meta.Days
+          x-go-type-import:
+            path: e2clicker.app/internal/meta
+            name: meta
         concurrence:
           type: integer
           description: >-
             The number of estrogen patches on the body at once.
             Only relevant if delivery method is patch.
           x-order: 4
+        reminderRecurrence:
+          type: array
+          items:
+            type: number
+            format: float
+            minimum: 0.0001
+            maximum: 31
+            x-go-type: meta.Days
+            x-go-type-import:
+              path: e2clicker.app/internal/meta
+              name: meta
+          default: []
+          example: [0.3333, 0.5, 1]
+          description: >-
+            A list of reminder recurrences for the reminder notification.
+
+            Each recurrence is a number that represents the number of days
+            after the time of the first notification to send the reminder
+            notification.
+          x-go-type-skip-optional-pointer: true
 
     DosageHistory:
       type: array
