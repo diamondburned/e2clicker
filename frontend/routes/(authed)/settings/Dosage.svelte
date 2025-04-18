@@ -32,9 +32,11 @@
   });
 
   let deliveryMethod = $derived(
-    dosage?.deliveryMethod //
-      ? e2.deliveryMethod(dosage.deliveryMethod)
-      : null,
+    dosage
+      ? dosage?.deliveryMethod //
+        ? e2.deliveryMethod(dosage.deliveryMethod)
+        : null
+      : undefined,
   );
 
   let dosageIsValid = $derived(
@@ -79,7 +81,7 @@
       </span>
     </blockquote>
 
-    {#if !deliveryMethod}
+    {#if deliveryMethod === null}
       <blockquote
         class="no-delivery-method popping error-box"
         transition:slide={{ duration: 250, axis: "y", easing: sineInOut }}
@@ -94,15 +96,16 @@
     {/if}
   {/snippet}
 
-  {#if dosage}
-    <PreferenceItem>
-      {#snippet name()}
-        <span class:brand={!deliveryMethod}>Delivery Method</span>
-      {/snippet}
-      {#snippet description()}
-        How you want to take your medication. This is
-        <b class="brand">required</b> for any functionality to work.
-      {/snippet}
+  <PreferenceItem>
+    {#snippet name()}
+      <span class:brand={!deliveryMethod}>Delivery Method</span>
+    {/snippet}
+    {#snippet description()}
+      How you want to take your medication. This is
+      <b class="brand">required</b> for any functionality to work.
+    {/snippet}
+
+    {#if dosage}
       <select
         name="delivery-method"
         class="text-ellipsis"
@@ -115,56 +118,71 @@
           <option value={method.id}>{method.name}</option>
         {/each}
       </select>
+    {/if}
+  </PreferenceItem>
+
+  <PreferenceItem name="Dose">
+    {#snippet description()}
+      How much medication you are taking for each dose.
+    {/snippet}
+
+    {#if dosage && deliveryMethod}
+      <InputQuantity
+        unit={deliveryMethod.units}
+        initial={dosage.dose}
+        onchange={(qty) => {
+          dosage!.dose = qty;
+          saveDosage();
+        }}
+      />
+    {/if}
+  </PreferenceItem>
+
+  <PreferenceItem name="Interval">
+    {#snippet description()}
+      The time between each dose in hours, days or weeks.
+    {/snippet}
+
+    <InputDays
+      initial={dosage?.interval}
+      onchange={(days) => {
+        dosage!.interval = days;
+        saveDosage();
+      }}
+      placeholder="1 week"
+    />
+  </PreferenceItem>
+
+  {#if dosage && deliveryMethod?.patch}
+    <PreferenceItem name="Patch Change">
+      {#snippet description()}
+        How many patches you have on at once before changing the oldest one. If set to
+        <em>0</em>, the system will not automatically mark the last patch as "taken off".
+      {/snippet}
+      <input
+        type="number"
+        min="0"
+        max="7"
+        bind:value={dosage.concurrence}
+        onchange={() => saveDosage()}
+      />
     </PreferenceItem>
   {/if}
 
-  {#if dosage && deliveryMethod}
-    <div transition:slide={{ duration: 200, axis: "y" }}>
-      <PreferenceItem name="Dose">
-        {#snippet description()}
-          How much medication you are taking for each dose.
-        {/snippet}
-        <InputQuantity
-          unit={deliveryMethod.units}
-          initial={dosage.dose}
-          onchange={(qty) => {
-            dosage!.dose = qty;
-            saveDosage();
-          }}
-        />
-      </PreferenceItem>
+  <PreferenceItem name="Reminder Recurrence">
+    {#snippet description()}
+      How often you want to be reminded to take your medication. This is a list of intervals
+      indicating how long after the time the dose is due for the reminder to be sent.
+    {/snippet}
 
-      <PreferenceItem name="Interval">
-        {#snippet description()}
-          The time between each dose in hours, days or weeks.
-        {/snippet}
-        <InputDays
-          initial={dosage.interval}
-          onchange={(days) => {
-            dosage!.interval = days;
-            saveDosage();
-          }}
-          placeholder="1 week"
-        />
-      </PreferenceItem>
-
-      {#if deliveryMethod.patch}
-        <div transition:slide={{ duration: 200, axis: "y" }}>
-          <PreferenceItem name="Patch Change">
-            {#snippet description()}
-              How many patches you have on at once before changing the oldest one. If set to
-              <em>0</em>, the system will not automatically mark the last patch as "taken off".
-            {/snippet}
-            <input
-              type="number"
-              min="0"
-              max="7"
-              bind:value={dosage.concurrence}
-              onchange={() => saveDosage()}
-            />
-          </PreferenceItem>
-        </div>
-      {/if}
-    </div>
-  {/if}
+    <InputDays
+      initial={dosage ? (dosage.reminderRecurrence ?? []) : undefined}
+      delimiter=";"
+      onchangemultiple={(days) => {
+        dosage!.reminderRecurrence = days;
+        saveDosage();
+      }}
+      placeholder="8 hours"
+    />
+  </PreferenceItem>
 </PreferenceGroup>
