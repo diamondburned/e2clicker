@@ -12,12 +12,13 @@ import (
 	"go.uber.org/fx"
 )
 
-// NotificationConfigs contains all the configurations for a notification.
-type NotificationConfigs struct {
-	Gotify   []GotifyNotificationConfig   `json:"gotify,omitempty"`
-	Pushover []PushoverNotificationConfig `json:"pushover,omitempty"`
-	WebPush  []openapi.PushSubscription   `json:"webPush,omitempty"`
-	Email    []EmailNotificationConfig    `json:"email,omitempty"`
+// NotificationServiceConfig is the configuration for the notification service.
+type NotificationServiceConfig struct {
+	fx.In
+	Gotify   *GotifyService   `optional:"true"`
+	Pushover *PushoverService `optional:"true"`
+	WebPush  *WebPushService  `optional:"true"`
+	Email    *EmailService    `optional:"true"`
 }
 
 // NotificationMethodSupports lists the supported notification services.
@@ -28,6 +29,24 @@ type NotificationMethodSupports struct {
 	Email    bool `json:"email"`
 }
 
+// Supports returns the supported notification services.
+func (c NotificationServiceConfig) Supports() NotificationMethodSupports {
+	return NotificationMethodSupports{
+		Gotify:   c.Gotify != nil,
+		Pushover: c.Pushover != nil,
+		WebPush:  c.WebPush != nil,
+		Email:    c.Email != nil,
+	}
+}
+
+// NotificationConfigs contains all the configurations for a notification.
+type NotificationConfigs struct {
+	Gotify   []GotifyNotificationConfig   `json:"gotify,omitempty"`
+	Pushover []PushoverNotificationConfig `json:"pushover,omitempty"`
+	WebPush  []openapi.PushSubscription   `json:"webPush,omitempty"`
+	Email    []EmailNotificationConfig    `json:"email,omitempty"`
+}
+
 // IsEmpty returns true if the notification configs are empty.
 func (c NotificationConfigs) IsEmpty() bool {
 	return len(c.Gotify) == 0 && len(c.Pushover) == 0 && len(c.WebPush) == 0 && len(c.Email) == 0
@@ -35,24 +54,22 @@ func (c NotificationConfigs) IsEmpty() bool {
 
 // NotificationService is a collection of NotificationServices.
 // It implements the [Notifier] interface.
-type NotificationService struct {
+type NotificationService interface {
+	// Notify sends a notification to all the services.
+	Notify(ctx context.Context, n Notification, c NotificationConfigs) error
+	// Config returns the configuration for the notification service.
+	Config() NotificationServiceConfig
+}
+
+type notificationService struct {
 	services     NotificationServiceConfig
 	servicesAttr slog.Attr
 	logger       *slog.Logger
 }
 
-// NotificationServiceConfig is the configuration for the notification service.
-type NotificationServiceConfig struct {
-	fx.In
-	Gotify   *GotifyService   `optional:"true"`
-	Pushover *PushoverService `optional:"true"`
-	WebPush  *WebPushService  `optional:"true"`
-	Email    *EmailService    `optional:"true"`
-}
-
 // NewNotificationService creates a new notification service.
-func NewNotificationService(s NotificationServiceConfig, logger *slog.Logger) *NotificationService {
-	return &NotificationService{
+func NewNotificationService(s NotificationServiceConfig, logger *slog.Logger) NotificationService {
+	return &notificationService{
 		services: s,
 		logger:   logger,
 		servicesAttr: slog.Group(
@@ -65,8 +82,7 @@ func NewNotificationService(s NotificationServiceConfig, logger *slog.Logger) *N
 	}
 }
 
-// Notify sends a notification to all the services.
-func (m *NotificationService) Notify(ctx context.Context, n Notification, c NotificationConfigs) error {
+func (m *notificationService) Notify(ctx context.Context, n Notification, c NotificationConfigs) error {
 	return errors.Join(slices.Concat(
 		callNotify(ctx, "gotify", n, c.Gotify, m.services.Gotify),
 		callNotify(ctx, "pushover", n, c.Pushover, m.services.Pushover),
@@ -75,14 +91,9 @@ func (m *NotificationService) Notify(ctx context.Context, n Notification, c Noti
 	)...)
 }
 
-// Supports returns the supported notification services.
-func (m *NotificationService) Supports() NotificationMethodSupports {
-	return NotificationMethodSupports{
-		Gotify:   m.services.Gotify != nil,
-		Pushover: m.services.Pushover != nil,
-		WebPush:  m.services.WebPush != nil,
-		Email:    m.services.Email != nil,
-	}
+// Config returns the configuration for the notification service.
+func (m *notificationService) Config() NotificationServiceConfig {
+	return m.services
 }
 
 func callNotify[

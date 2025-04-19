@@ -54,7 +54,11 @@ FROM users
   INNER JOIN dosage_schedule ON users.secret = dosage_schedule.user_secret
   INNER JOIN dosage_history ON users.secret = dosage_history.user_secret
   LEFT JOIN notification_history ON users.secret = notification_history.user_secret
-ORDER BY users.secret, dosage_history.taken_at DESC, notification_history.supposed_entity_time DESC;
+ORDER BY -- 
+  users.secret, -- 
+  dosage_history.taken_at DESC, -- 
+  notification_history.supposed_entity_time DESC, -- 
+  notification_history.sent_at DESC;
 
 -- name: RecordRemindedDoseAttempt :exec
 INSERT INTO notification_history (user_secret, sent_at, supposed_entity_time, error_reason)

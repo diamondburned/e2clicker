@@ -25,8 +25,8 @@ import (
 type openAPIHandler struct {
 	logger      *slog.Logger
 	users       *user.UserService
-	notifs      *notification.UserNotificationService
-	notif       *notification.NotificationService
+	notifs      notification.UserNotificationService
+	notif       notification.NotificationService
 	dosage      dosage.DosageStorage
 	doseHistory dosage.DoseHistoryStorage
 }
@@ -37,8 +37,8 @@ type OpenAPIHandlerServices struct {
 	fx.In
 
 	Users             *user.UserService
-	UserNotifications *notification.UserNotificationService
-	Notification      *notification.NotificationService
+	Notification      notification.NotificationService
+	UserNotifications notification.UserNotificationService
 	Dosage            dosage.DosageStorage
 	DoseHistory       dosage.DoseHistoryStorage
 }
@@ -290,11 +290,13 @@ func (h *openAPIHandler) ImportDoses(ctx context.Context, request openapi.Import
 }
 
 func (h *openAPIHandler) WebPushInfo(ctx context.Context, request openapi.WebPushInfoRequestObject) (openapi.WebPushInfoResponseObject, error) {
-	i, err := h.notifs.WebPushInfo(ctx)
-	if err != nil {
-		return nil, err
+	config := h.notif.Config()
+	if config.WebPush == nil {
+		return nil, notification.ErrWebPushNotAvailable
 	}
-	return openapi.WebPushInfo200JSONResponse(openapi.PushInfo(i)), nil
+	return openapi.WebPushInfo200JSONResponse(openapi.PushInfo{
+		ApplicationServerKey: config.WebPush.VAPIDPublicKey(),
+	}), nil
 }
 
 // Get the server's supported notification methods
@@ -307,7 +309,7 @@ func (h *openAPIHandler) SupportedNotificationMethods(ctx context.Context, reque
 		return ret
 	}
 
-	supports := h.notif.Supports()
+	supports := h.notif.Config().Supports()
 
 	var ret openapi.NotificationMethodSupports
 	ret = addIfTrue(ret, supports.Gotify, "gotify")

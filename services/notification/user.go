@@ -29,10 +29,26 @@ type UserNotificationStorage interface {
 }
 
 // UserNotificationService is a service that sends notifications to users.
-type UserNotificationService struct {
-	userNotifications UserNotificationStorage
+type UserNotificationService interface {
+	// NotifyUser sends a notification to a user.
+	NotifyUser(ctx context.Context, secret user.Secret, t openapi.NotificationType) error
+	// UserPreferences returns the preferences of a user.
+	UserPreferences(ctx context.Context, secret user.Secret) (UserPreferences, error)
+	// SetUserPreferences sets the preferences of a user.
+	SetUserPreferences(ctx context.Context, secret user.Secret, preferences *UserPreferences) error
+	// SetUserPreferencesSafe sets the preferences of a user in a safer manner than
+	// [SetUserPreferences]. It requires the old preferences to be passed in order
+	// to prevent overwriting changes made by other clients.
+	//
+	// Realistically, this doesn't happen unless the user is deliberately trying to
+	// cause the issue.
+	SetUserPreferencesSafe(ctx context.Context, secret user.Secret, newPreferences, oldPreferences *UserPreferences) error
+}
+
+type userNotificationService struct {
 	users             *user.UserService
-	notification      *NotificationService
+	userNotifications UserNotificationStorage
+	notification      NotificationService
 	logger            *slog.Logger
 }
 
@@ -42,14 +58,14 @@ type UserNotificationServiceConfig struct {
 	fx.In
 
 	UserNotificationStorage
-	*NotificationService
+	NotificationService
 	*user.UserService
 	*slog.Logger
 }
 
 // NewUserNotificationService creates a new user notification service.
-func NewUserNotificationService(s UserNotificationServiceConfig) *UserNotificationService {
-	return &UserNotificationService{
+func NewUserNotificationService(s UserNotificationServiceConfig) UserNotificationService {
+	return &userNotificationService{
 		userNotifications: s.UserNotificationStorage,
 		users:             s.UserService,
 		notification:      s.NotificationService,
@@ -57,8 +73,7 @@ func NewUserNotificationService(s UserNotificationServiceConfig) *UserNotificati
 	}
 }
 
-// NotifyUser sends a notification to a user.
-func (s *UserNotificationService) NotifyUser(ctx context.Context, secret user.Secret, t openapi.NotificationType) error {
+func (s *userNotificationService) NotifyUser(ctx context.Context, secret user.Secret, t openapi.NotificationType) error {
 	prefs, err := s.userNotifications.UserPreferences(ctx, secret)
 	if err != nil {
 		return err
@@ -89,23 +104,15 @@ func (s *UserNotificationService) NotifyUser(ctx context.Context, secret user.Se
 	return s.notification.Notify(ctx, n, prefs.NotificationConfigs)
 }
 
-// UserPreferences returns the preferences of a user.
-func (s *UserNotificationService) UserPreferences(ctx context.Context, secret user.Secret) (UserPreferences, error) {
+func (s *userNotificationService) UserPreferences(ctx context.Context, secret user.Secret) (UserPreferences, error) {
 	return s.userNotifications.UserPreferences(ctx, secret)
 }
 
-// SetUserPreferences sets the preferences of a user.
-func (s *UserNotificationService) SetUserPreferences(ctx context.Context, secret user.Secret, preferences *UserPreferences) error {
+func (s *userNotificationService) SetUserPreferences(ctx context.Context, secret user.Secret, preferences *UserPreferences) error {
 	return s.SetUserPreferencesSafe(ctx, secret, preferences, nil)
 }
 
-// SetUserPreferencesSafe sets the preferences of a user in a safer manner than
-// [SetUserPreferences]. It requires the old preferences to be passed in order
-// to prevent overwriting changes made by other clients.
-//
-// Realistically, this doesn't happen unless the user is deliberately trying to
-// cause the issue.
-func (s *UserNotificationService) SetUserPreferencesSafe(ctx context.Context, secret user.Secret, newPreferences, oldPreferences *UserPreferences) error {
+func (s *userNotificationService) SetUserPreferencesSafe(ctx context.Context, secret user.Secret, newPreferences, oldPreferences *UserPreferences) error {
 	return s.userNotifications.SetUserPreferencesTx(ctx, secret, func(p *UserPreferences) error {
 		if oldPreferences != nil {
 			b1, _ := json.Marshal(oldPreferences)
@@ -117,16 +124,6 @@ func (s *UserNotificationService) SetUserPreferencesSafe(ctx context.Context, se
 		*p = *newPreferences
 		return nil
 	})
-}
-
-// WebPushInfo returns the web push information of the server.
-func (s *UserNotificationService) WebPushInfo(ctx context.Context) (openapi.PushInfo, error) {
-	if s.notification.services.WebPush == nil {
-		return openapi.PushInfo{}, ErrWebPushNotAvailable
-	}
-	return openapi.PushInfo{
-		ApplicationServerKey: s.notification.services.WebPush.VAPIDPublicKey(),
-	}, nil
 }
 
 /*
