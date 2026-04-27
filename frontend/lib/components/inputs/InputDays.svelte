@@ -60,7 +60,8 @@
 <input
   {...attributes}
   bind:value
-  disabled={(!onchange && !onchangemultiple) || initial == undefined}
+  disabled={!onchange && !onchangemultiple}
+  placeholder={placeholder || "1 day"}
   onchange={(ev) => {
     const input = ev.currentTarget;
     const parts = delimiter ? input.value.split(delimiter).filter((v) => !!v) : [input.value];

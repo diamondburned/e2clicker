@@ -172,7 +172,8 @@
   <PreferenceItem name="Reminder Recurrence">
     {#snippet description()}
       How often you want to be reminded to take your medication. This is a list of intervals
-      indicating how long after the time the dose is due for the reminder to be sent.
+      indicating how long after the time the dose is due for the reminder to be sent. Separate each
+      interval with a semicolon.
     {/snippet}
 
     <InputDays
