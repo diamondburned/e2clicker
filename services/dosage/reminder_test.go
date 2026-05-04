@@ -3,7 +3,8 @@ package dosage
 import (
 	"context"
 	"fmt"
-	"iter"
+	"maps"
+	"slices"
 	"testing"
 	"time"
 
@@ -235,15 +236,7 @@ func TestIngestReminders(t *testing.T) {
 		}
 
 		t.Run(tc.name, func(t *testing.T) {
-			remindersIter := func(yield func(DosageReminder, error) bool) {
-				for _, r := range tc.reminders {
-					if !yield(r, nil) {
-						return
-					}
-				}
-			}
-
-			tracked, err := ingestReminders(tc.checkTime, remindersIter, slogt.New(t))
+			tracked, err := ingestReminders(tc.checkTime, tc.reminders, slogt.New(t))
 			assert.NoError(t, err, "ingestReminders must not return an error")
 
 			relevantUsers := make(userSet, len(tracked.notifyingReminders))
@@ -319,14 +312,8 @@ func newMockDosageReminderStorage(upcoming []DosageReminder) *mockDosageReminder
 	return &mockDosageReminderStorage{upcoming: s}
 }
 
-func (m *mockDosageReminderStorage) UpcomingDosageReminders(ctx context.Context) iter.Seq2[DosageReminder, error] {
-	return func(yield func(DosageReminder, error) bool) {
-		for _, r := range m.upcoming {
-			if !yield(r, nil) {
-				return
-			}
-		}
-	}
+func (m *mockDosageReminderStorage) UpcomingDosageReminders(ctx context.Context) ([]DosageReminder, error) {
+	return slices.Collect(maps.Values(m.upcoming)), nil
 }
 
 func (m *mockDosageReminderStorage) RecordRemindedDoseAttempts(ctx context.Context, attempts []RemindedDoseAttempt) error {

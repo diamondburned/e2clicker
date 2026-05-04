@@ -29,15 +29,16 @@ let
 
     nativeBuildInputs = buildDeps ++ [
       # This uses pnpmDeps.
-      pkgs.pnpm.configHook
+      pkgs.pnpmConfigHook
     ];
 
     buildInputs = with pkgs; [
       nodejs
     ];
 
-    pnpmDeps = pkgs.pnpm.fetchDeps {
+    pnpmDeps = pkgs.fetchPnpmDeps {
       inherit (final) pname version src;
+      fetcherVersion = 3;
       hash = hashes.pnpmPackages;
     };
 
@@ -84,26 +85,7 @@ let
     modules = ./gomod2nix.toml;
 
     nativeBuildInputs = buildDeps;
-
-    buildPhase = ''
-      runHook preBuild
-
-      just --no-deps build-backend
-
-      runHook postBuild
-    '';
-
-    installPhase = ''
-      runHook preInstall
-
-      mkdir $out
-      cp -r dist $out/share
-
-      mkdir $out/bin
-      ln -s $out/share/backend/* $out/bin/
-
-      runHook postInstall
-    '';
+    subPackages = [ "cmd/e2clicker-backend" ];
 
     meta = {
       description = "The e2clicker backend package";

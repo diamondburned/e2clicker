@@ -18,6 +18,24 @@ const (
 	WelcomeMessage         NotificationType = "welcome_message"
 )
 
+// Valid indicates whether the value is a known member of the NotificationType enum.
+func (e NotificationType) Valid() bool {
+	switch e {
+	case AccountNoticeMessage:
+		return true
+	case ReminderMessage:
+		return true
+	case TestMessage:
+		return true
+	case WebPushExpiringMessage:
+		return true
+	case WelcomeMessage:
+		return true
+	default:
+		return false
+	}
+}
+
 // PushDeviceID A short ID associated with the device that the push subscription is for This is used to identify the device when updating its push subscription later on.
 // Realistically, this will be handled as an opaque random string generated on the device side, so the server has no way to correlate  it with any fingerprinting.
 // The recommended way to generate this string in JavaScript is:
@@ -122,10 +140,10 @@ type PushSubscription struct {
 
 // UserUpdateNotificationPreferencesJSONBody defines parameters for UserUpdateNotificationPreferences.
 type UserUpdateNotificationPreferencesJSONBody struct {
-	// Current The current notification preferences. This is used to determine whether the notification method update is still valid.
+	// UnderscoreCurrent The current notification preferences. This is used to determine whether the notification method update is still valid.
 	// This field is very much optional and is only used to guard against race conditions.
 	// TODO: Implement this field.
-	Current             *NotificationPreferences `json:"_current,omitempty"`
+	UnderscoreCurrent   *NotificationPreferences `json:"_current,omitempty"`
 	CustomNotifications CustomNotifications      `json:"customNotifications,omitempty"`
 	NotificationConfigs struct {
 		Email   *[]EmailSubscription `json:"email,omitempty"`

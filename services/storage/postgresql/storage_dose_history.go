@@ -120,29 +120,21 @@ func (s *doseHistoryStorage) ForgetDoses(ctx context.Context, userSecret user.Se
 	return nil
 }
 
-func (s *doseHistoryStorage) DoseHistory(ctx context.Context, secret user.Secret, begin, end time.Time) iter.Seq2[dosage.Dose, error] {
+func (s *doseHistoryStorage) DoseHistory(ctx context.Context, secret user.Secret, begin, end time.Time) ([]dosage.Dose, error) {
 	if end.IsZero() {
 		end = time.Now()
 	}
 
-	iter := s.q.DoseHistory(ctx, postgresqlc.DoseHistoryParams{
+	rows, err := s.q.DoseHistory(ctx, postgresqlc.DoseHistoryParams{
 		UserSecret: secret,
 		Start:      pgtype.Timestamptz{Time: begin, Valid: true},
 		End:        pgtype.Timestamptz{Time: end, Valid: true},
 	})
-
-	return func(yield func(dosage.Dose, error) bool) {
-		for o1 := range iter.Iterate() {
-			o2 := convertDose(o1)
-			if !yield(o2, nil) {
-				return
-			}
-		}
-
-		if err := iter.Err(); err != nil {
-			yield(dosage.Dose{}, err)
-		}
+	if err != nil {
+		return nil, err
 	}
+
+	return convertList(rows, convertDose), nil
 }
 
 func convertDose(o postgresqlc.DosageHistory) dosage.Dose {

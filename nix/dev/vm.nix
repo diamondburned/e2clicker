@@ -36,9 +36,9 @@ in
     ];
   };
 
-  systemd.extraConfig = ''
-    DefaultStandardOutput=journal+console
-  '';
+  systemd.settings.Manager = {
+    DefaultStandardOutput = "journal+console";
+  };
 
   services.postgresql = {
     enable = true;

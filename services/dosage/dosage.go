@@ -56,7 +56,7 @@ type DoseHistoryStorage interface {
 	// The history is ordered by time taken, with the oldest dose first.
 	// If there's an error, the returned sequence will yield the error with a
 	// zero-value [Observation].
-	DoseHistory(ctx context.Context, secret user.Secret, begin, end time.Time) iter.Seq2[Dose, error]
+	DoseHistory(ctx context.Context, secret user.Secret, begin, end time.Time) ([]Dose, error)
 }
 
 // RecordedDosesResult is the result of recording doses.

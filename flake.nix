@@ -11,7 +11,7 @@
     };
 
     gomod2nix = {
-      url = "github:obreitwi/gomod2nix?ref=fix/go_mod_vendor";
+      url = "github:nix-community/gomod2nix";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-utils.follows = "flake-utils";
@@ -20,21 +20,16 @@
 
     nixmod2go = {
       url = "github:diamondburned/nixmod2go";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
 
     oapi-codegen = {
-      url = "github:oapi-codegen/oapi-codegen/v2.4.1";
+      url = "github:oapi-codegen/oapi-codegen/v2.6.0";
       flake = false;
     };
 
     yaml-language-server = {
-      url = "github:okybr/yaml-language-server";
-      flake = false;
-    };
-
-    sqlc-iter-pr = {
-      # https://github.com/sqlc-dev/sqlc/pull/3631
-      url = "github:viewsharp/sqlc/main";
+      url = "github:redhat-developer/yaml-language-server";
       flake = false;
     };
   };
@@ -57,7 +52,7 @@
             inputs.gomod2nix.overlays.default
 
             (self: super: {
-              go = super.go_1_23;
+              go = super.go_1_26;
               pnpm = super.pnpm_9;
             })
 
@@ -69,27 +64,8 @@
                 subPackages = [ "cmd/oapi-codegen" ];
                 doCheck = false;
 
-                vendorHash = "sha256-bp5sFZNJFQonwfF1RjCnOMKZQkofHuqG0bXdG5Hf3jU=";
+                vendorHash = "sha256-vgSMGi0mnGX/Hwxu/XalIXLCbm/L4CwQfIf7DEJVk1E=";
               };
-
-              # Downgrade yaml-language-server to 1.15.0 to fix an issue with OpenAPI's v3.0.0 schema.
-              yaml-language-server = super.yaml-language-server.overrideAttrs (old: rec {
-                version = "1.15.0-ajv-draft-04";
-                src = inputs.yaml-language-server;
-                doCheck = false;
-                offlineCache = super.fetchYarnDeps {
-                  yarnLock = "${src}/yarn.lock";
-                  hash = "sha256-thJ3aU52yCusfjBCD2QvLynwiM32lq0IT9WaNJjfu6E=";
-                };
-              });
-
-              sqlc = super.sqlc.overrideAttrs (old: {
-                version = "pr-3631-" + inputs.sqlc-iter-pr.rev;
-                src = inputs.sqlc-iter-pr;
-                doCheck = false;
-
-                vendorHash = "sha256-d1kfA4C4wg7TJBVCTUOoyIZjbZ2UeSIbRQUXugQyrGA=";
-              });
 
               pgformatter = import ./nix/pgformatter.nix { pkgs = super; };
             })
@@ -110,13 +86,13 @@
             moq
 
             nodejs
-            nodePackages.pnpm
+            pnpm
 
             sqlc
             pgformatter
 
             oapi-codegen
-            redocly-cli
+            redocly
             yaml-language-server
             yq-go
 
@@ -140,7 +116,7 @@
 
         packages = import ./nix/packages.nix { inherit pkgs self inputs; };
 
-        formatter = pkgs.nixfmt-rfc-style;
+        formatter = pkgs.nixfmt;
       }
     ))
     // {
