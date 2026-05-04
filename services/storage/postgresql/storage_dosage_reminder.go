@@ -3,7 +3,6 @@ package postgresql
 import (
 	"context"
 	"errors"
-	"iter"
 
 	"e2clicker.app/internal/meta"
 	"e2clicker.app/internal/ptr"
@@ -18,36 +17,29 @@ func (s *Storage) dosageReminderStorage() dosage.DosageReminderStorage {
 	return (*dosageReminderStorage)(s)
 }
 
-func (s *dosageReminderStorage) UpcomingDosageReminders(ctx context.Context) iter.Seq2[dosage.DosageReminder, error] {
-	iter := s.q.UpcomingDosageReminders(ctx)
-
-	return func(yield func(dosage.DosageReminder, error) bool) {
-		for o1 := range iter.Iterate() {
-			o2 := dosage.DosageReminder{
-				UserSecret: o1.UserSecret,
-				Username:   o1.UserName,
-				Dosage: dosage.Dosage{
-					DeliveryMethod:     o1.DosageSchedule.DeliveryMethod.String,
-					Dose:               o1.DosageSchedule.Dose,
-					Interval:           meta.DaysFromPostgreSQLInterval(o1.DosageSchedule.Interval),
-					Concurrence:        maybePtr(int(o1.DosageSchedule.Concurrence.Int16), o1.DosageSchedule.Concurrence.Valid),
-					ReminderRecurrence: convertList(o1.DosageSchedule.ReminderRecurrence, meta.DaysFromPostgreSQLInterval),
-				},
-				LastDose:         convertDose(o1.DosageHistory),
-				LastRemindedDose: ptr.ToIf(o1.LastRemindedDose.Time, o1.LastRemindedDose.Valid),
-				LastRemindedAt:   ptr.ToIf(o1.LastRemindedAt.Time, o1.LastRemindedAt.Valid),
-				SnoozedUntil:     nil, // TODO: support snoozed until
-			}
-
-			if !yield(o2, nil) {
-				return
-			}
-		}
-
-		if err := iter.Err(); err != nil {
-			yield(dosage.DosageReminder{}, err)
-		}
+func (s *dosageReminderStorage) UpcomingDosageReminders(ctx context.Context) ([]dosage.DosageReminder, error) {
+	rows, err := s.q.UpcomingDosageReminders(ctx)
+	if err != nil {
+		return nil, err
 	}
+
+	return convertList(rows, func(m postgresqlc.UpcomingDosageRemindersRow) dosage.DosageReminder {
+		return dosage.DosageReminder{
+			UserSecret: m.UserSecret,
+			Username:   m.UserName,
+			Dosage: dosage.Dosage{
+				DeliveryMethod:     m.DosageSchedule.DeliveryMethod.String,
+				Dose:               m.DosageSchedule.Dose,
+				Interval:           meta.DaysFromPostgreSQLInterval(m.DosageSchedule.Interval),
+				Concurrence:        maybePtr(int(m.DosageSchedule.Concurrence.Int16), m.DosageSchedule.Concurrence.Valid),
+				ReminderRecurrence: convertList(m.DosageSchedule.ReminderRecurrence, meta.DaysFromPostgreSQLInterval),
+			},
+			LastDose:         convertDose(m.DosageHistory),
+			LastRemindedDose: ptr.ToIf(m.LastRemindedDose.Time, m.LastRemindedDose.Valid),
+			LastRemindedAt:   ptr.ToIf(m.LastRemindedAt.Time, m.LastRemindedAt.Valid),
+			SnoozedUntil:     nil, // TODO: support snoozed until
+		}
+	}), nil
 }
 
 func (s *dosageReminderStorage) RecordRemindedDoseAttempts(ctx context.Context, remindedDoseAttempts []dosage.RemindedDoseAttempt) error {

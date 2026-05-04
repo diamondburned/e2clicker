@@ -9,13 +9,13 @@ import (
 	"log/slog"
 	"time"
 
-	"go.uber.org/fx"
-	"golang.org/x/time/rate"
 	"e2clicker.app/internal/jsonarray"
 	"e2clicker.app/internal/publicerrors"
 	"e2clicker.app/internal/userlimit"
 	"e2clicker.app/services/dosage/openapi"
 	"e2clicker.app/services/user"
+	"go.uber.org/fx"
+	"golang.org/x/time/rate"
 	"libdb.so/xcsv"
 )
 
@@ -78,22 +78,20 @@ func (s *ExporterService) ExportDoseHistory(ctx context.Context, out io.Writer, 
 		return 0, err
 	}
 
+	doses, err := s.storage.DoseHistory(ctx, secret, o.Begin, o.End)
+	if err != nil {
+		return 0, err
+	}
+
 	var exported int64
-	var scanErrs []error
 	history := func(yield func(Dose) bool) {
-		for o, err := range s.storage.DoseHistory(ctx, secret, o.Begin, o.End) {
-			if err != nil {
-				scanErrs = append(scanErrs, err)
-				continue
-			}
+		for _, o := range doses {
 			if !yield(o) {
 				break
 			}
 			exported++
 		}
 	}
-
-	var err error
 
 	switch o.Format {
 	case ExportCSV:
@@ -124,7 +122,7 @@ func (s *ExporterService) ExportDoseHistory(ctx context.Context, out io.Writer, 
 		return exported, err
 	}
 
-	return exported, errors.Join(scanErrs...)
+	return exported, nil
 }
 
 // ImportDoseHistoryOptions are options for importing dose history from a file.

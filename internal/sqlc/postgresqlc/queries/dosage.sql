@@ -33,7 +33,7 @@ DELETE FROM dosage_history
 WHERE user_secret = $1
   AND taken_at = ANY (@taken_at::timestamp[]);
 
--- name: DoseHistory :iter
+-- name: DoseHistory :many
 SELECT *
 FROM dosage_history
 WHERE user_secret = $1
@@ -42,7 +42,7 @@ WHERE user_secret = $1
   -- order latest last
 ORDER BY taken_at ASC;
 
--- name: UpcomingDosageReminders :iter
+-- name: UpcomingDosageReminders :many
 SELECT DISTINCT ON (users.secret)
   users.secret AS user_secret, -- 
   users.name AS user_name, -- 

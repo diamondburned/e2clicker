@@ -40,17 +40,59 @@ const (
 	WelcomeMessage         NotificationType = "welcome_message"
 )
 
+// Valid indicates whether the value is a known member of the NotificationType enum.
+func (e NotificationType) Valid() bool {
+	switch e {
+	case AccountNoticeMessage:
+		return true
+	case ReminderMessage:
+		return true
+	case TestMessage:
+		return true
+	case WebPushExpiringMessage:
+		return true
+	case WelcomeMessage:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ExportDosesParamsAccept.
 const (
 	ExportDosesParamsAcceptApplicationJSON ExportDosesParamsAccept = "application/json"
 	ExportDosesParamsAcceptTextCsv         ExportDosesParamsAccept = "text/csv"
 )
 
+// Valid indicates whether the value is a known member of the ExportDosesParamsAccept enum.
+func (e ExportDosesParamsAccept) Valid() bool {
+	switch e {
+	case ExportDosesParamsAcceptApplicationJSON:
+		return true
+	case ExportDosesParamsAcceptTextCsv:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ImportDosesParamsContentType.
 const (
 	ImportDosesParamsContentTypeApplicationJSON ImportDosesParamsContentType = "application/json"
 	ImportDosesParamsContentTypeTextCsv         ImportDosesParamsContentType = "text/csv"
 )
+
+// Valid indicates whether the value is a known member of the ImportDosesParamsContentType enum.
+func (e ImportDosesParamsContentType) Valid() bool {
+	switch e {
+	case ImportDosesParamsContentTypeApplicationJSON:
+		return true
+	case ImportDosesParamsContentTypeTextCsv:
+		return true
+	default:
+		return false
+	}
+}
 
 // PushDeviceID A short ID associated with the device that the push subscription is for This is used to identify the device when updating its push subscription later on.
 // Realistically, this will be handled as an opaque random string generated on the device side, so the server has no way to correlate  it with any fingerprinting.
@@ -143,7 +185,7 @@ type EmailSubscription struct {
 // Error defines model for Error.
 type Error struct {
 	// Details Additional details about the error. Ignored if [errors] is used.
-	Details *interface{} `json:"details,omitempty"`
+	Details interface{} `json:"details,omitempty"`
 
 	// Errors An array of errors that caused this error. If this is populated, then [details] is omitted.
 	Errors []Error `json:"errors,omitempty"`
@@ -328,10 +370,10 @@ type DeleteUserSessionParams struct {
 
 // UserUpdateNotificationPreferencesJSONBody defines parameters for UserUpdateNotificationPreferences.
 type UserUpdateNotificationPreferencesJSONBody struct {
-	// Current The current notification preferences. This is used to determine whether the notification method update is still valid.
+	// UnderscoreCurrent The current notification preferences. This is used to determine whether the notification method update is still valid.
 	// This field is very much optional and is only used to guard against race conditions.
 	// TODO: Implement this field.
-	Current             *NotificationPreferences `json:"_current,omitempty"`
+	UnderscoreCurrent   *NotificationPreferences `json:"_current,omitempty"`
 	CustomNotifications CustomNotifications      `json:"customNotifications,omitempty"`
 	NotificationConfigs struct {
 		Email   *[]EmailSubscription `json:"email,omitempty"`
@@ -458,7 +500,7 @@ func (siw *ServerInterfaceWrapper) Auth(w http.ResponseWriter, r *http.Request) 
 			return
 		}
 
-		err = runtime.BindStyledParameterWithOptions("simple", "User-Agent", valueList[0], &UserAgent, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false})
+		err = runtime.BindStyledParameterWithOptions("simple", "User-Agent", valueList[0], &UserAgent, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""})
 		if err != nil {
 			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "User-Agent", Err: err})
 			return
@@ -529,7 +571,7 @@ func (siw *ServerInterfaceWrapper) Dosage(w http.ResponseWriter, r *http.Request
 
 	// ------------- Optional query parameter "start" -------------
 
-	err = runtime.BindQueryParameter("form", true, false, "start", r.URL.Query(), &params.Start)
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "start", r.URL.Query(), &params.Start, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
 	if err != nil {
 		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "start", Err: err})
 		return
@@ -537,7 +579,7 @@ func (siw *ServerInterfaceWrapper) Dosage(w http.ResponseWriter, r *http.Request
 
 	// ------------- Optional query parameter "end" -------------
 
-	err = runtime.BindQueryParameter("form", true, false, "end", r.URL.Query(), &params.End)
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "end", r.URL.Query(), &params.End, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
 	if err != nil {
 		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "end", Err: err})
 		return
@@ -597,7 +639,7 @@ func (siw *ServerInterfaceWrapper) ForgetDoses(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	err = runtime.BindQueryParameter("form", true, true, "doseTimes", r.URL.Query(), &params.DoseTimes)
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "doseTimes", r.URL.Query(), &params.DoseTimes, runtime.BindQueryParameterOptions{Type: "array", Format: ""})
 	if err != nil {
 		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "doseTimes", Err: err})
 		return
@@ -642,7 +684,7 @@ func (siw *ServerInterfaceWrapper) ForgetDose(w http.ResponseWriter, r *http.Req
 	// ------------- Path parameter "doseTime" -------------
 	var doseTime time.Time
 
-	err = runtime.BindStyledParameterWithOptions("simple", "doseTime", r.PathValue("doseTime"), &doseTime, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	err = runtime.BindStyledParameterWithOptions("simple", "doseTime", r.PathValue("doseTime"), &doseTime, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "date-time"})
 	if err != nil {
 		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "doseTime", Err: err})
 		return
@@ -673,7 +715,7 @@ func (siw *ServerInterfaceWrapper) EditDose(w http.ResponseWriter, r *http.Reque
 	// ------------- Path parameter "doseTime" -------------
 	var doseTime time.Time
 
-	err = runtime.BindStyledParameterWithOptions("simple", "doseTime", r.PathValue("doseTime"), &doseTime, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	err = runtime.BindStyledParameterWithOptions("simple", "doseTime", r.PathValue("doseTime"), &doseTime, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "date-time"})
 	if err != nil {
 		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "doseTime", Err: err})
 		return
@@ -712,7 +754,7 @@ func (siw *ServerInterfaceWrapper) ExportDoses(w http.ResponseWriter, r *http.Re
 
 	// ------------- Optional query parameter "start" -------------
 
-	err = runtime.BindQueryParameter("form", true, false, "start", r.URL.Query(), &params.Start)
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "start", r.URL.Query(), &params.Start, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
 	if err != nil {
 		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "start", Err: err})
 		return
@@ -720,7 +762,7 @@ func (siw *ServerInterfaceWrapper) ExportDoses(w http.ResponseWriter, r *http.Re
 
 	// ------------- Optional query parameter "end" -------------
 
-	err = runtime.BindQueryParameter("form", true, false, "end", r.URL.Query(), &params.End)
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "end", r.URL.Query(), &params.End, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
 	if err != nil {
 		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "end", Err: err})
 		return
@@ -737,7 +779,7 @@ func (siw *ServerInterfaceWrapper) ExportDoses(w http.ResponseWriter, r *http.Re
 			return
 		}
 
-		err = runtime.BindStyledParameterWithOptions("simple", "Accept", valueList[0], &Accept, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true})
+		err = runtime.BindStyledParameterWithOptions("simple", "Accept", valueList[0], &Accept, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: ""})
 		if err != nil {
 			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Accept", Err: err})
 			return
@@ -787,7 +829,7 @@ func (siw *ServerInterfaceWrapper) ImportDoses(w http.ResponseWriter, r *http.Re
 			return
 		}
 
-		err = runtime.BindStyledParameterWithOptions("simple", "Content-Type", valueList[0], &ContentType, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true})
+		err = runtime.BindStyledParameterWithOptions("simple", "Content-Type", valueList[0], &ContentType, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: ""})
 		if err != nil {
 			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Content-Type", Err: err})
 			return
@@ -855,7 +897,7 @@ func (siw *ServerInterfaceWrapper) DeleteUserSession(w http.ResponseWriter, r *h
 		return
 	}
 
-	err = runtime.BindQueryParameter("form", true, true, "id", r.URL.Query(), &params.ID)
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "id", r.URL.Query(), &params.ID, runtime.BindQueryParameterOptions{Type: "integer", Format: "int64"})
 	if err != nil {
 		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
 		return
@@ -2143,6 +2185,7 @@ func (sh *strictHandler) ImportDoses(w http.ResponseWriter, r *http.Request, par
 			return
 		}
 		request.JSONBody = &body
+
 	}
 	if strings.HasPrefix(r.Header.Get("Content-Type"), "text/csv") {
 		request.Body = r.Body

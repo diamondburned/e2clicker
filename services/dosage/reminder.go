@@ -2,7 +2,6 @@ package dosage
 
 import (
 	"context"
-	"iter"
 	"log/slog"
 	"time"
 
@@ -24,7 +23,7 @@ type DosageReminderStorage interface {
 	//
 	// Users with no dosage schedule or history should not be included in the
 	// results.
-	UpcomingDosageReminders(ctx context.Context) iter.Seq2[DosageReminder, error]
+	UpcomingDosageReminders(ctx context.Context) ([]DosageReminder, error)
 
 	// RecordRemindedDoseAttempts records the reminded dose attempts.
 	// This is used to mark the reminder as sent or failed.
@@ -175,9 +174,15 @@ func (s *DosageReminderService) cycle(ctx context.Context, now time.Time) time.T
 	slog := s.logger.With("now", now)
 	slog.Debug("DosageReminderService: running update cycle")
 
-	dosageRemindersIter := s.storage.UpcomingDosageReminders(ctx)
+	dosageReminders, err := s.storage.UpcomingDosageReminders(ctx)
+	if err != nil {
+		slog.Error(
+			"DosageReminderService: error querying reminders",
+			"err", err)
+		return now.Add(nextUpdateIntervalOnError)
+	}
 
-	tracked, err := ingestReminders(now, dosageRemindersIter, slog)
+	tracked, err := ingestReminders(now, dosageReminders, slog)
 	if err != nil {
 		slog.Error(
 			"DosageReminderService: error ingesting reminders",
@@ -234,14 +239,10 @@ type notifyingReminder struct {
 }
 
 // ingestReminders ingests the streaming reminders into the tracker.
-func ingestReminders(now time.Time, reminders iter.Seq2[DosageReminder, error], slog *slog.Logger) (*trackedDosageReminders, error) {
+func ingestReminders(now time.Time, reminders []DosageReminder, slog *slog.Logger) (*trackedDosageReminders, error) {
 	notifyingReminders := make([]notifyingReminder, 0, 12)
 
-	for r, err := range reminders {
-		if err != nil {
-			return nil, err
-		}
-
+	for _, r := range reminders {
 		nextNotification, ok := r.NextNotification()
 		if !ok {
 			slog.Debug(

@@ -265,15 +265,15 @@ func (h *openAPIHandler) Dosage(ctx context.Context, request openapi.DosageReque
 		os := make([]openapi.Dose, 0, 32)
 		r.History = &os
 
-		for dose, err := range h.doseHistory.DoseHistory(
+		doses, err := h.doseHistory.DoseHistory(
 			ctx, session.UserSecret,
 			*request.Params.Start,
-			*request.Params.End) {
+			*request.Params.End)
+		if err != nil {
+			return nil, fmt.Errorf("cannot get dosage history: %w", err)
+		}
 
-			if err != nil {
-				return nil, fmt.Errorf("cannot get dosage history: %w", err)
-			}
-
+		for _, dose := range doses {
 			os = append(os, openapi.Dose(dose.ToOpenAPI()))
 		}
 	}

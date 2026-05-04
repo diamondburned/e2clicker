@@ -15,11 +15,35 @@ const (
 	ExportDosesParamsAcceptTextCsv         ExportDosesParamsAccept = "text/csv"
 )
 
+// Valid indicates whether the value is a known member of the ExportDosesParamsAccept enum.
+func (e ExportDosesParamsAccept) Valid() bool {
+	switch e {
+	case ExportDosesParamsAcceptApplicationJSON:
+		return true
+	case ExportDosesParamsAcceptTextCsv:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ImportDosesParamsContentType.
 const (
 	ImportDosesParamsContentTypeApplicationJSON ImportDosesParamsContentType = "application/json"
 	ImportDosesParamsContentTypeTextCsv         ImportDosesParamsContentType = "text/csv"
 )
+
+// Valid indicates whether the value is a known member of the ImportDosesParamsContentType enum.
+func (e ImportDosesParamsContentType) Valid() bool {
+	switch e {
+	case ImportDosesParamsContentTypeApplicationJSON:
+		return true
+	case ImportDosesParamsContentTypeTextCsv:
+		return true
+	default:
+		return false
+	}
+}
 
 // DeliveryMethod defines model for DeliveryMethod.
 type DeliveryMethod struct {

@@ -5,7 +5,6 @@ package dosage
 
 import (
 	"context"
-	"iter"
 	"sync"
 )
 
@@ -22,7 +21,7 @@ var _ DosageReminderStorage = &DosageReminderStorageMock{}
 //			RecordRemindedDoseAttemptsFunc: func(ctx context.Context, remindedDoses []RemindedDoseAttempt) error {
 //				panic("mock out the RecordRemindedDoseAttempts method")
 //			},
-//			UpcomingDosageRemindersFunc: func(ctx context.Context) iter.Seq2[DosageReminder, error] {
+//			UpcomingDosageRemindersFunc: func(ctx context.Context) ([]DosageReminder, error) {
 //				panic("mock out the UpcomingDosageReminders method")
 //			},
 //		}
@@ -36,7 +35,7 @@ type DosageReminderStorageMock struct {
 	RecordRemindedDoseAttemptsFunc func(ctx context.Context, remindedDoses []RemindedDoseAttempt) error
 
 	// UpcomingDosageRemindersFunc mocks the UpcomingDosageReminders method.
-	UpcomingDosageRemindersFunc func(ctx context.Context) iter.Seq2[DosageReminder, error]
+	UpcomingDosageRemindersFunc func(ctx context.Context) ([]DosageReminder, error)
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -94,7 +93,7 @@ func (mock *DosageReminderStorageMock) RecordRemindedDoseAttemptsCalls() []struc
 }
 
 // UpcomingDosageReminders calls UpcomingDosageRemindersFunc.
-func (mock *DosageReminderStorageMock) UpcomingDosageReminders(ctx context.Context) iter.Seq2[DosageReminder, error] {
+func (mock *DosageReminderStorageMock) UpcomingDosageReminders(ctx context.Context) ([]DosageReminder, error) {
 	if mock.UpcomingDosageRemindersFunc == nil {
 		panic("DosageReminderStorageMock.UpcomingDosageRemindersFunc: method is nil but DosageReminderStorage.UpcomingDosageReminders was just called")
 	}

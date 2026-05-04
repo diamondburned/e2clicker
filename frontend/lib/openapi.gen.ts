@@ -8,7 +8,7 @@ import * as Oazapfts from "@oazapfts/runtime";
 import * as QS from "@oazapfts/runtime/query";
 export const defaults: Oazapfts.Defaults<Oazapfts.CustomHeaders> = {
     headers: {},
-    baseUrl: "https://e2clicker.app/api",
+    baseUrl: "https://e2clicker.app/api"
 };
 const oazapfts = Oazapfts.runtime(defaults);
 export const servers = {

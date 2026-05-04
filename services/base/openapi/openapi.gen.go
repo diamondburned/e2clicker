@@ -6,7 +6,7 @@ package openapi
 // Error defines model for Error.
 type Error struct {
 	// Details Additional details about the error. Ignored if [errors] is used.
-	Details *interface{} `json:"details,omitempty"`
+	Details interface{} `json:"details,omitempty"`
 
 	// Errors An array of errors that caused this error. If this is populated, then [details] is omitted.
 	Errors []Error `json:"errors,omitempty"`
