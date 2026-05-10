@@ -123,12 +123,12 @@ func (q *Queries) EditDose(ctx context.Context, arg EditDoseParams) (int64, erro
 const forgetDoses = `-- name: ForgetDoses :execrows
 DELETE FROM dosage_history
 WHERE user_secret = $1
-  AND taken_at = ANY ($2::timestamp[])
+  AND taken_at = ANY ($2::timestamptz[])
 `
 
 type ForgetDosesParams struct {
 	UserSecret userservice.Secret
-	TakenAt    []pgtype.Timestamp
+	TakenAt    []pgtype.Timestamptz
 }
 
 func (q *Queries) ForgetDoses(ctx context.Context, arg ForgetDosesParams) (int64, error) {

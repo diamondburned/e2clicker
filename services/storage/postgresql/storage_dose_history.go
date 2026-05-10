@@ -102,9 +102,9 @@ func (s *doseHistoryStorage) EditDose(ctx context.Context, userSecret user.Secre
 }
 
 func (s *doseHistoryStorage) ForgetDoses(ctx context.Context, userSecret user.Secret, doseTimes []time.Time) error {
-	pgTimes := make([]pgtype.Timestamp, len(doseTimes))
+	pgTimes := make([]pgtype.Timestamptz, len(doseTimes))
 	for i, t := range doseTimes {
-		pgTimes[i] = pgtype.Timestamp{Time: t, Valid: true}
+		pgTimes[i] = pgtype.Timestamptz{Time: t, Valid: true}
 	}
 
 	n, err := s.q.ForgetDoses(ctx, postgresqlc.ForgetDosesParams{

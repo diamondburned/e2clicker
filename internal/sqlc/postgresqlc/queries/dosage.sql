@@ -31,7 +31,7 @@ WHERE user_secret = @user_secret
 -- name: ForgetDoses :execrows
 DELETE FROM dosage_history
 WHERE user_secret = $1
-  AND taken_at = ANY (@taken_at::timestamp[]);
+  AND taken_at = ANY (@taken_at::timestamptz[]);
 
 -- name: DoseHistory :many
 SELECT *
