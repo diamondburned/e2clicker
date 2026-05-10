@@ -44,7 +44,7 @@
     }),
   );
 
-  const historyDuration = Duration.fromObject({ month: 1 });
+  const historyDuration = Duration.fromObject({ month: 3 });
   let historyInterval = $state(intervalUntilNow(historyDuration));
   onMount(() =>
     mountTimer(apiUpdateRate, () => {

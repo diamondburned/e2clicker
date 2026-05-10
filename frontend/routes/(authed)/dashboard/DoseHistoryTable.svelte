@@ -7,7 +7,7 @@
   import * as e2 from "$lib/e2.svelte";
   import * as api from "$lib/api";
   import { slide } from "svelte/transition";
-  import { DateTime } from "luxon";
+  import { DateTime, Interval } from "luxon";
 
   let {
     now,
@@ -32,13 +32,23 @@
       ? history![history!.length - 1].takenAt
       : null,
   );
+  let oldestDoseAt = $derived(
+    history.length > 0 //
+      ? history![0].takenAt
+      : null,
+  );
 
   let visiblePastWeek = $state(0);
 
   let visibleTotalWeeks = $derived.by(() => {
-    const daysList = history.map((d) => d.takenAt.startOf("week"));
-    const days = new Set(daysList);
-    return days.size;
+    const oldestDoseWeek = (oldestDoseAt ?? DateTime.now()).startOf("week");
+    const timeSinceOldest = Interval.fromDateTimes(oldestDoseWeek, DateTime.now());
+    if (!timeSinceOldest.isValid) throw new Error(timeSinceOldest.invalidReason);
+
+    const durationSinceOldest = timeSinceOldest.toDuration(["weeks", "days"]);
+    if (!durationSinceOldest.isValid) throw new Error(durationSinceOldest.invalidReason);
+
+    return durationSinceOldest.weeks;
   });
 
   let visibleDoseTime = $derived(
