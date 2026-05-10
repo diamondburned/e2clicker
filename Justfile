@@ -7,7 +7,11 @@ default:
 
 ###
 
-build: build-frontend generate
+build: build-backend build-frontend generate
+
+build-backend: build-clean generate-backend
+    @mkdir -p dist/backend
+    go build -o ./dist/backend/e2clicker-backend ./cmd/e2clicker-backend
 
 build-frontend: build-clean build-frontend-fix generate-frontend
     @mkdir -p dist/frontend
