@@ -157,7 +157,7 @@ export function dosage({ start, end }: {
         data: {
             /** The user's current dosage schedule. This is null if the user has no dosage set. */
             dosage?: Dosage;
-            /** The user's dosage history within the requested time range. If either historyStart or historyEnd are not provided, this will be null. */
+            /** The user's dosage history within the requested time range. If no start time is provided, this will be null. */
             history?: DosageHistory;
         };
     }>(`/dosage${QS.query(QS.explode({

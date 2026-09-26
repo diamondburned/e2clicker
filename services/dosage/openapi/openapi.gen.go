@@ -106,7 +106,9 @@ type Dose struct {
 // DosageParams defines parameters for Dosage.
 type DosageParams struct {
 	Start *time.Time `form:"start,omitempty" json:"start,omitempty"`
-	End   *time.Time `form:"end,omitempty" json:"end,omitempty"`
+
+	// End The end date of the history to retrieve. If not provided, defaults to the current time.
+	End *time.Time `form:"end,omitempty" json:"end,omitempty"`
 }
 
 // ForgetDosesParams defines parameters for ForgetDoses.

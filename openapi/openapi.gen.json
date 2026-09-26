@@ -65,9 +65,9 @@
             "in": "query",
             "schema": {
               "type": "string",
-              "format": "date-time",
-              "description": "The end date of the history to retrieve, if requested."
-            }
+              "format": "date-time"
+            },
+            "description": "The end date of the history to retrieve. If not provided, defaults to the current time."
           }
         ],
         "responses": {
@@ -86,7 +86,7 @@
                       ]
                     },
                     "history": {
-                      "description": "The user's dosage history within the requested time range. If either historyStart or historyEnd are not provided, this will be null.",
+                      "description": "The user's dosage history within the requested time range. If no start time is provided, this will be null.",
                       "allOf": [
                         {
                           "$ref": "#/components/schemas/DosageHistory"

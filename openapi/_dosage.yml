@@ -41,8 +41,9 @@ paths:
           schema:
             type: string
             format: date-time
-            description: >-
-              The end date of the history to retrieve, if requested.
+          description: >-
+            The end date of the history to retrieve.
+            If not provided, defaults to the current time.
       responses:
         "200":
           description: >-
@@ -60,7 +61,7 @@ paths:
                   history:
                     description: >-
                       The user's dosage history within the requested time range.
-                      If either historyStart or historyEnd are not provided, this will be null.
+                      If no start time is provided, this will be null.
                     allOf:
                       - $ref: "#/components/schemas/DosageHistory"
     put:

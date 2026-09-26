@@ -67,7 +67,7 @@ This operation does not require authentication
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
 |start|query|string(date-time)|false|none|
-|end|query|string(date-time)|false|none|
+|end|query|string(date-time)|false|The end date of the history to retrieve. If not provided, defaults to the current time.|
 
 > Example responses
 

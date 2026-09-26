@@ -188,7 +188,11 @@ func (h *openAPIHandler) ClearDosage(ctx context.Context, request openapi.ClearD
 
 func (h *openAPIHandler) RecordDose(ctx context.Context, request openapi.RecordDoseRequestObject) (openapi.RecordDoseResponseObject, error) {
 	session := sessionFromCtx(ctx)
-	now := time.Now()
+
+	// Subtract a minute and truncate to the second so that the recorded time
+	// always lands behind both clocks, guarding against client-server clock
+	// drift and sub-second rounding.
+	now := time.Now().Add(-time.Minute).Truncate(time.Second)
 
 	d, err := h.dosage.Dosage(ctx, session.UserSecret)
 	if err != nil {
@@ -254,9 +258,11 @@ func (h *openAPIHandler) Dosage(ctx context.Context, request openapi.DosageReque
 		r.Dosage = (*openapi.Dosage)(dosage)
 	}
 
-	if request.Params.Start != nil && request.Params.End != nil {
+	if request.Params.Start != nil {
+		end := ptr.DerefOr(request.Params.End, time.Now())
+
 		const oneYear = 365 * 24 * time.Hour
-		if request.Params.End.Sub(*request.Params.Start) > oneYear {
+		if end.Sub(*request.Params.Start) > oneYear {
 			return nil, publicerrors.New("" +
 				"requested history range is too large, must be 1 year or less " +
 				"(consider exporting instead)")
@@ -268,7 +274,7 @@ func (h *openAPIHandler) Dosage(ctx context.Context, request openapi.DosageReque
 		doses, err := h.doseHistory.DoseHistory(
 			ctx, session.UserSecret,
 			*request.Params.Start,
-			*request.Params.End)
+			end)
 		if err != nil {
 			return nil, fmt.Errorf("cannot get dosage history: %w", err)
 		}

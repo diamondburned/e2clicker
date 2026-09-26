@@ -65,9 +65,10 @@
   });
 
   $effect(() => {
+    // Omit the end time so that the server uses its own current time; this
+    // keeps newly recorded doses inside the range despite clock drift.
     dosageLoader.load({
       start: historyInterval.start.toISO(),
-      end: historyInterval.end.toISO(),
     });
   });
 
