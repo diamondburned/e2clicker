@@ -46,13 +46,13 @@ func (q *Queries) DosageSchedule(ctx context.Context, userSecret userservice.Sec
 }
 
 const doseHistory = `-- name: DoseHistory :many
-SELECT user_secret, delivery_method, dose, taken_at, taken_off_at, comment
+SELECT user_secret, delivery_method, dose, taken_at, taken_off_at, comment, id
 FROM dosage_history
 WHERE user_secret = $1
   AND taken_at >= $2
   AND taken_at < $3
   -- order latest last
-ORDER BY taken_at ASC
+ORDER BY taken_at ASC, id ASC
 `
 
 type DoseHistoryParams struct {
@@ -77,6 +77,7 @@ func (q *Queries) DoseHistory(ctx context.Context, arg DoseHistoryParams) ([]Dos
 			&i.TakenAt,
 			&i.TakenOffAt,
 			&i.Comment,
+			&i.ID,
 		); err != nil {
 			return nil, err
 		}
@@ -91,9 +92,9 @@ func (q *Queries) DoseHistory(ctx context.Context, arg DoseHistoryParams) ([]Dos
 const editDose = `-- name: EditDose :execrows
 UPDATE
   dosage_history
-SET delivery_method = $1, dose = $2, taken_at = $3, taken_off_at = $4
-WHERE user_secret = $5
-  AND taken_at = $6
+SET delivery_method = $1, dose = $2, taken_at = $3, taken_off_at = $4, comment = $5
+WHERE user_secret = $6
+  AND id = $7
 `
 
 type EditDoseParams struct {
@@ -101,8 +102,9 @@ type EditDoseParams struct {
 	Dose           float32
 	TakenAt        pgtype.Timestamptz
 	TakenOffAt     pgtype.Timestamptz
+	Comment        pgtype.Text
 	UserSecret     userservice.Secret
-	OldTakenAt     pgtype.Timestamptz
+	ID             pgtype.UUID
 }
 
 func (q *Queries) EditDose(ctx context.Context, arg EditDoseParams) (int64, error) {
@@ -111,8 +113,9 @@ func (q *Queries) EditDose(ctx context.Context, arg EditDoseParams) (int64, erro
 		arg.Dose,
 		arg.TakenAt,
 		arg.TakenOffAt,
+		arg.Comment,
 		arg.UserSecret,
-		arg.OldTakenAt,
+		arg.ID,
 	)
 	if err != nil {
 		return 0, err
@@ -123,44 +126,59 @@ func (q *Queries) EditDose(ctx context.Context, arg EditDoseParams) (int64, erro
 const forgetDoses = `-- name: ForgetDoses :execrows
 DELETE FROM dosage_history
 WHERE user_secret = $1
-  AND taken_at = ANY ($2::timestamptz[])
+  AND id = ANY ($2::uuid[])
 `
 
 type ForgetDosesParams struct {
 	UserSecret userservice.Secret
-	TakenAt    []pgtype.Timestamptz
+	IDs        []pgtype.UUID
 }
 
 func (q *Queries) ForgetDoses(ctx context.Context, arg ForgetDosesParams) (int64, error) {
-	result, err := q.db.Exec(ctx, forgetDoses, arg.UserSecret, arg.TakenAt)
+	result, err := q.db.Exec(ctx, forgetDoses, arg.UserSecret, arg.IDs)
 	if err != nil {
 		return 0, err
 	}
 	return result.RowsAffected(), nil
 }
 
-const recordDose = `-- name: RecordDose :exec
-INSERT INTO dosage_history (user_secret, delivery_method, dose, taken_at, taken_off_at)
-  VALUES ($1, $2, $3, $4, $5)
+const recordDose = `-- name: RecordDose :one
+INSERT INTO dosage_history (user_secret, id, delivery_method, dose, taken_at, taken_off_at, comment)
+  VALUES ($1, $2, $3, $4, $5, $6, $7)
+RETURNING user_secret, delivery_method, dose, taken_at, taken_off_at, comment, id
 `
 
 type RecordDoseParams struct {
 	UserSecret     userservice.Secret
+	ID             pgtype.UUID
 	DeliveryMethod pgtype.Text
 	Dose           float32
 	TakenAt        pgtype.Timestamptz
 	TakenOffAt     pgtype.Timestamptz
+	Comment        pgtype.Text
 }
 
-func (q *Queries) RecordDose(ctx context.Context, arg RecordDoseParams) error {
-	_, err := q.db.Exec(ctx, recordDose,
+func (q *Queries) RecordDose(ctx context.Context, arg RecordDoseParams) (DosageHistory, error) {
+	row := q.db.QueryRow(ctx, recordDose,
 		arg.UserSecret,
+		arg.ID,
 		arg.DeliveryMethod,
 		arg.Dose,
 		arg.TakenAt,
 		arg.TakenOffAt,
+		arg.Comment,
 	)
-	return err
+	var i DosageHistory
+	err := row.Scan(
+		&i.UserSecret,
+		&i.DeliveryMethod,
+		&i.Dose,
+		&i.TakenAt,
+		&i.TakenOffAt,
+		&i.Comment,
+		&i.ID,
+	)
+	return i, err
 }
 
 const recordRemindedDoseAttempt = `-- name: RecordRemindedDoseAttempt :exec
@@ -219,16 +237,16 @@ SELECT
   users.secret AS user_secret,
   users.name AS user_name,
   dosage_schedule.user_secret, dosage_schedule.delivery_method, dosage_schedule.dose, dosage_schedule.interval, dosage_schedule.concurrence, dosage_schedule.reminder_recurrence,
-  dosage_history.user_secret, dosage_history.delivery_method, dosage_history.dose, dosage_history.taken_at, dosage_history.taken_off_at, dosage_history.comment,
+  dosage_history.user_secret, dosage_history.delivery_method, dosage_history.dose, dosage_history.taken_at, dosage_history.taken_off_at, dosage_history.comment, dosage_history.id,
   last_notification.supposed_entity_time AS last_reminded_dose,
   last_notification.sent_at AS last_reminded_at
 FROM users
   INNER JOIN dosage_schedule ON users.secret = dosage_schedule.user_secret
   INNER JOIN LATERAL (
-    SELECT user_secret, delivery_method, dose, taken_at, taken_off_at, comment
+    SELECT user_secret, delivery_method, dose, taken_at, taken_off_at, comment, id
     FROM dosage_history dh
     WHERE dh.user_secret = users.secret
-    ORDER BY dh.taken_at DESC
+    ORDER BY dh.taken_at DESC, dh.id DESC
     LIMIT 1
   ) dosage_history ON TRUE
   LEFT JOIN LATERAL (
@@ -274,6 +292,7 @@ func (q *Queries) UpcomingDosageReminders(ctx context.Context) ([]UpcomingDosage
 			&i.DosageHistory.TakenAt,
 			&i.DosageHistory.TakenOffAt,
 			&i.DosageHistory.Comment,
+			&i.DosageHistory.ID,
 			&i.LastRemindedDose,
 			&i.LastRemindedAt,
 		); err != nil {

@@ -7,10 +7,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/timewasted/go-accept-headers"
 	"e2clicker.app/internal/publicerrors"
 	"e2clicker.app/services/api/openapi"
 	"e2clicker.app/services/dosage"
+	"github.com/timewasted/go-accept-headers"
 )
 
 type openAPIHandlerForImportExport struct {
@@ -54,6 +54,15 @@ acceptSearch:
 		return
 	}
 
+	var csvFormat dosage.CSVFormat
+	if params.Format != nil {
+		csvFormat = dosage.CSVFormat(*params.Format)
+	}
+	if format == dosage.ExportJSON && csvFormat == dosage.CSVFormatEstrannaise {
+		writeError(w, r, publicerrors.New("estrannaise format is only supported for text/csv exports"), http.StatusBadRequest)
+		return
+	}
+
 	exportExtensions, err := mime.ExtensionsByType(format.AsMIME())
 	if err != nil {
 		writeError(w, r, fmt.Errorf("format %q missing file extension: %w", format, err), 500)
@@ -61,15 +70,20 @@ acceptSearch:
 	}
 
 	exportTime := time.Now().Format(time.RFC3339)
-	exportName := fmt.Sprintf("dose-history-%s.%s", exportTime, exportExtensions[0])
+	exportPrefix := "dose-history"
+	if format == dosage.ExportCSV && csvFormat == dosage.CSVFormatEstrannaise {
+		exportPrefix = "dose-history-estrannaise"
+	}
+	exportName := fmt.Sprintf("%s-%s.%s", exportPrefix, exportTime, exportExtensions[0])
 
 	w.Header().Set("Content-Type", format.AsMIME())
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", exportName))
 
 	n, err := h.doseExporter.ExportDoseHistory(ctx, w, session.UserSecret, dosage.ExportDoseHistoryOptions{
-		Begin:  optPtr(params.Start),
-		End:    optPtr(params.End),
-		Format: format,
+		Begin:     optPtr(params.Start),
+		End:       optPtr(params.End),
+		Format:    format,
+		CSVFormat: csvFormat,
 	})
 
 	if err != nil {

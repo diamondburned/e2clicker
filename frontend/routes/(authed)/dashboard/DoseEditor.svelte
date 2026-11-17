@@ -24,11 +24,12 @@
 
   async function saveDose() {
     try {
-      await api.editDose(dose.oldTakenAt, {
-        ...dose,
+      await api.editDose(dose.id, {
         deliveryMethod: dose.deliveryMethod.id,
+        dose: dose.dose,
         takenAt: dose.takenAt.toISO(),
         takenOffAt: dose.takenOffAt?.toISO(),
+        comment: dose.comment,
       });
       update();
     } catch (err) {
@@ -38,7 +39,7 @@
 
   async function forgetDose() {
     try {
-      await api.forgetDose(dose.oldTakenAt);
+      await api.forgetDose(dose.id);
       update();
     } catch (err) {
       logErrorToast("Failed to forget dose", err);

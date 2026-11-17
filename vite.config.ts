@@ -11,7 +11,6 @@ export default defineConfig({
   plugins: [
     sveltekit(),
     sveltekitPWA({
-      injectRegister: "inline",
       strategies: "injectManifest",
       srcDir: "frontend",
       filename: "service-worker.ts",

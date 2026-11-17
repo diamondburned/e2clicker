@@ -21,6 +21,10 @@ cleanupOutdatedCaches();
 // yet, and there are some issues with doing so.
 precache(self.__WB_MANIFEST);
 
+self.addEventListener("activate", (ev) => {
+  ev.waitUntil(self.clients.claim());
+});
+
 self.addEventListener("message", (ev) => {
   console.debug("Service Worker received message", ev.data);
   if (ev.data && ev.data.type === "SKIP_WAITING") {
@@ -116,19 +120,22 @@ self.addEventListener("pushsubscriptionchange", (ev) => {
           ? new Date(subscription.expirationTime).toISOString()
           : undefined;
 
-        const resp = await fetch(`/api/notifications/web-push/${encodeURIComponent(creds.deviceID)}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${creds.token}`,
+        const resp = await fetch(
+          `/api/notifications/web-push/${encodeURIComponent(creds.deviceID)}`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${creds.token}`,
+            },
+            body: JSON.stringify({
+              deviceID: creds.deviceID,
+              endpoint: subscription.endpoint,
+              expirationTime,
+              keys: { p256dh: keys.p256dh, auth: keys.auth },
+            }),
           },
-          body: JSON.stringify({
-            deviceID: creds.deviceID,
-            endpoint: subscription.endpoint,
-            expirationTime,
-            keys: { p256dh: keys.p256dh, auth: keys.auth },
-          }),
-        });
+        );
         if (!resp.ok) {
           throw new Error(`failed to update push subscription: ${resp.status}`);
         }

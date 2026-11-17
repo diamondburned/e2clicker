@@ -24,6 +24,7 @@ type DosageHistory struct {
 	TakenAt        pgtype.Timestamptz
 	TakenOffAt     pgtype.Timestamptz
 	Comment        pgtype.Text
+	ID             pgtype.UUID
 }
 
 type DosageSchedule struct {

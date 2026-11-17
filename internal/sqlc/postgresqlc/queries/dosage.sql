@@ -17,21 +17,22 @@ ON CONFLICT (user_secret)
 DELETE FROM dosage_schedule
 WHERE user_secret = $1;
 
--- name: RecordDose :exec
-INSERT INTO dosage_history (user_secret, delivery_method, dose, taken_at, taken_off_at)
-  VALUES ($1, $2, $3, $4, $5);
+-- name: RecordDose :one
+INSERT INTO dosage_history (user_secret, id, delivery_method, dose, taken_at, taken_off_at, comment)
+  VALUES ($1, $2, $3, $4, $5, $6, $7)
+RETURNING *;
 
 -- name: EditDose :execrows
 UPDATE
   dosage_history
-SET delivery_method = @delivery_method, dose = @dose, taken_at = @taken_at, taken_off_at = @taken_off_at
+SET delivery_method = @delivery_method, dose = @dose, taken_at = @taken_at, taken_off_at = @taken_off_at, comment = @comment
 WHERE user_secret = @user_secret
-  AND taken_at = @old_taken_at;
+  AND id = @id;
 
 -- name: ForgetDoses :execrows
 DELETE FROM dosage_history
 WHERE user_secret = $1
-  AND taken_at = ANY (@taken_at::timestamptz[]);
+  AND id = ANY (@ids::uuid[]);
 
 -- name: DoseHistory :many
 SELECT *
@@ -40,7 +41,7 @@ WHERE user_secret = $1
   AND taken_at >= sqlc.arg('start')
   AND taken_at < sqlc.arg('end')
   -- order latest last
-ORDER BY taken_at ASC;
+ORDER BY taken_at ASC, id ASC;
 
 -- name: UpcomingDosageReminders :many
 SELECT
@@ -56,7 +57,7 @@ FROM users
     SELECT *
     FROM dosage_history dh
     WHERE dh.user_secret = users.secret
-    ORDER BY dh.taken_at DESC
+    ORDER BY dh.taken_at DESC, dh.id DESC
     LIMIT 1
   ) dosage_history ON TRUE
   LEFT JOIN LATERAL (

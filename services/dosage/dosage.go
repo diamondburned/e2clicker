@@ -6,10 +6,13 @@ import (
 	"fmt"
 	"iter"
 	"time"
+	"uuid"
 
+	"e2clicker.app/internal/ptr"
 	"e2clicker.app/internal/publicerrors"
 	"e2clicker.app/services/dosage/openapi"
 	"e2clicker.app/services/user"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 func init() {
@@ -38,18 +41,19 @@ type DosageStorage interface {
 
 // DoseHistoryStorage is a storage for dose history data.
 type DoseHistoryStorage interface {
-	// RecordDose records a single dose. The dose observation's ID is returned.
-	RecordDose(ctx context.Context, secret user.Secret, dose Dose) error
+	// RecordDose records a single dose and returns the recorded observation
+	// including its assigned ID.
+	RecordDose(ctx context.Context, secret user.Secret, dose Dose) (Dose, error)
 	// ImportDoses imports doses in bulk and returns the number of doses
 	// imported.
 	// This is a separate method from RecordDose to allow for more efficient
 	// bulk imports.
 	ImportDoses(ctx context.Context, secret user.Secret, doseSeq iter.Seq[Dose]) (int64, error)
-	// EditDose edits a dose by the previous takenAt time.
+	// EditDose edits a dose by its ID.
 	// All fields are updated.
-	EditDose(ctx context.Context, secret user.Secret, doseTime time.Time, dose Dose) error
-	// ForgetDoses forgets the given doses.
-	ForgetDoses(ctx context.Context, secret user.Secret, doseTimes []time.Time) error
+	EditDose(ctx context.Context, secret user.Secret, id uuid.UUID, dose Dose) error
+	// ForgetDoses forgets the given doses by their IDs.
+	ForgetDoses(ctx context.Context, secret user.Secret, ids []uuid.UUID) error
 	// DoseHistory returns the history of a dosage schedule. If end is zero, it
 	// is considered to be now. If begin is zero, it is considered to be
 	// since the beginning of time.
@@ -74,6 +78,8 @@ type Dosage = openapi.Dosage
 
 // Dose describes a dose of medication in time.
 type Dose struct {
+	// ID is the unique identifier (UUIDv7) of the dose observation.
+	ID uuid.UUID
 	// DeliveryMethod is the method of delivery for the medication
 	// at the time the dose was taken.
 	DeliveryMethod string
@@ -89,17 +95,28 @@ type Dose struct {
 }
 
 func doseFromOpenAPI(d openapi.Dose) Dose {
-	var comment string
-	if d.Comment != nil {
-		comment = *d.Comment
-	}
-
 	return Dose{
+		ID:             uuid.UUID(d.ID),
 		DeliveryMethod: d.DeliveryMethod,
 		Dose:           d.Dose,
 		TakenAt:        d.TakenAt,
 		TakenOffAt:     d.TakenOffAt,
-		Comment:        comment,
+		Comment:        ptr.Deref(d.Comment),
+	}
+}
+
+func doseFromImportOpenAPI(d openapi.DoseImport) Dose {
+	var id uuid.UUID
+	if d.ID != nil {
+		id = uuid.UUID(*d.ID)
+	}
+	return Dose{
+		ID:             id,
+		DeliveryMethod: d.DeliveryMethod,
+		Dose:           d.Dose,
+		TakenAt:        d.TakenAt,
+		TakenOffAt:     d.TakenOffAt,
+		Comment:        ptr.Deref(d.Comment),
 	}
 }
 
@@ -110,6 +127,7 @@ func (d Dose) ToOpenAPI() openapi.Dose {
 	}
 
 	return openapi.Dose{
+		ID:             openapi_types.UUID(d.ID),
 		DeliveryMethod: d.DeliveryMethod,
 		Dose:           d.Dose,
 		TakenAt:        d.TakenAt,
@@ -118,9 +136,9 @@ func (d Dose) ToOpenAPI() openapi.Dose {
 	}
 }
 
-// CSVDoseRecord is a single dose record in a CSV file.
-// This is version 1.
+// CSVDoseRecord is a single dose record in an e2clicker v2 CSV file.
 type CSVDoseRecord struct {
+	ID             string  `csv:"id"` // UUID or ""
 	DeliveryMethod string  `csv:"deliveryMethod"`
 	Dose           float32 `csv:"dose"`
 	TakenAt        string  `csv:"takenAt"`    // RFC3339
@@ -128,7 +146,33 @@ type CSVDoseRecord struct {
 	Comment        string  `csv:"comment"`
 }
 
+// csvDoseRecordV1 is a single dose record in a legacy e2clicker v1 CSV file.
+type csvDoseRecordV1 struct {
+	DeliveryMethod string  `csv:"deliveryMethod"`
+	Dose           float32 `csv:"dose"`
+	TakenAt        string  `csv:"takenAt"`    // RFC3339
+	TakenOffAt     string  `csv:"takenOffAt"` // RFC3339 or ""
+	Comment        string  `csv:"comment"`
+}
+
+// EstrannaiseCSVDoseRecord is a single dose record in estrannaise.js CSV format.
+// This format is export-only and cannot be imported.
+type EstrannaiseCSVDoseRecord struct {
+	Dose  float32 `csv:"dose"`
+	Days  float64 `csv:"days"`
+	Model string  `csv:"model"`
+}
+
 func doseFromCSV(r CSVDoseRecord) (Dose, error) {
+	var id uuid.UUID
+	if r.ID != "" {
+		var err error
+		id, err = uuid.Parse(r.ID)
+		if err != nil {
+			return Dose{}, publicerrors.Errorf("cannot parse id %q: %w", r.ID, err)
+		}
+	}
+
 	takenAt, err := parseCSVTime(r.TakenAt)
 	if err != nil {
 		return Dose{}, fmt.Errorf("cannot parse takenAt: %w", err)
@@ -144,6 +188,7 @@ func doseFromCSV(r CSVDoseRecord) (Dose, error) {
 	}
 
 	return Dose{
+		ID:             id,
 		DeliveryMethod: r.DeliveryMethod,
 		Dose:           r.Dose,
 		TakenAt:        takenAt,
@@ -152,8 +197,24 @@ func doseFromCSV(r CSVDoseRecord) (Dose, error) {
 	}, nil
 }
 
+func doseFromCSVV1(r csvDoseRecordV1) (Dose, error) {
+	return doseFromCSV(CSVDoseRecord{
+		DeliveryMethod: r.DeliveryMethod,
+		Dose:           r.Dose,
+		TakenAt:        r.TakenAt,
+		TakenOffAt:     r.TakenOffAt,
+		Comment:        r.Comment,
+	})
+}
+
 func (d Dose) ToCSV() CSVDoseRecord {
+	var id string
+	if d.ID != uuid.Nil() {
+		id = d.ID.String()
+	}
+
 	return CSVDoseRecord{
+		ID:             id,
 		DeliveryMethod: d.DeliveryMethod,
 		Dose:           d.Dose,
 		TakenAt:        formatCSVTime(d.TakenAt),

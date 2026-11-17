@@ -1,10 +1,49 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import LoadingPage from "$lib/components/LoadingPage.svelte";
 
   import { onNavigate } from "$app/navigation";
   import ToastOverlay from "$lib/components/toast/ToastOverlay.svelte";
 
   let { children } = $props();
+
+  onMount(() => {
+    if (!("serviceWorker" in navigator)) return;
+
+    const hadController = Boolean(navigator.serviceWorker.controller);
+    let refreshing = false;
+
+    const onControllerChange = () => {
+      if (!hadController || refreshing) return;
+      refreshing = true;
+      window.location.reload();
+    };
+    navigator.serviceWorker.addEventListener("controllerchange", onControllerChange);
+
+    const activateWaiting = (worker: ServiceWorker | null | undefined) => {
+      if (worker) {
+        worker.postMessage({ type: "SKIP_WAITING" });
+      }
+    };
+
+    navigator.serviceWorker.getRegistration().then((reg) => {
+      if (!reg) return;
+      activateWaiting(reg.waiting);
+      reg.addEventListener("updatefound", () => {
+        const installing = reg.installing;
+        if (!installing) return;
+        installing.addEventListener("statechange", () => {
+          if (installing.state === "installed" && navigator.serviceWorker.controller) {
+            activateWaiting(installing);
+          }
+        });
+      });
+    });
+
+    return () => {
+      navigator.serviceWorker.removeEventListener("controllerchange", onControllerChange);
+    };
+  });
 
   onNavigate((navigation) => {
     if (!document.startViewTransition) return;

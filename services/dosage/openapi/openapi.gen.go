@@ -7,7 +7,26 @@ import (
 	"time"
 
 	meta "e2clicker.app/internal/meta"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 )
+
+// Defines values for ExportDosesParamsFormat.
+const (
+	E2Clicker   ExportDosesParamsFormat = "e2clicker"
+	Estrannaise ExportDosesParamsFormat = "estrannaise"
+)
+
+// Valid indicates whether the value is a known member of the ExportDosesParamsFormat enum.
+func (e ExportDosesParamsFormat) Valid() bool {
+	switch e {
+	case E2Clicker:
+		return true
+	case Estrannaise:
+		return true
+	default:
+		return false
+	}
+}
 
 // Defines values for ExportDosesParamsAccept.
 const (
@@ -85,8 +104,53 @@ type DosageHistory = []Dose
 // DosageHistoryCSV The CSV format of the user's dosage history.
 type DosageHistoryCSV = string
 
-// Dose A dose of medication in time.
+// DosageHistoryImport defines model for DosageHistoryImport.
+type DosageHistoryImport = []DoseImport
+
+// Dose defines model for Dose.
 type Dose struct {
+	// ID The unique identifier of the dosage observation.
+	ID openapi_types.UUID `json:"id"`
+
+	// DeliveryMethod The delivery method used.
+	DeliveryMethod string `json:"deliveryMethod"`
+
+	// Dose The dosage amount.
+	Dose float32 `json:"dose"`
+
+	// TakenAt The time the dosage was taken.
+	TakenAt time.Time `json:"takenAt"`
+
+	// TakenOffAt The time the dosage was taken off. This is only relevant for patch delivery methods.
+	TakenOffAt *time.Time `json:"takenOffAt,omitempty"`
+
+	// Comment A comment about the dosage, if any.
+	Comment *string `json:"comment,omitempty"`
+}
+
+// DoseImport defines model for DoseImport.
+type DoseImport struct {
+	// ID Optional unique identifier of the dosage observation.
+	ID *openapi_types.UUID `json:"id,omitempty"`
+
+	// DeliveryMethod The delivery method used.
+	DeliveryMethod string `json:"deliveryMethod"`
+
+	// Dose The dosage amount.
+	Dose float32 `json:"dose"`
+
+	// TakenAt The time the dosage was taken.
+	TakenAt time.Time `json:"takenAt"`
+
+	// TakenOffAt The time the dosage was taken off. This is only relevant for patch delivery methods.
+	TakenOffAt *time.Time `json:"takenOffAt,omitempty"`
+
+	// Comment A comment about the dosage, if any.
+	Comment *string `json:"comment,omitempty"`
+}
+
+// DoseInput A dose of medication in time.
+type DoseInput struct {
 	// DeliveryMethod The delivery method used.
 	DeliveryMethod string `json:"deliveryMethod"`
 
@@ -113,26 +177,32 @@ type DosageParams struct {
 
 // ForgetDosesParams defines parameters for ForgetDoses.
 type ForgetDosesParams struct {
-	DoseTimes []time.Time `form:"doseTimes" json:"doseTimes"`
+	// Ids The IDs of the dosages that should be deleted.
+	Ids []openapi_types.UUID `form:"ids" json:"ids"`
 }
 
 // RecordDoseJSONBody defines parameters for RecordDose.
 type RecordDoseJSONBody struct {
+	// Comment An optional comment about the dosage.
+	Comment *string `json:"comment,omitempty"`
+
 	// TakenAt The time the dosage was taken. If not provided, the current time is used.
 	TakenAt *time.Time `json:"takenAt,omitempty"`
 }
 
-// EditDoseJSONBody defines parameters for EditDose.
-type EditDoseJSONBody = Dose
-
 // ExportDosesParams defines parameters for ExportDoses.
 type ExportDosesParams struct {
-	Start *time.Time `form:"start,omitempty" json:"start,omitempty"`
-	End   *time.Time `form:"end,omitempty" json:"end,omitempty"`
+	// Format The CSV schema format to export when Accept is text/csv. "e2clicker" (default) exports full losslessly re-importable records. "estrannaise" exports a dose,days,model CSV for viewing in estrannai.se (export-only).
+	Format *ExportDosesParamsFormat `form:"format,omitempty" json:"format,omitempty"`
+	Start  *time.Time               `form:"start,omitempty" json:"start,omitempty"`
+	End    *time.Time               `form:"end,omitempty" json:"end,omitempty"`
 
 	// Accept The format to export the dosage history in.
 	Accept ExportDosesParamsAccept `json:"Accept"`
 }
+
+// ExportDosesParamsFormat defines parameters for ExportDoses.
+type ExportDosesParamsFormat string
 
 // ExportDosesParamsAccept defines parameters for ExportDoses.
 type ExportDosesParamsAccept string
@@ -153,7 +223,7 @@ type SetDosageJSONRequestBody = Dosage
 type RecordDoseJSONRequestBody RecordDoseJSONBody
 
 // EditDoseJSONRequestBody defines body for EditDose for application/json ContentType.
-type EditDoseJSONRequestBody = EditDoseJSONBody
+type EditDoseJSONRequestBody = DoseInput
 
 // ImportDosesJSONRequestBody defines body for ImportDoses for application/json ContentType.
-type ImportDosesJSONRequestBody = DosageHistory
+type ImportDosesJSONRequestBody = DosageHistoryImport

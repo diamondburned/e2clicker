@@ -160,6 +160,10 @@
                     "type": "string",
                     "format": "date-time",
                     "description": "The time the dosage was taken. If not provided, the current time is used."
+                  },
+                  "comment": {
+                    "type": "string",
+                    "description": "An optional comment about the dosage."
                   }
                 }
               }
@@ -187,16 +191,16 @@
         "operationId": "forgetDoses",
         "parameters": [
           {
-            "name": "doseTimes",
+            "name": "ids",
             "in": "query",
             "schema": {
               "type": "array",
               "items": {
                 "type": "string",
-                "format": "date-time",
-                "description": "The times the dosages were taken that should be deleted."
+                "format": "uuid"
               }
             },
+            "description": "The IDs of the dosages that should be deleted.",
             "required": true
           }
         ],
@@ -213,19 +217,19 @@
         ]
       }
     },
-    "/dosage/dose/{doseTime}": {
+    "/dosage/dose/{doseID}": {
       "put": {
         "summary": "Update a dosage in the user's history",
         "operationId": "editDose",
         "parameters": [
           {
             "in": "path",
-            "name": "doseTime",
+            "name": "doseID",
             "schema": {
               "type": "string",
-              "format": "date-time",
-              "description": "The time the dosage was taken."
+              "format": "uuid"
             },
+            "description": "The ID of the dosage to update.",
             "required": true
           }
         ],
@@ -235,11 +239,7 @@
             "application/json": {
               "schema": {
                 "description": "The updated dosage observation.",
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/Dose"
-                  }
-                ]
+                "$ref": "#/components/schemas/DoseInput"
               }
             }
           }
@@ -258,17 +258,16 @@
       },
       "delete": {
         "summary": "Delete a dosage from the user's history",
-        "description": "This operation is broken in the backend due to a parsing error and\nshould not be used. Instead, prefer using [forgetDoses].\n",
         "operationId": "forgetDose",
         "parameters": [
           {
             "in": "path",
-            "name": "doseTime",
+            "name": "doseID",
             "schema": {
               "type": "string",
-              "format": "date-time",
-              "description": "The time the dosage was taken."
+              "format": "uuid"
             },
+            "description": "The ID of the dosage to delete.",
             "required": true
           }
         ],
@@ -303,6 +302,19 @@
             },
             "required": true,
             "description": "The format to export the dosage history in."
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "e2clicker",
+                "estrannaise"
+              ],
+              "default": "e2clicker"
+            },
+            "description": "The CSV schema format to export when Accept is text/csv. \"e2clicker\" (default) exports full losslessly re-importable records. \"estrannaise\" exports a dose,days,model CSV for viewing in estrannai.se (export-only)."
           },
           {
             "name": "start",
@@ -389,7 +401,7 @@
             },
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/DosageHistory"
+                "$ref": "#/components/schemas/DosageHistoryImport"
               }
             }
           }
@@ -1000,12 +1012,18 @@
           "$ref": "#/components/schemas/Dose"
         }
       },
+      "DosageHistoryImport": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/DoseImport"
+        }
+      },
       "DosageHistoryCSV": {
         "type": "string",
-        "example": "deliveryMethod,dose,takenAt,takenOffAt,comment\npatch tw,100,2020-01-01T00:00:00Z,,\npatch tw,100,2020-01-02T12:00:00Z,,\npatch tw,100,2020-01-04T00:00:00Z,,\npatch tw,100,2020-01-05T12:00:00Z,,",
+        "example": "id,deliveryMethod,dose,takenAt,takenOffAt,comment\n019450a0-0000-7000-8000-000000000001,patch tw,100,2020-01-01T00:00:00Z,,\n019450a0-0000-7000-8000-000000000002,patch tw,100,2020-01-02T12:00:00Z,,\n019450a0-0000-7000-8000-000000000003,patch tw,100,2020-01-04T00:00:00Z,,\n019450a0-0000-7000-8000-000000000004,patch tw,100,2020-01-05T12:00:00Z,,",
         "description": "The CSV format of the user's dosage history."
       },
-      "Dose": {
+      "DoseInput": {
         "description": "A dose of medication in time.",
         "type": "object",
         "required": [
@@ -1043,6 +1061,47 @@
             "x-order": 6
           }
         }
+      },
+      "Dose": {
+        "description": "A dose of medication in time.",
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/DoseInput"
+          },
+          {
+            "type": "object",
+            "required": [
+              "id"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "The unique identifier of the dosage observation.",
+                "x-order": 1
+              }
+            }
+          }
+        ]
+      },
+      "DoseImport": {
+        "description": "A dose of medication in time for import (id optional for v1 compatibility).",
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/DoseInput"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "Optional unique identifier of the dosage observation.",
+                "x-order": 1
+              }
+            }
+          }
+        ]
       },
       "Notification": {
         "required": [

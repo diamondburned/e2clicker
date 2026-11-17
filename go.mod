@@ -1,6 +1,6 @@
 module e2clicker.app
 
-go 1.25.0
+go 1.27
 
 replace github.com/lmittmann/tint => github.com/diamondburned/tint v0.0.0-20241125184319-3f947943fed6
 

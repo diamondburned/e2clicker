@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"slices"
 	"time"
+	"uuid"
 
 	"e2clicker.app/internal/ptr"
 	"e2clicker.app/internal/publicerrors"
@@ -21,6 +22,7 @@ import (
 
 	dosageapi "e2clicker.app/services/dosage/openapi"
 	notificationapi "e2clicker.app/services/notification/openapi"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 // openAPIHandler is the handler for the OpenAPI service.
@@ -201,13 +203,13 @@ func (h *openAPIHandler) ClearDosage(ctx context.Context, request openapi.ClearD
 func (h *openAPIHandler) RecordDose(ctx context.Context, request openapi.RecordDoseRequestObject) (openapi.RecordDoseResponseObject, error) {
 	session := sessionFromCtx(ctx)
 
-	// Subtract a minute and truncate to the second so that the recorded time
-	// always lands behind both clocks, guarding against client-server clock
-	// drift and sub-second rounding.
-	now := time.Now().Add(-time.Minute).Truncate(time.Second)
+	now := time.Now().Truncate(time.Second)
 
 	d, err := h.dosage.Dosage(ctx, session.UserSecret)
 	if err != nil {
+		return nil, err
+	}
+	if d == nil {
 		return nil, publicerrors.New("no dosage set")
 	}
 
@@ -215,13 +217,15 @@ func (h *openAPIHandler) RecordDose(ctx context.Context, request openapi.RecordD
 		DeliveryMethod: d.DeliveryMethod,
 		Dose:           d.Dose,
 		TakenAt:        ptr.DerefOr(request.Body.TakenAt, now),
+		Comment:        ptr.Deref(request.Body.Comment),
 	}
 
-	if err := h.doseHistory.RecordDose(ctx, session.UserSecret, dose); err != nil {
+	recorded, err := h.doseHistory.RecordDose(ctx, session.UserSecret, dose)
+	if err != nil {
 		return nil, err
 	}
 
-	return openapi.RecordDose200JSONResponse(openapi.Dose(dose.ToOpenAPI())), nil
+	return openapi.RecordDose200JSONResponse(openapi.Dose(recorded.ToOpenAPI())), nil
 }
 
 func (h *openAPIHandler) EditDose(ctx context.Context, request openapi.EditDoseRequestObject) (openapi.EditDoseResponseObject, error) {
@@ -232,9 +236,10 @@ func (h *openAPIHandler) EditDose(ctx context.Context, request openapi.EditDoseR
 		Dose:           request.Body.Dose,
 		TakenAt:        request.Body.TakenAt,
 		TakenOffAt:     request.Body.TakenOffAt,
+		Comment:        ptr.Deref(request.Body.Comment),
 	}
 
-	if err := h.doseHistory.EditDose(ctx, session.UserSecret, request.DoseTime, o); err != nil {
+	if err := h.doseHistory.EditDose(ctx, session.UserSecret, uuid.UUID(request.DoseID), o); err != nil {
 		return nil, err
 	}
 
@@ -243,7 +248,7 @@ func (h *openAPIHandler) EditDose(ctx context.Context, request openapi.EditDoseR
 
 func (h *openAPIHandler) ForgetDose(ctx context.Context, request openapi.ForgetDoseRequestObject) (openapi.ForgetDoseResponseObject, error) {
 	session := sessionFromCtx(ctx)
-	if err := h.doseHistory.ForgetDoses(ctx, session.UserSecret, []time.Time{request.DoseTime}); err != nil {
+	if err := h.doseHistory.ForgetDoses(ctx, session.UserSecret, []uuid.UUID{uuid.UUID(request.DoseID)}); err != nil {
 		return nil, err
 	}
 	return openapi.ForgetDose204Response{}, nil
@@ -251,7 +256,10 @@ func (h *openAPIHandler) ForgetDose(ctx context.Context, request openapi.ForgetD
 
 func (h *openAPIHandler) ForgetDoses(ctx context.Context, request openapi.ForgetDosesRequestObject) (openapi.ForgetDosesResponseObject, error) {
 	session := sessionFromCtx(ctx)
-	if err := h.doseHistory.ForgetDoses(ctx, session.UserSecret, request.Params.DoseTimes); err != nil {
+	ids := convertList(request.Params.Ids, func(id openapi_types.UUID) uuid.UUID {
+		return uuid.UUID(id)
+	})
+	if err := h.doseHistory.ForgetDoses(ctx, session.UserSecret, ids); err != nil {
 		return nil, err
 	}
 	return openapi.ForgetDoses204Response{}, nil

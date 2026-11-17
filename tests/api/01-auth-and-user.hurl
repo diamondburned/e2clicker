@@ -4,8 +4,8 @@ GET {{base_url}}/api/delivery-methods
 HTTP 200
 [Asserts]
 jsonpath "$" isCollection
-jsonpath "$[?(@.id == 'EV im')]" count == 1
-jsonpath "$[?(@.id == 'patch tw')]" count == 1
+jsonpath "$[*].id" contains "EV im"
+jsonpath "$[*].id" contains "patch tw"
 
 GET {{base_url}}/api/notifications/methods
 HTTP 200

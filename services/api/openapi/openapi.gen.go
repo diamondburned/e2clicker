@@ -58,6 +58,24 @@ func (e NotificationType) Valid() bool {
 	}
 }
 
+// Defines values for ExportDosesParamsFormat.
+const (
+	E2Clicker   ExportDosesParamsFormat = "e2clicker"
+	Estrannaise ExportDosesParamsFormat = "estrannaise"
+)
+
+// Valid indicates whether the value is a known member of the ExportDosesParamsFormat enum.
+func (e ExportDosesParamsFormat) Valid() bool {
+	switch e {
+	case E2Clicker:
+		return true
+	case Estrannaise:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ExportDosesParamsAccept.
 const (
 	ExportDosesParamsAcceptApplicationJSON ExportDosesParamsAccept = "application/json"
@@ -155,8 +173,53 @@ type DosageHistory = []Dose
 // DosageHistoryCSV The CSV format of the user's dosage history.
 type DosageHistoryCSV = string
 
-// Dose A dose of medication in time.
+// DosageHistoryImport defines model for DosageHistoryImport.
+type DosageHistoryImport = []DoseImport
+
+// Dose defines model for Dose.
 type Dose struct {
+	// ID The unique identifier of the dosage observation.
+	ID openapi_types.UUID `json:"id"`
+
+	// DeliveryMethod The delivery method used.
+	DeliveryMethod string `json:"deliveryMethod"`
+
+	// Dose The dosage amount.
+	Dose float32 `json:"dose"`
+
+	// TakenAt The time the dosage was taken.
+	TakenAt time.Time `json:"takenAt"`
+
+	// TakenOffAt The time the dosage was taken off. This is only relevant for patch delivery methods.
+	TakenOffAt *time.Time `json:"takenOffAt,omitempty"`
+
+	// Comment A comment about the dosage, if any.
+	Comment *string `json:"comment,omitempty"`
+}
+
+// DoseImport defines model for DoseImport.
+type DoseImport struct {
+	// ID Optional unique identifier of the dosage observation.
+	ID *openapi_types.UUID `json:"id,omitempty"`
+
+	// DeliveryMethod The delivery method used.
+	DeliveryMethod string `json:"deliveryMethod"`
+
+	// Dose The dosage amount.
+	Dose float32 `json:"dose"`
+
+	// TakenAt The time the dosage was taken.
+	TakenAt time.Time `json:"takenAt"`
+
+	// TakenOffAt The time the dosage was taken off. This is only relevant for patch delivery methods.
+	TakenOffAt *time.Time `json:"takenOffAt,omitempty"`
+
+	// Comment A comment about the dosage, if any.
+	Comment *string `json:"comment,omitempty"`
+}
+
+// DoseInput A dose of medication in time.
+type DoseInput struct {
 	// DeliveryMethod The delivery method used.
 	DeliveryMethod string `json:"deliveryMethod"`
 
@@ -346,26 +409,32 @@ type DosageParams struct {
 
 // ForgetDosesParams defines parameters for ForgetDoses.
 type ForgetDosesParams struct {
-	DoseTimes []time.Time `form:"doseTimes" json:"doseTimes"`
+	// Ids The IDs of the dosages that should be deleted.
+	Ids []openapi_types.UUID `form:"ids" json:"ids"`
 }
 
 // RecordDoseJSONBody defines parameters for RecordDose.
 type RecordDoseJSONBody struct {
+	// Comment An optional comment about the dosage.
+	Comment *string `json:"comment,omitempty"`
+
 	// TakenAt The time the dosage was taken. If not provided, the current time is used.
 	TakenAt *time.Time `json:"takenAt,omitempty"`
 }
 
-// EditDoseJSONBody defines parameters for EditDose.
-type EditDoseJSONBody = Dose
-
 // ExportDosesParams defines parameters for ExportDoses.
 type ExportDosesParams struct {
-	Start *time.Time `form:"start,omitempty" json:"start,omitempty"`
-	End   *time.Time `form:"end,omitempty" json:"end,omitempty"`
+	// Format The CSV schema format to export when Accept is text/csv. "e2clicker" (default) exports full losslessly re-importable records. "estrannaise" exports a dose,days,model CSV for viewing in estrannai.se (export-only).
+	Format *ExportDosesParamsFormat `form:"format,omitempty" json:"format,omitempty"`
+	Start  *time.Time               `form:"start,omitempty" json:"start,omitempty"`
+	End    *time.Time               `form:"end,omitempty" json:"end,omitempty"`
 
 	// Accept The format to export the dosage history in.
 	Accept ExportDosesParamsAccept `json:"Accept"`
 }
+
+// ExportDosesParamsFormat defines parameters for ExportDoses.
+type ExportDosesParamsFormat string
 
 // ExportDosesParamsAccept defines parameters for ExportDoses.
 type ExportDosesParamsAccept string
@@ -415,10 +484,10 @@ type SetDosageJSONRequestBody = Dosage
 type RecordDoseJSONRequestBody RecordDoseJSONBody
 
 // EditDoseJSONRequestBody defines body for EditDose for application/json ContentType.
-type EditDoseJSONRequestBody = EditDoseJSONBody
+type EditDoseJSONRequestBody = DoseInput
 
 // ImportDosesJSONRequestBody defines body for ImportDoses for application/json ContentType.
-type ImportDosesJSONRequestBody = DosageHistory
+type ImportDosesJSONRequestBody = DosageHistoryImport
 
 // UserUpdateNotificationPreferencesJSONRequestBody defines body for UserUpdateNotificationPreferences for application/json ContentType.
 type UserUpdateNotificationPreferencesJSONRequestBody UserUpdateNotificationPreferencesJSONBody
@@ -453,11 +522,11 @@ type ServerInterface interface {
 	// (POST /dosage/dose)
 	RecordDose(w http.ResponseWriter, r *http.Request)
 	// Delete a dosage from the user's history
-	// (DELETE /dosage/dose/{doseTime})
-	ForgetDose(w http.ResponseWriter, r *http.Request, doseTime time.Time)
+	// (DELETE /dosage/dose/{doseID})
+	ForgetDose(w http.ResponseWriter, r *http.Request, doseID openapi_types.UUID)
 	// Update a dosage in the user's history
-	// (PUT /dosage/dose/{doseTime})
-	EditDose(w http.ResponseWriter, r *http.Request, doseTime time.Time)
+	// (PUT /dosage/dose/{doseID})
+	EditDose(w http.ResponseWriter, r *http.Request, doseID openapi_types.UUID)
 	// Export the user's dosage history
 	// (GET /dosage/export-doses)
 	ExportDoses(w http.ResponseWriter, r *http.Request, params ExportDosesParams)
@@ -657,18 +726,18 @@ func (siw *ServerInterfaceWrapper) ForgetDoses(w http.ResponseWriter, r *http.Re
 	// Parameter object where we will unmarshal all parameters from the context
 	var params ForgetDosesParams
 
-	// ------------- Required query parameter "doseTimes" -------------
+	// ------------- Required query parameter "ids" -------------
 
-	if paramValue := r.URL.Query().Get("doseTimes"); paramValue != "" {
+	if paramValue := r.URL.Query().Get("ids"); paramValue != "" {
 
 	} else {
-		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "doseTimes"})
+		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "ids"})
 		return
 	}
 
-	err = runtime.BindQueryParameterWithOptions("form", true, true, "doseTimes", r.URL.Query(), &params.DoseTimes, runtime.BindQueryParameterOptions{Type: "array", Format: ""})
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "ids", r.URL.Query(), &params.Ids, runtime.BindQueryParameterOptions{Type: "array", Format: ""})
 	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "doseTimes", Err: err})
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "ids", Err: err})
 		return
 	}
 
@@ -708,12 +777,12 @@ func (siw *ServerInterfaceWrapper) ForgetDose(w http.ResponseWriter, r *http.Req
 
 	var err error
 
-	// ------------- Path parameter "doseTime" -------------
-	var doseTime time.Time
+	// ------------- Path parameter "doseID" -------------
+	var doseID openapi_types.UUID
 
-	err = runtime.BindStyledParameterWithOptions("simple", "doseTime", r.PathValue("doseTime"), &doseTime, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "date-time"})
+	err = runtime.BindStyledParameterWithOptions("simple", "doseID", r.PathValue("doseID"), &doseID, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid"})
 	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "doseTime", Err: err})
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "doseID", Err: err})
 		return
 	}
 
@@ -724,7 +793,7 @@ func (siw *ServerInterfaceWrapper) ForgetDose(w http.ResponseWriter, r *http.Req
 	r = r.WithContext(ctx)
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.ForgetDose(w, r, doseTime)
+		siw.Handler.ForgetDose(w, r, doseID)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -739,12 +808,12 @@ func (siw *ServerInterfaceWrapper) EditDose(w http.ResponseWriter, r *http.Reque
 
 	var err error
 
-	// ------------- Path parameter "doseTime" -------------
-	var doseTime time.Time
+	// ------------- Path parameter "doseID" -------------
+	var doseID openapi_types.UUID
 
-	err = runtime.BindStyledParameterWithOptions("simple", "doseTime", r.PathValue("doseTime"), &doseTime, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "date-time"})
+	err = runtime.BindStyledParameterWithOptions("simple", "doseID", r.PathValue("doseID"), &doseID, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid"})
 	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "doseTime", Err: err})
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "doseID", Err: err})
 		return
 	}
 
@@ -755,7 +824,7 @@ func (siw *ServerInterfaceWrapper) EditDose(w http.ResponseWriter, r *http.Reque
 	r = r.WithContext(ctx)
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.EditDose(w, r, doseTime)
+		siw.Handler.EditDose(w, r, doseID)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -778,6 +847,14 @@ func (siw *ServerInterfaceWrapper) ExportDoses(w http.ResponseWriter, r *http.Re
 
 	// Parameter object where we will unmarshal all parameters from the context
 	var params ExportDosesParams
+
+	// ------------- Optional query parameter "format" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "format", r.URL.Query(), &params.Format, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "format", Err: err})
+		return
+	}
 
 	// ------------- Optional query parameter "start" -------------
 
@@ -1252,8 +1329,8 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc("PUT "+options.BaseURL+"/dosage", wrapper.SetDosage)
 	m.HandleFunc("DELETE "+options.BaseURL+"/dosage/dose", wrapper.ForgetDoses)
 	m.HandleFunc("POST "+options.BaseURL+"/dosage/dose", wrapper.RecordDose)
-	m.HandleFunc("DELETE "+options.BaseURL+"/dosage/dose/{doseTime}", wrapper.ForgetDose)
-	m.HandleFunc("PUT "+options.BaseURL+"/dosage/dose/{doseTime}", wrapper.EditDose)
+	m.HandleFunc("DELETE "+options.BaseURL+"/dosage/dose/{doseID}", wrapper.ForgetDose)
+	m.HandleFunc("PUT "+options.BaseURL+"/dosage/dose/{doseID}", wrapper.EditDose)
 	m.HandleFunc("GET "+options.BaseURL+"/dosage/export-doses", wrapper.ExportDoses)
 	m.HandleFunc("POST "+options.BaseURL+"/dosage/import-doses", wrapper.ImportDoses)
 	m.HandleFunc("GET "+options.BaseURL+"/me", wrapper.CurrentUser)
@@ -1467,7 +1544,7 @@ func (response RecordDose200JSONResponse) VisitRecordDoseResponse(w http.Respons
 }
 
 type ForgetDoseRequestObject struct {
-	DoseTime time.Time `json:"doseTime"`
+	DoseID openapi_types.UUID `json:"doseID"`
 }
 
 type ForgetDoseResponseObject interface {
@@ -1495,8 +1572,8 @@ func (response ForgetDosedefaultJSONResponse) VisitForgetDoseResponse(w http.Res
 }
 
 type EditDoseRequestObject struct {
-	DoseTime time.Time `json:"doseTime"`
-	Body     *EditDoseJSONRequestBody
+	DoseID openapi_types.UUID `json:"doseID"`
+	Body   *EditDoseJSONRequestBody
 }
 
 type EditDoseResponseObject interface {
@@ -1983,10 +2060,10 @@ type StrictServerInterface interface {
 	// (POST /dosage/dose)
 	RecordDose(ctx context.Context, request RecordDoseRequestObject) (RecordDoseResponseObject, error)
 	// Delete a dosage from the user's history
-	// (DELETE /dosage/dose/{doseTime})
+	// (DELETE /dosage/dose/{doseID})
 	ForgetDose(ctx context.Context, request ForgetDoseRequestObject) (ForgetDoseResponseObject, error)
 	// Update a dosage in the user's history
-	// (PUT /dosage/dose/{doseTime})
+	// (PUT /dosage/dose/{doseID})
 	EditDose(ctx context.Context, request EditDoseRequestObject) (EditDoseResponseObject, error)
 	// Export the user's dosage history
 	// (GET /dosage/export-doses)
@@ -2254,10 +2331,10 @@ func (sh *strictHandler) RecordDose(w http.ResponseWriter, r *http.Request) {
 }
 
 // ForgetDose operation middleware
-func (sh *strictHandler) ForgetDose(w http.ResponseWriter, r *http.Request, doseTime time.Time) {
+func (sh *strictHandler) ForgetDose(w http.ResponseWriter, r *http.Request, doseID openapi_types.UUID) {
 	var request ForgetDoseRequestObject
 
-	request.DoseTime = doseTime
+	request.DoseID = doseID
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
 		return sh.ssi.ForgetDose(ctx, request.(ForgetDoseRequestObject))
@@ -2280,10 +2357,10 @@ func (sh *strictHandler) ForgetDose(w http.ResponseWriter, r *http.Request, dose
 }
 
 // EditDose operation middleware
-func (sh *strictHandler) EditDose(w http.ResponseWriter, r *http.Request, doseTime time.Time) {
+func (sh *strictHandler) EditDose(w http.ResponseWriter, r *http.Request, doseID openapi_types.UUID) {
 	var request EditDoseRequestObject
 
-	request.DoseTime = doseTime
+	request.DoseID = doseID
 
 	var body EditDoseJSONRequestBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -2671,92 +2748,95 @@ func (sh *strictHandler) Register(w http.ResponseWriter, r *http.Request) {
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
-	"OtCCGSbbMfbP6fp/AwAA//9LnAaVc10AAA==",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

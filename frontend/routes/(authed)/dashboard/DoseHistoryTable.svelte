@@ -75,7 +75,7 @@
         <th data-column="Dose">Dose</th>
         <th data-column="Misc"></th>
       </tr>
-      {#each visibleDoses.toReversed() as dose (dose.takenAt)}
+      {#each visibleDoses.toReversed() as dose (dose.id)}
         <tr>
           <td data-column="When">
             {e2.formatDoseTime(dose, now)} ago

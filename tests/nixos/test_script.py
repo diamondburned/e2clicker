@@ -28,7 +28,7 @@ with subtest("postgresql schema version, index, and reminder retry semantics"):
     meta_v = machine.succeed(
         'runuser -u postgres -- psql -d e2clicker-backend -t -A -c "SELECT v FROM meta;"'
     ).strip()
-    assert meta_v == "5", f"expected meta.v == 5, got {meta_v!r}"
+    assert meta_v == "6", f"expected meta.v == 6, got {meta_v!r}"
 
     user_count = int(
         machine.succeed(
@@ -39,9 +39,15 @@ with subtest("postgresql schema version, index, and reminder retry semantics"):
 
     has_idx = machine.succeed(
         "runuser -u postgres -- psql -d e2clicker-backend -t -A -c "
-        "\"SELECT count(*) FROM pg_indexes WHERE indexname = 'notification_history_user_sent_at';\""
+        "\"SELECT count(*) FROM pg_indexes WHERE indexname IN ('notification_history_user_sent_at', 'dosage_history_user_taken_at_id', 'dosage_history_pkey');\""
     ).strip()
-    assert has_idx == "1", f"expected notification_history_user_sent_at index, got {has_idx!r}"
+    assert has_idx == "3", f"expected 3 indexes on notification_history/dosage_history, got {has_idx!r}"
+
+    old_objs = machine.succeed(
+        "runuser -u postgres -- psql -d e2clicker-backend -t -A -c "
+        "\"SELECT count(*) FROM pg_indexes WHERE indexname IN ('dosage_history_user_secret_taken_at_key', 'dosage_history_taken_at', 'dosage_history_user_secret');\""
+    ).strip()
+    assert old_objs == "0", f"expected old dosage_history indexes/constraints dropped, got {old_objs!r}"
 
     # Verify errored notification attempts do not suppress upcoming reminders.
     machine.succeed(
@@ -49,8 +55,8 @@ with subtest("postgresql schema version, index, and reminder retry semantics"):
         "INSERT INTO users (secret, name) VALUES ('vm-retry-test', 'Retry Test');\n"
         "INSERT INTO dosage_schedule (user_secret, delivery_method, dose, interval)\n"
         "  VALUES ('vm-retry-test', 'EV im', 5, '1 day');\n"
-        "INSERT INTO dosage_history (user_secret, delivery_method, dose, taken_at)\n"
-        "  VALUES ('vm-retry-test', 'EV im', 5, now() - interval '2 days');\n"
+        "INSERT INTO dosage_history (id, user_secret, delivery_method, dose, taken_at)\n"
+        "  VALUES ('019450a0-0000-7000-8000-000000000099', 'vm-retry-test', 'EV im', 5, now() - interval '2 days');\n"
         "INSERT INTO notification_history (user_secret, sent_at, supposed_entity_time, error_reason)\n"
         "  VALUES ('vm-retry-test', now() - interval '1 minute', now() - interval '2 days', 'transient 503');\n"
         "SQL"
@@ -61,7 +67,7 @@ with subtest("postgresql schema version, index, and reminder retry semantics"):
         "FROM users "
         "INNER JOIN dosage_schedule ON users.secret = dosage_schedule.user_secret "
         "INNER JOIN LATERAL ("
-        "  SELECT * FROM dosage_history dh WHERE dh.user_secret = users.secret ORDER BY dh.taken_at DESC LIMIT 1"
+        "  SELECT * FROM dosage_history dh WHERE dh.user_secret = users.secret ORDER BY dh.taken_at DESC, dh.id DESC LIMIT 1"
         ") dh ON TRUE "
         "LEFT JOIN LATERAL ("
         "  SELECT nh.sent_at FROM notification_history nh "

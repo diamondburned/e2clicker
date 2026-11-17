@@ -45,8 +45,8 @@
             inputs.gomod2nix.overlays.default
 
             (self: super: {
-              go = super.go_1_26;
-              pnpm = super.pnpm_9;
+              go = super.go_1_27;
+              pnpm = super.pnpm_10;
             })
 
             (self: super: {
@@ -58,6 +58,15 @@
                 doCheck = false;
 
                 vendorHash = "sha256-vgSMGi0mnGX/Hwxu/XalIXLCbm/L4CwQfIf7DEJVk1E=";
+              };
+
+              nixmod2go = (pkgs.buildGoModule.override { go = super.go_1_26; }) {
+                pname = "nixmod2go";
+                src = inputs.nixmod2go;
+                version = builtins.substring 0 9 (inputs.nixmod2go.rev or "unknown");
+                doCheck = false;
+                vendorHash = "sha256-69AUHmufjQ8b2D0QNBGSDFsq1xJSV/9/X4gxcWoBbbQ=";
+                env.GOEXPERIMENT = "jsonv2";
               };
 
               pgformatter = import ./nix/pgformatter.nix { pkgs = super; };
@@ -90,7 +99,7 @@
             hurl
             postgresql
 
-            nixmod2go.packages.${system}.default
+            pkgs.nixmod2go
             self.formatter.${system}
           ];
 

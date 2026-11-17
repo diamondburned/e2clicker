@@ -84,10 +84,18 @@
     };
   });
 
+  let dosageInterval = $derived.by(() => {
+    const lastDoseAt = doses.history?.[doses.history.length - 1]?.takenAt;
+    if (lastDoseAt && lastDoseAt > historyInterval.end) {
+      return Interval.fromDateTimes(historyInterval.start, lastDoseAt) as Interval<true>;
+    }
+    return historyInterval;
+  });
+
   let dosageData = $derived(
     new DosageData({
       doses,
-      interval: historyInterval,
+      interval: dosageInterval,
     }),
   );
 

@@ -80,5 +80,8 @@ export function roundDuration(
 // Format the given dose time for display. The returned string will be quite
 // long.
 export function formatDoseTime(dose: Pick<Dose, "takenAt">, now = DateTime.now()): string {
-  return formatDuration(durationTrimLower(now.diff(dose.takenAt).rescale(), 2));
+  const diffSeconds = Math.max(0, Math.floor(now.diff(dose.takenAt).as("seconds")));
+  return formatDuration(
+    durationTrimLower(Duration.fromObject({ seconds: diffSeconds }).rescale(), 2),
+  );
 }

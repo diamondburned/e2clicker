@@ -72,11 +72,12 @@
     }
   }
 
-  async function exportTo(format: SupportedMIME) {
+  async function exportTo(format: SupportedMIME, csvFormat?: "e2clicker" | "estrannaise") {
     try {
       exportStatus = { status: "loading" };
 
-      const resp = await api.fetch("/dosage/export-doses", {
+      const query = csvFormat ? `?format=${encodeURIComponent(csvFormat)}` : "";
+      const resp = await api.fetch(`/dosage/export-doses${query}`, {
         method: "GET",
         headers: {
           Accept: format,
@@ -107,7 +108,8 @@
   <PreferenceItem name="Import" for="import-history-button">
     {#snippet description()}
       Import your dose history from CSV or JSON. You may do this 3 times maximum every 15 minutes.
-      Doses that match an existing timestamp will be ignored.
+      Duplicate doses will be ignored. Estrannaise CSV exports are for viewing only and cannot be
+      imported.
 
       <span class="block mt-2 empty:hidden">
         {#if importStatus?.status == "success"}
@@ -166,10 +168,18 @@
     </button>
     <button
       class="outline ml-2"
-      onclick={() => exportTo("text/csv")}
+      onclick={() => exportTo("text/csv", "e2clicker")}
       disabled={exportStatus?.status == "loading"}
     >
       CSV
+      <Icon name="download" />
+    </button>
+    <button
+      class="outline ml-2"
+      onclick={() => exportTo("text/csv", "estrannaise")}
+      disabled={exportStatus?.status == "loading"}
+    >
+      CSV (estrannaise)
       <Icon name="download" />
     </button>
   </PreferenceItem>

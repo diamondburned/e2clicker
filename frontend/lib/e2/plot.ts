@@ -59,8 +59,6 @@ export type Dose = Omit<api.Dose, "deliveryMethod" | "takenAt" | "takenOffAt"> &
   deliveryMethod: api.DeliveryMethod;
   takenAt: DateTime<true>;
   takenOffAt?: DateTime<true>;
-  get oldTakenAt(): string;
-  get oldTakenOffAt(): string | undefined;
 };
 
 export type DosageHistory = Dose[];
@@ -75,12 +73,6 @@ export function convertDoseHistory(history: api.DosageHistory): DosageHistory {
         deliveryMethod: deliveryMethod(dose.deliveryMethod)!,
         takenAt: mustDateTimeFromISO(dose.takenAt),
         takenOffAt: dose.takenOffAt ? mustDateTimeFromISO(dose.takenOffAt) : undefined,
-        get oldTakenAt() {
-          return dose.takenAt;
-        },
-        get oldTakenOffAt() {
-          return dose.takenOffAt;
-        },
       }) as Dose,
   );
 }

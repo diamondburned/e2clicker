@@ -50,7 +50,7 @@ export type Dosage = {
     Each recurrence is a number that represents the number of days after the time of the first notification to send the reminder notification. */
     reminderRecurrence?: number[];
 };
-export type Dose = {
+export type DoseInput = {
     /** The delivery method used. */
     deliveryMethod: string;
     /** The dosage amount. */
@@ -61,6 +61,10 @@ export type Dose = {
     takenOffAt?: string;
     /** A comment about the dosage, if any. */
     comment?: string;
+};
+export type Dose = DoseInput & {
+    /** The unique identifier of the dosage observation. */
+    id: string;
 };
 export type DosageHistory = Dose[];
 export type DosageHistoryCsv = string;
@@ -208,6 +212,8 @@ export function clearDosage(opts?: Oazapfts.RequestOpts) {
 export function recordDose(body: {
     /** The time the dosage was taken. If not provided, the current time is used. */
     takenAt?: string;
+    /** An optional comment about the dosage. */
+    comment?: string;
 }, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
@@ -221,14 +227,14 @@ export function recordDose(body: {
 /**
  * Delete multiple dosages from the user's history
  */
-export function forgetDoses(doseTimes: string[], opts?: Oazapfts.RequestOpts) {
+export function forgetDoses(ids: string[], opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 204;
     } | {
         status: number;
         data: Error;
     }>(`/dosage/dose${QS.query(QS.explode({
-        doseTimes
+        ids
     }))}`, {
         ...opts,
         method: "DELETE"
@@ -237,28 +243,28 @@ export function forgetDoses(doseTimes: string[], opts?: Oazapfts.RequestOpts) {
 /**
  * Update a dosage in the user's history
  */
-export function editDose(doseTime: string, body: Dose, opts?: Oazapfts.RequestOpts) {
+export function editDose(doseId: string, doseInput: DoseInput, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 204;
     } | {
         status: number;
         data: Error;
-    }>(`/dosage/dose/${encodeURIComponent(doseTime)}`, oazapfts.json({
+    }>(`/dosage/dose/${encodeURIComponent(doseId)}`, oazapfts.json({
         ...opts,
         method: "PUT",
-        body
+        body: doseInput
     })));
 }
 /**
  * Delete a dosage from the user's history
  */
-export function forgetDose(doseTime: string, opts?: Oazapfts.RequestOpts) {
+export function forgetDose(doseId: string, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 204;
     } | {
         status: number;
         data: Error;
-    }>(`/dosage/dose/${encodeURIComponent(doseTime)}`, {
+    }>(`/dosage/dose/${encodeURIComponent(doseId)}`, {
         ...opts,
         method: "DELETE"
     }));
@@ -266,7 +272,8 @@ export function forgetDose(doseTime: string, opts?: Oazapfts.RequestOpts) {
 /**
  * Export the user's dosage history
  */
-export function exportDoses(accept: "text/csv" | "application/json", { start, end }: {
+export function exportDoses(accept: "text/csv" | "application/json", { format, start, end }: {
+    format?: "e2clicker" | "estrannaise";
     start?: string;
     end?: string;
 } = {}, opts?: Oazapfts.RequestOpts) {
@@ -280,6 +287,7 @@ export function exportDoses(accept: "text/csv" | "application/json", { start, en
         status: number;
         data: Error;
     }>(`/dosage/export-doses${QS.query(QS.explode({
+        format,
         start,
         end
     }))}`, {

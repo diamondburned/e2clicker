@@ -92,7 +92,8 @@ This operation does not require authentication
       "dose": 0.1,
       "takenAt": "2019-08-24T14:15:22Z",
       "takenOffAt": "2019-08-24T14:15:22Z",
-      "comment": "string"
+      "comment": "string",
+      "id": "497f6eca-6276-4993-bfeb-53cbbbba6f08"
     }
   ]
 }
@@ -225,7 +226,8 @@ This endpoint is used to record a new dosage observation to the user's history. 
 
 ```json
 {
-  "takenAt": "2019-08-24T14:15:22Z"
+  "takenAt": "2019-08-24T14:15:22Z",
+  "comment": "string"
 }
 ```
 
@@ -245,7 +247,8 @@ This endpoint is used to record a new dosage observation to the user's history. 
   "dose": 0.1,
   "takenAt": "2019-08-24T14:15:22Z",
   "takenOffAt": "2019-08-24T14:15:22Z",
-  "comment": "string"
+  "comment": "string",
+  "id": "497f6eca-6276-4993-bfeb-53cbbbba6f08"
 }
 ```
 
@@ -270,7 +273,7 @@ bearerAuth
 
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
-|doseTimes|query|array[string]|true|none|
+|ids|query|array[string]|true|The IDs of the dosages that should be deleted.|
 
 > Example responses
 
@@ -310,7 +313,7 @@ bearerAuth
 
 <a id="opIdeditDose"></a>
 
-`PUT /dosage/dose/{doseTime}`
+`PUT /dosage/dose/{doseID}`
 
 > Body parameter
 
@@ -328,8 +331,8 @@ bearerAuth
 
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
-|doseTime|path|string(date-time)|true|none|
-|body|body|any|true|none|
+|doseID|path|string(uuid)|true|The ID of the dosage to update.|
+|body|body|[DoseInput](#schemadoseinput)|true|none|
 
 > Example responses
 
@@ -369,16 +372,13 @@ bearerAuth
 
 <a id="opIdforgetDose"></a>
 
-`DELETE /dosage/dose/{doseTime}`
-
-This operation is broken in the backend due to a parsing error and
-should not be used. Instead, prefer using [forgetDoses].
+`DELETE /dosage/dose/{doseID}`
 
 <h3 id="delete-a-dosage-from-the-user's-history-parameters">Parameters</h3>
 
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
-|doseTime|path|string(date-time)|true|none|
+|doseID|path|string(uuid)|true|The ID of the dosage to delete.|
 
 > Example responses
 
@@ -425,6 +425,7 @@ bearerAuth
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
 |Accept|header|string|true|The format to export the dosage history in.|
+|format|query|string|false|The CSV schema format to export when Accept is text/csv. "e2clicker" (default) exports full losslessly re-importable records. "estrannaise" exports a dose,days,model CSV for viewing in estrannai.se (export-only).|
 |start|query|string(date-time)|false|none|
 |end|query|string(date-time)|false|none|
 
@@ -434,6 +435,8 @@ bearerAuth
 |---|---|
 |Accept|text/csv|
 |Accept|application/json|
+|format|e2clicker|
+|format|estrannaise|
 
 > Example responses
 
@@ -446,7 +449,8 @@ bearerAuth
     "dose": 0.1,
     "takenAt": "2019-08-24T14:15:22Z",
     "takenOffAt": "2019-08-24T14:15:22Z",
-    "comment": "string"
+    "comment": "string",
+    "id": "497f6eca-6276-4993-bfeb-53cbbbba6f08"
   }
 ]
 ```
@@ -480,7 +484,7 @@ bearerAuth
 > Body parameter
 
 ```json
-"deliveryMethod,dose,takenAt,takenOffAt,comment\npatch tw,100,2020-01-01T00:00:00Z,,\npatch tw,100,2020-01-02T12:00:00Z,,\npatch tw,100,2020-01-04T00:00:00Z,,\npatch tw,100,2020-01-05T12:00:00Z,,"
+"id,deliveryMethod,dose,takenAt,takenOffAt,comment\n019450a0-0000-7000-8000-000000000001,patch tw,100,2020-01-01T00:00:00Z,,\n019450a0-0000-7000-8000-000000000002,patch tw,100,2020-01-02T12:00:00Z,,\n019450a0-0000-7000-8000-000000000003,patch tw,100,2020-01-04T00:00:00Z,,\n019450a0-0000-7000-8000-000000000004,patch tw,100,2020-01-05T12:00:00Z,,"
 ```
 
 <h3 id="import-a-csv-file-of-dosage-history-parameters">Parameters</h3>
@@ -1212,7 +1216,8 @@ bearerAuth
     "dose": 0.1,
     "takenAt": "2019-08-24T14:15:22Z",
     "takenOffAt": "2019-08-24T14:15:22Z",
-    "comment": "string"
+    "comment": "string",
+    "id": "497f6eca-6276-4993-bfeb-53cbbbba6f08"
   }
 ]
 
@@ -1224,6 +1229,33 @@ bearerAuth
 |---|---|---|---|---|
 |*anonymous*|[[Dose](#schemadose)]|false|none|[A dose of medication in time.]|
 
+<h2 id="tocS_DosageHistoryImport">DosageHistoryImport</h2>
+<!-- backwards compatibility -->
+<a id="schemadosagehistoryimport"></a>
+<a id="schema_DosageHistoryImport"></a>
+<a id="tocSdosagehistoryimport"></a>
+<a id="tocsdosagehistoryimport"></a>
+
+```json
+[
+  {
+    "deliveryMethod": "string",
+    "dose": 0.1,
+    "takenAt": "2019-08-24T14:15:22Z",
+    "takenOffAt": "2019-08-24T14:15:22Z",
+    "comment": "string",
+    "id": "497f6eca-6276-4993-bfeb-53cbbbba6f08"
+  }
+]
+
+```
+
+### Properties
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|*anonymous*|[[DoseImport](#schemadoseimport)]|false|none|[A dose of medication in time for import (id optional for v1 compatibility).]|
+
 <h2 id="tocS_DosageHistoryCSV">DosageHistoryCSV</h2>
 <!-- backwards compatibility -->
 <a id="schemadosagehistorycsv"></a>
@@ -1232,7 +1264,7 @@ bearerAuth
 <a id="tocsdosagehistorycsv"></a>
 
 ```json
-"deliveryMethod,dose,takenAt,takenOffAt,comment\npatch tw,100,2020-01-01T00:00:00Z,,\npatch tw,100,2020-01-02T12:00:00Z,,\npatch tw,100,2020-01-04T00:00:00Z,,\npatch tw,100,2020-01-05T12:00:00Z,,"
+"id,deliveryMethod,dose,takenAt,takenOffAt,comment\n019450a0-0000-7000-8000-000000000001,patch tw,100,2020-01-01T00:00:00Z,,\n019450a0-0000-7000-8000-000000000002,patch tw,100,2020-01-02T12:00:00Z,,\n019450a0-0000-7000-8000-000000000003,patch tw,100,2020-01-04T00:00:00Z,,\n019450a0-0000-7000-8000-000000000004,patch tw,100,2020-01-05T12:00:00Z,,"
 
 ```
 
@@ -1244,12 +1276,12 @@ The CSV format of the user's dosage history.
 |---|---|---|---|---|
 |*anonymous*|string|false|none|The CSV format of the user's dosage history.|
 
-<h2 id="tocS_Dose">Dose</h2>
+<h2 id="tocS_DoseInput">DoseInput</h2>
 <!-- backwards compatibility -->
-<a id="schemadose"></a>
-<a id="schema_Dose"></a>
-<a id="tocSdose"></a>
-<a id="tocsdose"></a>
+<a id="schemadoseinput"></a>
+<a id="schema_DoseInput"></a>
+<a id="tocSdoseinput"></a>
+<a id="tocsdoseinput"></a>
 
 ```json
 {
@@ -1273,6 +1305,60 @@ A dose of medication in time.
 |takenAt|string(date-time)|true|none|The time the dosage was taken.|
 |takenOffAt|string(date-time)|false|none|The time the dosage was taken off. This is only relevant for patch delivery methods.|
 |comment|string|false|none|A comment about the dosage, if any.|
+
+<h2 id="tocS_Dose">Dose</h2>
+<!-- backwards compatibility -->
+<a id="schemadose"></a>
+<a id="schema_Dose"></a>
+<a id="tocSdose"></a>
+<a id="tocsdose"></a>
+
+```json
+{
+  "deliveryMethod": "string",
+  "dose": 0.1,
+  "takenAt": "2019-08-24T14:15:22Z",
+  "takenOffAt": "2019-08-24T14:15:22Z",
+  "comment": "string",
+  "id": "497f6eca-6276-4993-bfeb-53cbbbba6f08"
+}
+
+```
+
+A dose of medication in time.
+
+### Properties
+
+allOf
+
+and
+
+<h2 id="tocS_DoseImport">DoseImport</h2>
+<!-- backwards compatibility -->
+<a id="schemadoseimport"></a>
+<a id="schema_DoseImport"></a>
+<a id="tocSdoseimport"></a>
+<a id="tocsdoseimport"></a>
+
+```json
+{
+  "deliveryMethod": "string",
+  "dose": 0.1,
+  "takenAt": "2019-08-24T14:15:22Z",
+  "takenOffAt": "2019-08-24T14:15:22Z",
+  "comment": "string",
+  "id": "497f6eca-6276-4993-bfeb-53cbbbba6f08"
+}
+
+```
+
+A dose of medication in time for import (id optional for v1 compatibility).
+
+### Properties
+
+allOf
+
+and
 
 <h2 id="tocS_Notification">Notification</h2>
 <!-- backwards compatibility -->

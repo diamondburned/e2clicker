@@ -143,3 +143,46 @@ SET v = 5;
 
 CREATE INDEX notification_history_user_sent_at ON notification_history (user_secret, sent_at DESC)
 WHERE NOT errored;
+
+-- NEW VERSION
+UPDATE
+  meta
+SET v = 6;
+
+ALTER TABLE dosage_history
+  ADD COLUMN id uuid;
+
+-- Backfill existing rows with valid RFC 9562 UUIDv7 values whose 48-bit
+-- millisecond timestamp derives from taken_at (clamped >= 0) and whose
+-- remaining 74 random bits come from core gen_random_uuid() (PG 13+).
+UPDATE
+  dosage_history
+SET id = encode(
+  set_byte(
+    set_byte(
+      overlay(
+        uuid_send(gen_random_uuid())
+        placing substring(
+          int8send(GREATEST(0, floor(extract(epoch FROM taken_at) * 1000)::bigint))
+          from 3 for 6
+        )
+        from 1 for 6
+      ),
+      6, (get_byte(uuid_send(gen_random_uuid()), 6) & 15) | 112 -- version 7 (0111xxxx)
+    ),
+    8, (get_byte(uuid_send(gen_random_uuid()), 8) & 63) | 128   -- variant 10xx
+  ),
+  'hex'
+)::uuid
+WHERE id IS NULL;
+
+ALTER TABLE dosage_history
+  ALTER COLUMN id SET NOT NULL,
+  ADD PRIMARY KEY (user_secret, id),
+  DROP CONSTRAINT IF EXISTS dosage_history_user_secret_taken_at_key;
+
+DROP INDEX IF EXISTS dosage_history_taken_at;
+DROP INDEX IF EXISTS dosage_history_user_secret;
+
+CREATE INDEX dosage_history_user_taken_at_id
+  ON dosage_history (user_secret, taken_at DESC, id DESC);

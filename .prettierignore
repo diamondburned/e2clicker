@@ -1,0 +1,3 @@
+*.gen.*
+docs/openapi/README.md
+pnpm-lock.yaml
