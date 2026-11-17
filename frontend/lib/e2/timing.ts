@@ -85,3 +85,18 @@ export function formatDoseTime(dose: Pick<Dose, "takenAt">, now = DateTime.now()
     durationTrimLower(Duration.fromObject({ seconds: diffSeconds }).rescale(), 2),
   );
 }
+
+// Format a future target timestamp relative to `from` as a short ETA string
+// (e.g. "1 day" or "15 hours"). Returns undefined if the target is in the past
+// or less than 1 minute away.
+export function formatETA(
+  target: DateTime,
+  from = DateTime.now(),
+  numUnits = 1,
+): string | undefined {
+  const diff = target.diff(from).rescale();
+  if (diff.as("minutes") < 1) {
+    return undefined;
+  }
+  return formatDuration(durationTrimLower(diff, numUnits));
+}

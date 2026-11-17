@@ -64,17 +64,19 @@ export type Dose = Omit<api.Dose, "deliveryMethod" | "takenAt" | "takenOffAt"> &
 export type DosageHistory = Dose[];
 
 // convertDoseHistory converts the dosage history from the API to have proper
-// DateTime objects.
+// DateTime objects, sorted chronologically ascending by takenAt.
 export function convertDoseHistory(history: api.DosageHistory): DosageHistory {
-  return history.map(
-    (dose) =>
-      ({
-        ...dose,
-        deliveryMethod: deliveryMethod(dose.deliveryMethod)!,
-        takenAt: mustDateTimeFromISO(dose.takenAt),
-        takenOffAt: dose.takenOffAt ? mustDateTimeFromISO(dose.takenOffAt) : undefined,
-      }) as Dose,
-  );
+  return history
+    .map(
+      (dose) =>
+        ({
+          ...dose,
+          deliveryMethod: deliveryMethod(dose.deliveryMethod)!,
+          takenAt: mustDateTimeFromISO(dose.takenAt),
+          takenOffAt: dose.takenOffAt ? mustDateTimeFromISO(dose.takenOffAt) : undefined,
+        }) as Dose,
+    )
+    .sort((a, b) => a.takenAt.toMillis() - b.takenAt.toMillis());
 }
 
 function mustDateTimeFromISO(iso: string): DateTime<true> {

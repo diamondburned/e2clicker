@@ -40,6 +40,9 @@
     readonly idealTrough = $derived(
       this.dosage && e2.idealE2Trough(this.dosage, e2.conversionFactor()),
     );
+    readonly idealPeak = $derived(
+      this.dosage && e2.idealE2Peak(this.dosage, e2.conversionFactor()),
+    );
     readonly idealAverage = $derived(
       this.dosage && e2.idealE2Average(this.dosage, e2.conversionFactor()),
     );

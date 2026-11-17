@@ -11,6 +11,7 @@ import {
   PKRandomFunctions,
 } from "estrannaise/src/models";
 import { deliveryMethod, estrannaiseDeliveryMethod } from "./methods.svelte";
+import { timeUntilNextDose } from "./timing";
 import type { Dose, PlotStyles } from "./plot";
 import type { LevelUnits } from "estrannaise/src/modeldata";
 import { DateTime, Duration, Interval } from "luxon";
@@ -174,12 +175,29 @@ export function fillCurve(
   return pts;
 }
 
+function effectiveConcurrence(dosage?: api.Dosage): number {
+  return dosage?.concurrence && dosage.concurrence > 0 ? dosage.concurrence : 1;
+}
+
+export function patchWearDuration(
+  dose: Pick<Dose, "deliveryMethod" | "takenAt" | "takenOffAt">,
+  dosage?: api.Dosage,
+): number {
+  if (dose.takenOffAt) {
+    return Math.max(0, dose.takenOffAt.diff(dose.takenAt).as("days"));
+  }
+  if (dosage && dose.deliveryMethod.id === dosage.deliveryMethod) {
+    return dosage.interval * effectiveConcurrence(dosage);
+  }
+  return dose.deliveryMethod.id === "patch ow" ? 7.0 : 3.5;
+}
+
 function makePKFunctions(
   dosage: api.Dosage,
   conversionFactor: number,
   {
     random = false,
-    interval = dosage.interval * (dosage.concurrence ?? 1),
+    interval = dosage.interval * effectiveConcurrence(dosage),
   }: {
     random?: boolean | number;
     interval?: number;
@@ -225,6 +243,69 @@ export function fillE2IdealData(
   );
 }
 
+function makeActualEvaluator(
+  dosage: api.Dosage | undefined,
+  history: Dose[],
+  conversionFactor_: number,
+  random: boolean | number = false,
+): (tMillis: number) => number {
+  const prepared = history.map((dose) => {
+    const delivery = estrannaiseDeliveryMethod(dose.deliveryMethod.id);
+    return {
+      takenAtMillis: dose.takenAt.toMillis(),
+      dose: dose.dose,
+      delivery,
+      wearDuration:
+        delivery === "patch tw" || delivery === "patch ow"
+          ? patchWearDuration(dose, dosage)
+          : undefined,
+    };
+  });
+  const pkFunctions = random
+    ? PKRandomFunctions(conversionFactor_)
+    : PKFunctions(conversionFactor_);
+  const randomIdx = typeof random === "number" && random > 0 ? random : undefined;
+
+  return (tMillis: number): number => {
+    let sum = 0;
+    for (let i = 0; i < prepared.length; i++) {
+      const dose = prepared[i];
+      const x = (tMillis - dose.takenAtMillis) / 86_400_000;
+      if (x < 0) {
+        continue;
+      }
+      if (dose.wearDuration !== undefined) {
+        const params = random
+          ? randomMCMCSample(dose.delivery, randomIdx)
+          : PKParameters[dose.delivery];
+        sum += e2Patch3C(
+          x,
+          conversionFactor_ * dose.dose,
+          ...params,
+          dose.wearDuration,
+          false,
+          0.0,
+        );
+      } else {
+        sum += pkFunctions[dose.delivery](x, dose.dose, false, 0.0, randomIdx);
+      }
+    }
+    return sum;
+  };
+}
+
+// evalActualE2 evaluates the compounded E2 concentration at time t from all
+// logged doses in history.
+export function evalActualE2(
+  t: DateTime,
+  dosage: api.Dosage | undefined,
+  history: Dose[],
+  conversionFactor_ = conversionFactor(),
+  random: boolean | number = false,
+): number {
+  return makeActualEvaluator(dosage, history, conversionFactor_, random)(t.toMillis());
+}
+
 // fillE2ActualData fills a curve with E2 data from the given dosage observations.
 export function fillE2ActualData(
   iv: Interval<true>,
@@ -237,42 +318,225 @@ export function fillE2ActualData(
     random?: boolean | number;
   } = {},
 ) {
-  const deliveryMethods = history.map((o) => estrannaiseDeliveryMethod(o.deliveryMethod.id));
-  // TODO: support takenOffAt
-  const pkFunctions = makePKFunctions(dosage, conversionFactor, { random });
-  const randomParam =
-    typeof random == "number" && random > 0 //
-      ? random
-      : undefined;
+  const evalAt = makeActualEvaluator(dosage, history, conversionFactor, random);
+  return fillCurve(iv, (t) => evalAt(t.toMillis()));
+}
 
-  return fillCurve(iv, (t, tprev) => {
-    if (!tprev) {
-      return NaN;
-    }
+function sampleIdealCycle(
+  dosage: api.Dosage,
+  conversionFactor_ = 1.0,
+  samples = 120,
+): { trough: number; peak: number; average: number } {
+  const delivery = estrannaiseDeliveryMethod(dosage.deliveryMethod);
+  const pk = makePKFunctions(dosage, conversionFactor_)[delivery];
+  const T = dosage.interval;
+  if (T <= 0) {
+    const v = pk(0, dosage.dose, true, T);
+    return { trough: v, peak: v, average: v };
+  }
 
-    const xstart = dateToX(iv.start, t);
-    const tdiff = t.diff(tprev).as("days");
+  let trough = Infinity;
+  let peak = -Infinity;
+  let area = 0;
+  let prevV = pk(0, dosage.dose, true, T);
+  trough = Math.min(trough, prevV);
+  peak = Math.max(peak, prevV);
 
-    return history.reduce((sum, dose, i) => {
-      const x = xstart - dateToX(iv.start, dose.takenAt);
-      return sum + pkFunctions[deliveryMethods[i]](x, dose.dose, false, tdiff, randomParam);
-    }, 0);
-  });
+  const dt = T / samples;
+  for (let i = 1; i <= samples; i++) {
+    const x = i === samples ? T - 1e-9 : i * dt;
+    const v = pk(x, dosage.dose, true, T);
+    trough = Math.min(trough, v);
+    peak = Math.max(peak, v);
+    area += 0.5 * (prevV + v) * dt;
+    prevV = v;
+  }
+
+  const average = deliveryMethod(dosage.deliveryMethod)?.patch
+    ? area / T
+    : e2ssAverage3C(conversionFactor_ * dosage.dose, T, ...PKParameters[delivery]);
+
+  return { trough, peak, average };
 }
 
 export function idealE2Trough(dosage: api.Dosage, conversionFactor = 1.0): number {
-  const delivery = estrannaiseDeliveryMethod(dosage.deliveryMethod);
-  const pk = PKFunctions(conversionFactor)[delivery];
-  return pk(0, dosage.dose, true, dosage.interval);
+  return sampleIdealCycle(dosage, conversionFactor).trough;
 }
 
-export function idealE2Average(dosage: api.Dosage, conversionFactor = 1.0): number | undefined {
-  if (deliveryMethod(dosage.deliveryMethod)?.patch) {
-    return undefined;
+export function idealE2Peak(dosage: api.Dosage, conversionFactor = 1.0): number {
+  return sampleIdealCycle(dosage, conversionFactor).peak;
+}
+
+export function idealE2Average(dosage: api.Dosage, conversionFactor = 1.0): number {
+  return sampleIdealCycle(dosage, conversionFactor).average;
+}
+
+export type LevelTrend =
+  | { direction: "rising"; slopePerDay: number; peakValue?: number; peakAt?: DateTime }
+  | { direction: "falling"; slopePerDay: number }
+  | { direction: "steady"; slopePerDay: number };
+
+export type LevelMetrics = {
+  ideal: {
+    trough: number;
+    peak: number;
+    average: number;
+  };
+  current?: number;
+  trend?: LevelTrend;
+  nextDoseAt?: DateTime;
+  nextTrough?: number;
+  isOverdue: boolean;
+  window?: {
+    start: DateTime;
+    end: DateTime;
+    days: number;
+    clampedToFirstDose: boolean;
+    trough: number;
+    peak: number;
+  };
+  cadence?: {
+    avgIntervalDays: number;
+    sampleCount: number;
+  };
+};
+
+export function computeLevelMetrics({
+  now,
+  dosage,
+  history,
+  conversionFactor: cf = conversionFactor(),
+}: {
+  now: DateTime;
+  dosage: api.Dosage;
+  history: Dose[];
+  conversionFactor?: number;
+}): LevelMetrics {
+  const ideal = sampleIdealCycle(dosage, cf);
+  if (history.length === 0) {
+    return { ideal, isOverdue: false };
   }
-  const delivery = estrannaiseDeliveryMethod(dosage.deliveryMethod);
-  const pkParams = PKParameters[delivery];
-  return e2ssAverage3C(conversionFactor * dosage.dose, dosage.interval, ...pkParams);
+
+  const sorted = [...history].sort((a, b) => a.takenAt.toMillis() - b.takenAt.toMillis());
+  const evalAt = makeActualEvaluator(dosage, sorted, cf);
+
+  const nowMillis = now.toMillis();
+  const current = evalAt(nowMillis);
+
+  const lastDose = sorted[sorted.length - 1];
+  const nextDoseAt = timeUntilNextDose(dosage, lastDose.takenAt);
+  const nextDoseMillis = nextDoseAt.toMillis();
+  const isOverdue = nowMillis >= nextDoseMillis;
+  const nextTrough = isOverdue ? current : evalAt(nextDoseMillis);
+
+  // Forward difference over 15 minutes avoids straddling a discontinuous slope jump at takenAt.
+  const dtMinutes = 15;
+  const dtMillis = dtMinutes * 60_000;
+  const slopePerDay = (evalAt(nowMillis + dtMillis) - current) / (dtMinutes / (24 * 60));
+  const slopeThreshold = 2 * cf;
+
+  let trend: LevelTrend;
+  if (slopePerDay > slopeThreshold) {
+    const scanEndMillis = isOverdue
+      ? nowMillis + Math.max(1, dosage.interval) * 86_400_000
+      : nextDoseMillis;
+    const scanSteps = 96;
+    let bestValue = current;
+    let bestMillis = nowMillis;
+    if (scanEndMillis > nowMillis) {
+      for (let i = 1; i <= scanSteps; i++) {
+        const t = nowMillis + ((scanEndMillis - nowMillis) * i) / scanSteps;
+        const v = evalAt(t);
+        if (v > bestValue) {
+          bestValue = v;
+          bestMillis = t;
+        }
+      }
+    }
+    trend =
+      bestMillis > nowMillis && bestValue > current * 1.01
+        ? {
+            direction: "rising",
+            slopePerDay,
+            peakValue: bestValue,
+            peakAt: DateTime.fromMillis(bestMillis),
+          }
+        : { direction: "rising", slopePerDay };
+  } else if (slopePerDay < -slopeThreshold) {
+    trend = { direction: "falling", slopePerDay };
+  } else {
+    trend = { direction: "steady", slopePerDay };
+  }
+
+  // Cycle-aware window peak & trough: max(7d, dosage.interval), clamped to first dose.
+  const windowDays = Math.max(7, dosage.interval);
+  const rawStartMillis = nowMillis - windowDays * 86_400_000;
+  const firstDoseMillis = sorted[0].takenAt.toMillis();
+  const clampedToFirstDose = firstDoseMillis > rawStartMillis;
+  const windowStartMillis = clampedToFirstDose ? firstDoseMillis : rawStartMillis;
+
+  const sampleMillis = new Set<number>();
+  const uniformSteps = 168;
+  for (let i = 0; i <= uniformSteps; i++) {
+    sampleMillis.add(
+      Math.round(windowStartMillis + ((nowMillis - windowStartMillis) * i) / uniformSteps),
+    );
+  }
+  for (const dose of sorted) {
+    const t = dose.takenAt.toMillis();
+    if (t >= windowStartMillis && t <= nowMillis) {
+      sampleMillis.add(t);
+      const preT = t - 60_000;
+      if (preT >= windowStartMillis) {
+        sampleMillis.add(preT);
+      }
+    }
+  }
+  sampleMillis.add(nowMillis);
+
+  let windowTrough = Infinity;
+  let windowPeak = -Infinity;
+  for (const t of sampleMillis) {
+    const v = evalAt(t);
+    if (v < windowTrough) windowTrough = v;
+    if (v > windowPeak) windowPeak = v;
+  }
+
+  // Actual dosing cadence across recent intervals, ignoring split doses (< 0.25 * interval).
+  const minGapDays = 0.25 * dosage.interval;
+  const gaps: number[] = [];
+  for (let i = 1; i < sorted.length; i++) {
+    const gapDays = (sorted[i].takenAt.toMillis() - sorted[i - 1].takenAt.toMillis()) / 86_400_000;
+    if (gapDays >= minGapDays) {
+      gaps.push(gapDays);
+    }
+  }
+  const recentGaps = gaps.slice(-6);
+  const cadence =
+    recentGaps.length > 0
+      ? {
+          avgIntervalDays: recentGaps.reduce((a, b) => a + b, 0) / recentGaps.length,
+          sampleCount: recentGaps.length,
+        }
+      : undefined;
+
+  return {
+    ideal,
+    current,
+    trend,
+    nextDoseAt,
+    nextTrough,
+    isOverdue,
+    window: {
+      start: DateTime.fromMillis(windowStartMillis),
+      end: now,
+      days: windowDays,
+      clampedToFirstDose,
+      trough: windowTrough,
+      peak: windowPeak,
+    },
+    cadence,
+  };
 }
 
 // convert a date to an x value
