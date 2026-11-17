@@ -215,22 +215,30 @@ func (q *Queries) SetDosageSchedule(ctx context.Context, arg SetDosageSchedulePa
 }
 
 const upcomingDosageReminders = `-- name: UpcomingDosageReminders :many
-SELECT DISTINCT ON (users.secret)
-  users.secret AS user_secret, -- 
-  users.name AS user_name, -- 
-  dosage_schedule.user_secret, dosage_schedule.delivery_method, dosage_schedule.dose, dosage_schedule.interval, dosage_schedule.concurrence, dosage_schedule.reminder_recurrence, -- 
-  dosage_history.user_secret, dosage_history.delivery_method, dosage_history.dose, dosage_history.taken_at, dosage_history.taken_off_at, dosage_history.comment, -- 
-  notification_history.supposed_entity_time AS last_reminded_dose, -- 
-  notification_history.sent_at AS last_reminded_at
+SELECT
+  users.secret AS user_secret,
+  users.name AS user_name,
+  dosage_schedule.user_secret, dosage_schedule.delivery_method, dosage_schedule.dose, dosage_schedule.interval, dosage_schedule.concurrence, dosage_schedule.reminder_recurrence,
+  dosage_history.user_secret, dosage_history.delivery_method, dosage_history.dose, dosage_history.taken_at, dosage_history.taken_off_at, dosage_history.comment,
+  last_notification.supposed_entity_time AS last_reminded_dose,
+  last_notification.sent_at AS last_reminded_at
 FROM users
   INNER JOIN dosage_schedule ON users.secret = dosage_schedule.user_secret
-  INNER JOIN dosage_history ON users.secret = dosage_history.user_secret
-  LEFT JOIN notification_history ON users.secret = notification_history.user_secret
-ORDER BY -- 
-  users.secret, -- 
-  dosage_history.taken_at DESC, -- 
-  notification_history.supposed_entity_time DESC, -- 
-  notification_history.sent_at DESC
+  INNER JOIN LATERAL (
+    SELECT user_secret, delivery_method, dose, taken_at, taken_off_at, comment
+    FROM dosage_history dh
+    WHERE dh.user_secret = users.secret
+    ORDER BY dh.taken_at DESC
+    LIMIT 1
+  ) dosage_history ON TRUE
+  LEFT JOIN LATERAL (
+    SELECT nh.supposed_entity_time, nh.sent_at
+    FROM notification_history nh
+    WHERE nh.user_secret = users.secret
+      AND NOT nh.errored
+    ORDER BY nh.supposed_entity_time DESC NULLS LAST, nh.sent_at DESC
+    LIMIT 1
+  ) last_notification ON TRUE
 `
 
 type UpcomingDosageRemindersRow struct {

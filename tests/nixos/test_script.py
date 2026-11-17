@@ -24,11 +24,11 @@ with subtest("frontend SSR responds through caddy"):
 with subtest("hurl black-box API suite passes through caddy"):
     machine.succeed("hurl --test --variable base_url=http://127.0.0.1 /etc/e2clicker-tests/api/*.hurl")
 
-with subtest("postgresql schema version and seeded rows exist"):
+with subtest("postgresql schema version, index, and reminder retry semantics"):
     meta_v = machine.succeed(
         'runuser -u postgres -- psql -d e2clicker-backend -t -A -c "SELECT v FROM meta;"'
     ).strip()
-    assert meta_v == "4", f"expected meta.v == 4, got {meta_v!r}"
+    assert meta_v == "5", f"expected meta.v == 5, got {meta_v!r}"
 
     user_count = int(
         machine.succeed(
@@ -36,3 +36,38 @@ with subtest("postgresql schema version and seeded rows exist"):
         ).strip()
     )
     assert user_count >= 3, f"expected >= 3 users from hurl tests, got {user_count}"
+
+    has_idx = machine.succeed(
+        "runuser -u postgres -- psql -d e2clicker-backend -t -A -c "
+        "\"SELECT count(*) FROM pg_indexes WHERE indexname = 'notification_history_user_sent_at';\""
+    ).strip()
+    assert has_idx == "1", f"expected notification_history_user_sent_at index, got {has_idx!r}"
+
+    # Verify errored notification attempts do not suppress upcoming reminders.
+    machine.succeed(
+        "runuser -u postgres -- psql -d e2clicker-backend -v ON_ERROR_STOP=1 <<'SQL'\n"
+        "INSERT INTO users (secret, name) VALUES ('vm-retry-test', 'Retry Test');\n"
+        "INSERT INTO dosage_schedule (user_secret, delivery_method, dose, interval)\n"
+        "  VALUES ('vm-retry-test', 'EV im', 5, '1 day');\n"
+        "INSERT INTO dosage_history (user_secret, delivery_method, dose, taken_at)\n"
+        "  VALUES ('vm-retry-test', 'EV im', 5, now() - interval '2 days');\n"
+        "INSERT INTO notification_history (user_secret, sent_at, supposed_entity_time, error_reason)\n"
+        "  VALUES ('vm-retry-test', now() - interval '1 minute', now() - interval '2 days', 'transient 503');\n"
+        "SQL"
+    )
+    reminded_at = machine.succeed(
+        "runuser -u postgres -- psql -d e2clicker-backend -t -A -c \""
+        "SELECT COALESCE(last_notification.sent_at::text, 'NULL') "
+        "FROM users "
+        "INNER JOIN dosage_schedule ON users.secret = dosage_schedule.user_secret "
+        "INNER JOIN LATERAL ("
+        "  SELECT * FROM dosage_history dh WHERE dh.user_secret = users.secret ORDER BY dh.taken_at DESC LIMIT 1"
+        ") dh ON TRUE "
+        "LEFT JOIN LATERAL ("
+        "  SELECT nh.sent_at FROM notification_history nh "
+        "  WHERE nh.user_secret = users.secret AND NOT nh.errored "
+        "  ORDER BY nh.supposed_entity_time DESC NULLS LAST, nh.sent_at DESC LIMIT 1"
+        ") last_notification ON TRUE "
+        "WHERE users.secret = 'vm-retry-test';\""
+    ).strip()
+    assert reminded_at == "NULL", f"expected errored attempt to be ignored, got {reminded_at!r}"

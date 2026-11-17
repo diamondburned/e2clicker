@@ -10,6 +10,7 @@ let
     builtins.toJSON {
       publicKey = "BH1uVr_j2jFqnZFmOaqvBgwLZhMIRgGf23u-DfrN8yyr_0WX4UsgVIhWil6z__ddipWL4E8LqGgAc9yxIuTaJz8";
       privateKey = "YqR2fQc-TRTa40lhrjJiLJFNGtPCLEekn2fgYZxZQAA";
+      subscriber = "mailto:test@e2clicker.local";
     }
   );
 in

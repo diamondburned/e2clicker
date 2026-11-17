@@ -4,19 +4,23 @@
   import PreferenceItem from "$lib/components/preference/PreferenceItem.svelte";
 
   import * as api from "$lib/api.svelte";
+  import { user } from "$lib/api.svelte";
   import Icon from "$lib/components/Icon.svelte";
+  import { updatePushSubscription, type UpdatePushSubscriptionResult } from "$lib/notification";
   import { addToast, logErrorToast } from "$lib/toasts";
+  import { onMount } from "svelte";
 
   let preferences = $state<api.NotificationPreferences>();
-  let preferencesPromise = api.userNotificationPreferences().then((prefs) => {
+  let supportedMethods = $state<api.NotificationMethodSupports>([]);
+
+  let preferencesPromise = Promise.all([
+    api.userNotificationPreferences(),
+    api.supportedNotificationMethods(),
+  ]).then(([prefs, methods]) => {
     preferences = prefs;
+    supportedMethods = methods;
     return prefs;
   });
-
-  // let setPreferences = new api.AsyncToOK(api.discard(api.userUpdateNotificationPreferences), {
-  //   debounce: true,
-  //   initial: null,
-  // });
 
   let setPreferences = new api.AsyncToOK(
     async (newPreferences: api.NotificationPreferences) => {
@@ -29,7 +33,53 @@
     },
   );
 
+  let pushState = $state<UpdatePushSubscriptionResult | null>(null);
+  let pushLoadError = $state<unknown>(null);
+  let togglingPush = $state(false);
   let testingNotification = $state(false);
+
+  onMount(async () => {
+    try {
+      pushState = await updatePushSubscription({
+        accountSecret: $user?.secret,
+        token: api.currentToken() ?? undefined,
+      });
+    } catch (err) {
+      pushLoadError = err;
+    }
+  });
+
+  async function togglePush() {
+    if (!pushState || togglingPush) return;
+    togglingPush = true;
+    pushLoadError = null;
+    try {
+      const next = !pushState.enabled;
+      pushState = await updatePushSubscription({
+        toggle: next,
+        accountSecret: $user?.secret,
+        token: api.currentToken() ?? undefined,
+      });
+      if (pushState.reason) {
+        addToast({
+          urgency: "error",
+          message: "Web Push unavailable",
+          description: pushState.reason,
+        });
+      } else {
+        addToast({
+          message: pushState.enabled
+            ? "Web Push notifications enabled on this device."
+            : "Web Push notifications disabled on this device.",
+        });
+      }
+    } catch (err) {
+      pushLoadError = err;
+      logErrorToast("Failed to update Web Push subscription", err);
+    } finally {
+      togglingPush = false;
+    }
+  }
 </script>
 
 <PreferenceGroup
@@ -50,21 +100,29 @@
     {#await preferencesPromise}
       <span aria-busy="true"></span>
     {:then preferences}
-      <input
-        type="email"
-        value={(preferences.notificationConfigs.email ?? [])
-          .map((email) => email.address)
-          .join(", ")}
-        onchange={(e) => {
-          const emails = e.currentTarget.value
-            .split(",")
-            .map((email) => email.trim())
-            .filter((email) => email.length > 0)
-            .map((email) => ({ address: email }) as api.EmailSubscription);
-          preferences.notificationConfigs.email = emails;
-          setPreferences.do(preferences);
-        }}
-      />
+      {#if supportedMethods.includes("email")}
+        <input
+          type="email"
+          value={(preferences.notificationConfigs.email ?? [])
+            .map((email) => email.address)
+            .join(", ")}
+          onchange={(e) => {
+            const emails = e.currentTarget.value
+              .split(",")
+              .map((email) => email.trim())
+              .filter((email) => email.length > 0)
+              .map((email) => ({ address: email }) as api.EmailSubscription);
+            preferences.notificationConfigs.email = emails;
+            setPreferences.do(preferences);
+          }}
+        />
+      {:else}
+        <ErrorBox
+          error="Email notifications are not configured on this server."
+          prefix="Not available"
+          tiny
+        />
+      {/if}
     {/await}
   </PreferenceItem>
 
@@ -73,7 +131,43 @@
       Receive notifications via your browser. This will only work for this particular device.
     {/snippet}
 
-    <ErrorBox error="Not yet implemented!" prefix="Not available" tiny />
+    {#await preferencesPromise}
+      <span aria-busy="true"></span>
+    {:then}
+      {#if !supportedMethods.includes("webPush")}
+        <ErrorBox error="Server does not support this feature." prefix="Not available" tiny />
+      {:else if pushLoadError}
+        <ErrorBox error={pushLoadError} prefix="Web Push error" tiny />
+      {:else if !pushState}
+        <span aria-busy="true"></span>
+      {:else if !pushState.available}
+        <ErrorBox
+          error={pushState.reason ?? "Web Push is unavailable."}
+          prefix="Not available"
+          tiny
+        />
+      {:else}
+        <div class="flex flex-col items-end gap-1">
+          <button
+            class={pushState.enabled ? "secondary outline" : "outline"}
+            aria-busy={togglingPush}
+            disabled={togglingPush}
+            onclick={togglePush}
+          >
+            {#if pushState.enabled}
+              Disable Web Push
+              <Icon name="notifications_off" />
+            {:else}
+              Enable Web Push
+              <Icon name="notifications_active" />
+            {/if}
+          </button>
+          {#if pushState.reason}
+            <ErrorBox error={pushState.reason} prefix="Blocked" tiny />
+          {/if}
+        </div>
+      {/if}
+    {/await}
   </PreferenceItem>
 
   <PreferenceItem name="Test Notification">
@@ -95,7 +189,7 @@
           }, 5000);
         }
       }}
-      disabled={testingNotification}
+      disabled={testingNotification || supportedMethods.length === 0}
     >
       Test Notification
       <Icon name="send" />

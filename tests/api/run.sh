@@ -32,7 +32,7 @@ createdb -h "$WORK/pgsock" -U postgres e2clicker
 	go build -o "$WORK/bin/vapid-generate" ./cmd/vapid-generate
 )
 
-"$WORK/bin/vapid-generate" >"$WORK/vapid-keys.json"
+"$WORK/bin/vapid-generate" -subscriber "mailto:test@e2clicker.local" >"$WORK/vapid-keys.json"
 
 PORT="$(node -e 'const net = require("net"); const s = net.createServer(); s.listen(0, "127.0.0.1", () => { console.log(s.address().port); s.close(); });')"
 

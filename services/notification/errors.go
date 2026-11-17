@@ -12,12 +12,23 @@ import (
 
 func init() {
 	publicerrors.MarkTypePublic[UnknownServiceError]()
-	publicerrors.MarkTypePublic[HTTPUnknownStatusError]()
 	publicerrors.MarkTypePublic[ConfigError]()
 	publicerrors.MarkTypePublic[WebPushSubscriptionExpired]()
-	publicerrors.MarkValuesPublic(ErrWebPushNotAvailable)
-	publicerrors.MarkValuesPublic(ErrUnknownNotificationType)
+	publicerrors.MarkValuesPublic(
+		ErrWebPushNotAvailable,
+		ErrUnknownNotificationType,
+		ErrNoNotificationChannels,
+		ErrTooManyWebPushSubscriptions,
+	)
 }
+
+// ErrNoNotificationChannels is returned when a user has no notification
+// channels configured.
+var ErrNoNotificationChannels = errors.New("no notification channels configured")
+
+// ErrTooManyWebPushSubscriptions is returned when a user attempts to register
+// more than the allowed maximum number of Web Push subscriptions.
+var ErrTooManyWebPushSubscriptions = fmt.Errorf("too many web push subscriptions (max %d)", maxWebPushSubscriptionsPerUser)
 
 // ErrUnknownNotificationType is returned when the notification type is unknown.
 var ErrUnknownNotificationType = errors.New("unknown notification type")

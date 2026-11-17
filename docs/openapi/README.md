@@ -601,7 +601,7 @@ This operation does not require authentication
 
 > Example responses
 
-> default Response
+> 429 Response
 
 ```json
 {
@@ -626,6 +626,120 @@ This operation does not require authentication
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
 |204|[No Content](https://tools.ietf.org/html/rfc7231#section-6.3.5)|Successfully sent the test notification.|None|
+|429|[Too Many Requests](https://tools.ietf.org/html/rfc6585#section-4)|The request has been rate limited.|[Error](#schemaerror)|
+|default|Default|The request is invalid.|[Error](#schemaerror)|
+
+### Response Headers
+
+|Status|Header|Type|Format|Description|
+|---|---|---|---|---|
+|429|Retry-After|integer|int32|If the client should retry the request after a certain amount of time (in seconds), this header will be set. Often times, this will be set if the request is being rate limmmited.|
+
+<aside class="warning">
+To perform this operation, you must be authenticated by means of one of the following methods:
+bearerAuth
+</aside>
+
+## Subscribe or update a Web Push device subscription
+
+<a id="opIduserSubscribePush"></a>
+
+`PUT /notifications/web-push/{deviceID}`
+
+> Body parameter
+
+```json
+{
+  "deviceID": "7996e974",
+  "endpoint": "http://example.com",
+  "expirationTime": "2019-08-24T14:15:22Z",
+  "keys": {
+    "p256dh": "string",
+    "auth": "string"
+  }
+}
+```
+
+<h3 id="subscribe-or-update-a-web-push-device-subscription-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|deviceID|path|[PushDeviceID](#schemapushdeviceid)|true|none|
+|body|body|[PushSubscription](#schemapushsubscription)|true|none|
+
+> Example responses
+
+> default Response
+
+```json
+{
+  "message": "string",
+  "errors": [
+    {
+      "message": "string",
+      "errors": [],
+      "details": null,
+      "internal": true,
+      "internalCode": "string"
+    }
+  ],
+  "details": null,
+  "internal": true,
+  "internalCode": "string"
+}
+```
+
+<h3 id="subscribe-or-update-a-web-push-device-subscription-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|204|[No Content](https://tools.ietf.org/html/rfc7231#section-6.3.5)|Successfully subscribed the device for Web Push notifications.|None|
+|default|Default|The request is invalid.|[Error](#schemaerror)|
+
+<aside class="warning">
+To perform this operation, you must be authenticated by means of one of the following methods:
+bearerAuth
+</aside>
+
+## Unsubscribe a Web Push device subscription
+
+<a id="opIduserUnsubscribePush"></a>
+
+`DELETE /notifications/web-push/{deviceID}`
+
+<h3 id="unsubscribe-a-web-push-device-subscription-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|deviceID|path|[PushDeviceID](#schemapushdeviceid)|true|none|
+
+> Example responses
+
+> default Response
+
+```json
+{
+  "message": "string",
+  "errors": [
+    {
+      "message": "string",
+      "errors": [],
+      "details": null,
+      "internal": true,
+      "internalCode": "string"
+    }
+  ],
+  "details": null,
+  "internal": true,
+  "internalCode": "string"
+}
+```
+
+<h3 id="unsubscribe-a-web-push-device-subscription-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|204|[No Content](https://tools.ietf.org/html/rfc7231#section-6.3.5)|Successfully unsubscribed the device from Web Push notifications.|None|
 |default|Default|The request is invalid.|[Error](#schemaerror)|
 
 <aside class="warning">
@@ -649,12 +763,7 @@ bearerAuth
     "webPush": [
       {
         "deviceID": "7996e974",
-        "endpoint": "string",
-        "expirationTime": "2019-08-24T14:15:22Z",
-        "keys": {
-          "p256dh": "string",
-          "auth": "string"
-        }
+        "expirationTime": "2019-08-24T14:15:22Z"
       }
     ],
     "email": [
@@ -1271,6 +1380,27 @@ The recommended way to generate this string in JavaScript is:
 |---|---|---|---|---|
 |*anonymous*|string|false|none|A short ID associated with the device that the push subscription is for This is used to identify the device when updating its push subscription later on.<br>Realistically, this will be handled as an opaque random string generated on the device side, so the server has no way to correlate  it with any fingerprinting.<br>The recommended way to generate this string in JavaScript is:<br>```js crypto.randomUUID().slice(0, 8) ```|
 
+<h2 id="tocS_PushDevice">PushDevice</h2>
+<!-- backwards compatibility -->
+<a id="schemapushdevice"></a>
+<a id="schema_PushDevice"></a>
+<a id="tocSpushdevice"></a>
+<a id="tocspushdevice"></a>
+
+```json
+{
+  "deviceID": "7996e974",
+  "expirationTime": "2019-08-24T14:15:22Z"
+}
+
+```
+
+Safe metadata for a registered Web Push device (omits endpoint and authentication secrets).
+
+### Properties
+
+*None*
+
 <h2 id="tocS_PushInfo">PushInfo</h2>
 <!-- backwards compatibility -->
 <a id="schemapushinfo"></a>
@@ -1303,7 +1433,7 @@ This is returned by the server and contains information that the client would ne
 ```json
 {
   "deviceID": "7996e974",
-  "endpoint": "string",
+  "endpoint": "http://example.com",
   "expirationTime": "2019-08-24T14:15:22Z",
   "keys": {
     "p256dh": "string",
@@ -1355,12 +1485,7 @@ This is the object that is returned by calling PushSubscription.toJSON(). More i
     "webPush": [
       {
         "deviceID": "7996e974",
-        "endpoint": "string",
-        "expirationTime": "2019-08-24T14:15:22Z",
-        "keys": {
-          "p256dh": "string",
-          "auth": "string"
-        }
+        "expirationTime": "2019-08-24T14:15:22Z"
       }
     ],
     "email": [
@@ -1392,7 +1517,7 @@ Each key is a notification type and the value is the notification configuration 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
 |notificationConfigs|object|true|none|none|
-|» webPush|[[PushSubscription](#schemapushsubscription)]|false|none|[The configuration for a push notification subscription.<br>This is the object that is returned by calling PushSubscription.toJSON(). More information can be found at: https://developer.mozilla.org/en-US/docs/Web/API/PushSubscription/toJSON]|
+|» webPush|[[PushDevice](#schemapushdevice)]|false|none|Registered Web Push devices for this user. Managed via `PUT`/`DELETE /notifications/web-push/{deviceID}` and ignored on `PUT /notifications/preferences`.|
 
 <h2 id="tocS_NotificationMethodSupports">NotificationMethodSupports</h2>
 <!-- backwards compatibility -->

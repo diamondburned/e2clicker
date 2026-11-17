@@ -30,6 +30,12 @@ var _ notification.UserNotificationService = &UserNotificationServiceMock{}
 //			SetUserPreferencesSafeFunc: func(ctx context.Context, secret user.Secret, newPreferences *notification.UserPreferences, oldPreferences *notification.UserPreferences) error {
 //				panic("mock out the SetUserPreferencesSafe method")
 //			},
+//			SubscribeWebPushFunc: func(ctx context.Context, secret user.Secret, subscription openapi.PushSubscription) error {
+//				panic("mock out the SubscribeWebPush method")
+//			},
+//			UnsubscribeWebPushFunc: func(ctx context.Context, secret user.Secret, deviceID string) error {
+//				panic("mock out the UnsubscribeWebPush method")
+//			},
 //			UserPreferencesFunc: func(ctx context.Context, secret user.Secret) (notification.UserPreferences, error) {
 //				panic("mock out the UserPreferences method")
 //			},
@@ -48,6 +54,12 @@ type UserNotificationServiceMock struct {
 
 	// SetUserPreferencesSafeFunc mocks the SetUserPreferencesSafe method.
 	SetUserPreferencesSafeFunc func(ctx context.Context, secret user.Secret, newPreferences *notification.UserPreferences, oldPreferences *notification.UserPreferences) error
+
+	// SubscribeWebPushFunc mocks the SubscribeWebPush method.
+	SubscribeWebPushFunc func(ctx context.Context, secret user.Secret, subscription openapi.PushSubscription) error
+
+	// UnsubscribeWebPushFunc mocks the UnsubscribeWebPush method.
+	UnsubscribeWebPushFunc func(ctx context.Context, secret user.Secret, deviceID string) error
 
 	// UserPreferencesFunc mocks the UserPreferences method.
 	UserPreferencesFunc func(ctx context.Context, secret user.Secret) (notification.UserPreferences, error)
@@ -83,6 +95,24 @@ type UserNotificationServiceMock struct {
 			// OldPreferences is the oldPreferences argument value.
 			OldPreferences *notification.UserPreferences
 		}
+		// SubscribeWebPush holds details about calls to the SubscribeWebPush method.
+		SubscribeWebPush []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// Secret is the secret argument value.
+			Secret user.Secret
+			// Subscription is the subscription argument value.
+			Subscription openapi.PushSubscription
+		}
+		// UnsubscribeWebPush holds details about calls to the UnsubscribeWebPush method.
+		UnsubscribeWebPush []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// Secret is the secret argument value.
+			Secret user.Secret
+			// DeviceID is the deviceID argument value.
+			DeviceID string
+		}
 		// UserPreferences holds details about calls to the UserPreferences method.
 		UserPreferences []struct {
 			// Ctx is the ctx argument value.
@@ -94,6 +124,8 @@ type UserNotificationServiceMock struct {
 	lockNotifyUser             sync.RWMutex
 	lockSetUserPreferences     sync.RWMutex
 	lockSetUserPreferencesSafe sync.RWMutex
+	lockSubscribeWebPush       sync.RWMutex
+	lockUnsubscribeWebPush     sync.RWMutex
 	lockUserPreferences        sync.RWMutex
 }
 
@@ -218,6 +250,86 @@ func (mock *UserNotificationServiceMock) SetUserPreferencesSafeCalls() []struct 
 	mock.lockSetUserPreferencesSafe.RLock()
 	calls = mock.calls.SetUserPreferencesSafe
 	mock.lockSetUserPreferencesSafe.RUnlock()
+	return calls
+}
+
+// SubscribeWebPush calls SubscribeWebPushFunc.
+func (mock *UserNotificationServiceMock) SubscribeWebPush(ctx context.Context, secret user.Secret, subscription openapi.PushSubscription) error {
+	if mock.SubscribeWebPushFunc == nil {
+		panic("UserNotificationServiceMock.SubscribeWebPushFunc: method is nil but UserNotificationService.SubscribeWebPush was just called")
+	}
+	callInfo := struct {
+		Ctx          context.Context
+		Secret       user.Secret
+		Subscription openapi.PushSubscription
+	}{
+		Ctx:          ctx,
+		Secret:       secret,
+		Subscription: subscription,
+	}
+	mock.lockSubscribeWebPush.Lock()
+	mock.calls.SubscribeWebPush = append(mock.calls.SubscribeWebPush, callInfo)
+	mock.lockSubscribeWebPush.Unlock()
+	return mock.SubscribeWebPushFunc(ctx, secret, subscription)
+}
+
+// SubscribeWebPushCalls gets all the calls that were made to SubscribeWebPush.
+// Check the length with:
+//
+//	len(mockedUserNotificationService.SubscribeWebPushCalls())
+func (mock *UserNotificationServiceMock) SubscribeWebPushCalls() []struct {
+	Ctx          context.Context
+	Secret       user.Secret
+	Subscription openapi.PushSubscription
+} {
+	var calls []struct {
+		Ctx          context.Context
+		Secret       user.Secret
+		Subscription openapi.PushSubscription
+	}
+	mock.lockSubscribeWebPush.RLock()
+	calls = mock.calls.SubscribeWebPush
+	mock.lockSubscribeWebPush.RUnlock()
+	return calls
+}
+
+// UnsubscribeWebPush calls UnsubscribeWebPushFunc.
+func (mock *UserNotificationServiceMock) UnsubscribeWebPush(ctx context.Context, secret user.Secret, deviceID string) error {
+	if mock.UnsubscribeWebPushFunc == nil {
+		panic("UserNotificationServiceMock.UnsubscribeWebPushFunc: method is nil but UserNotificationService.UnsubscribeWebPush was just called")
+	}
+	callInfo := struct {
+		Ctx      context.Context
+		Secret   user.Secret
+		DeviceID string
+	}{
+		Ctx:      ctx,
+		Secret:   secret,
+		DeviceID: deviceID,
+	}
+	mock.lockUnsubscribeWebPush.Lock()
+	mock.calls.UnsubscribeWebPush = append(mock.calls.UnsubscribeWebPush, callInfo)
+	mock.lockUnsubscribeWebPush.Unlock()
+	return mock.UnsubscribeWebPushFunc(ctx, secret, deviceID)
+}
+
+// UnsubscribeWebPushCalls gets all the calls that were made to UnsubscribeWebPush.
+// Check the length with:
+//
+//	len(mockedUserNotificationService.UnsubscribeWebPushCalls())
+func (mock *UserNotificationServiceMock) UnsubscribeWebPushCalls() []struct {
+	Ctx      context.Context
+	Secret   user.Secret
+	DeviceID string
+} {
+	var calls []struct {
+		Ctx      context.Context
+		Secret   user.Secret
+		DeviceID string
+	}
+	mock.lockUnsubscribeWebPush.RLock()
+	calls = mock.calls.UnsubscribeWebPush
+	mock.lockUnsubscribeWebPush.RUnlock()
 	return calls
 }
 

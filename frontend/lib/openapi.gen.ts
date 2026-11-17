@@ -84,6 +84,11 @@ export type PushSubscription = {
         auth: string;
     };
 };
+export type PushDevice = {
+    deviceID: PushDeviceId;
+    /** The time at which the subscription expires. */
+    expirationTime?: string;
+};
 export type EmailSubscription = {
     /** The email address to send the notification to. This email address will appear in the `To` field of the email. */
     address: string;
@@ -101,7 +106,8 @@ export type CustomNotifications = {
 };
 export type NotificationPreferences = {
     notificationConfigs: {
-        webPush?: PushSubscription[];
+        /** Registered Web Push devices for this user. Managed via `PUT`/`DELETE /notifications/web-push/{deviceID}` and ignored on `PUT /notifications/preferences`. */
+        webPush?: PushDevice[];
         email?: EmailSubscription[];
     };
     customNotifications?: CustomNotifications;
@@ -340,11 +346,43 @@ export function sendTestNotification(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 204;
     } | {
+        status: 429;
+        data: Error;
+    } | {
         status: number;
         data: Error;
     }>("/notifications/test", {
         ...opts,
         method: "POST"
+    }));
+}
+/**
+ * Subscribe or update a Web Push device subscription
+ */
+export function userSubscribePush(deviceId: PushDeviceId, pushSubscription: PushSubscription, opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 204;
+    } | {
+        status: number;
+        data: Error;
+    }>(`/notifications/web-push/${encodeURIComponent(deviceId)}`, oazapfts.json({
+        ...opts,
+        method: "PUT",
+        body: pushSubscription
+    })));
+}
+/**
+ * Unsubscribe a Web Push device subscription
+ */
+export function userUnsubscribePush(deviceId: PushDeviceId, opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 204;
+    } | {
+        status: number;
+        data: Error;
+    }>(`/notifications/web-push/${encodeURIComponent(deviceId)}`, {
+        ...opts,
+        method: "DELETE"
     }));
 }
 /**

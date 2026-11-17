@@ -102,9 +102,23 @@ type NotificationMethodSupports = []string
 type NotificationPreferences struct {
 	CustomNotifications CustomNotifications `json:"customNotifications,omitempty"`
 	NotificationConfigs struct {
-		Email   *[]EmailSubscription `json:"email,omitempty"`
-		WebPush *[]PushSubscription  `json:"webPush,omitempty"`
+		Email *[]EmailSubscription `json:"email,omitempty"`
+
+		// WebPush Registered Web Push devices for this user. Managed via `PUT`/`DELETE /notifications/web-push/{deviceID}` and ignored on `PUT /notifications/preferences`.
+		WebPush *[]PushDevice `json:"webPush,omitempty"`
 	} `json:"notificationConfigs"`
+}
+
+// PushDevice Safe metadata for a registered Web Push device (omits endpoint and authentication secrets).
+type PushDevice struct {
+	// DeviceID A short ID associated with the device that the push subscription is for This is used to identify the device when updating its push subscription later on.
+	// Realistically, this will be handled as an opaque random string generated on the device side, so the server has no way to correlate  it with any fingerprinting.
+	// The recommended way to generate this string in JavaScript is:
+	// ```js crypto.randomUUID().slice(0, 8) ```
+	DeviceID PushDeviceID `json:"deviceID"`
+
+	// ExpirationTime The time at which the subscription expires.
+	ExpirationTime time.Time `json:"expirationTime,omitempty"`
 }
 
 // PushInfo This is returned by the server and contains information that the client would need to subscribe to push notifications.
@@ -146,10 +160,15 @@ type UserUpdateNotificationPreferencesJSONBody struct {
 	UnderscoreCurrent   *NotificationPreferences `json:"_current,omitempty"`
 	CustomNotifications CustomNotifications      `json:"customNotifications,omitempty"`
 	NotificationConfigs struct {
-		Email   *[]EmailSubscription `json:"email,omitempty"`
-		WebPush *[]PushSubscription  `json:"webPush,omitempty"`
+		Email *[]EmailSubscription `json:"email,omitempty"`
+
+		// WebPush Registered Web Push devices for this user. Managed via `PUT`/`DELETE /notifications/web-push/{deviceID}` and ignored on `PUT /notifications/preferences`.
+		WebPush *[]PushDevice `json:"webPush,omitempty"`
 	} `json:"notificationConfigs"`
 }
 
 // UserUpdateNotificationPreferencesJSONRequestBody defines body for UserUpdateNotificationPreferences for application/json ContentType.
 type UserUpdateNotificationPreferencesJSONRequestBody UserUpdateNotificationPreferencesJSONBody
+
+// UserSubscribePushJSONRequestBody defines body for UserSubscribePush for application/json ContentType.
+type UserSubscribePushJSONRequestBody = PushSubscription

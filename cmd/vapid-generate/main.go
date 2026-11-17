@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"log"
 	"os"
 
@@ -13,15 +14,25 @@ func init() {
 }
 
 func main() {
+	subscriber := flag.String("subscriber", "", "VAPID subscriber contact URI (mailto:... or https://...)")
+	flag.Parse()
+
 	priv, pub, err := webpush.GenerateVAPIDKeys()
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	enc := json.NewEncoder(os.Stdout)
-	enc.SetIndent("", "  ")
-	enc.Encode(map[string]string{
+	out := map[string]string{
 		"publicKey":  pub,
 		"privateKey": priv,
-	})
+	}
+	if *subscriber != "" {
+		out["subscriber"] = *subscriber
+	}
+
+	enc := json.NewEncoder(os.Stdout)
+	enc.SetIndent("", "  ")
+	if err := enc.Encode(out); err != nil {
+		log.Fatalln(err)
+	}
 }

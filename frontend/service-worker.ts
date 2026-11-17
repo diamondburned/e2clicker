@@ -6,7 +6,7 @@
 import { cleanupOutdatedCaches, precache } from "workbox-precaching";
 
 import type * as api from "./lib/api";
-// import { updatePushSubscription } from "./lib/notification";
+import { loadSWCredentials } from "./lib/sw-creds";
 import { WorkerError, type WorkerMessage } from "./lib/shared-worker";
 
 // TypeScript support:
@@ -57,6 +57,14 @@ self.addEventListener("push", (ev) => {
   });
 });
 
+const notificationRoutes: Record<api.NotificationType, string | null> = {
+  welcome_message: "/dashboard",
+  reminder_message: "/dashboard",
+  account_notice_message: "/settings",
+  web_push_expiring_message: "/settings",
+  test_message: "/dashboard",
+};
+
 self.addEventListener("notificationclick", (ev) => {
   handleEvent(ev, async () => {
     const notification = ev.notification.data as api.Notification | undefined;
@@ -65,12 +73,7 @@ self.addEventListener("notificationclick", (ev) => {
       return;
     }
 
-    const route = {
-      welcome: null,
-      reminder: "/dashboard",
-      account_notice: "/settings",
-      web_push_expiring: "/settings",
-    }[notification.type];
+    const route = notificationRoutes[notification.type];
     if (route) {
       await gotoWindow(route);
     }
@@ -79,36 +82,69 @@ self.addEventListener("notificationclick", (ev) => {
   });
 });
 
-/*
 self.addEventListener("pushsubscriptionchange", (ev) => {
-  // Supposedly, Chrome has no support for this event. However, we're handling
-  // this event just in case. It is fully supported in Firefox and Safari.
-  //
-  // For more information, see:
-  // - https://stackoverflow.com/questions/61487043/why-are-my-pushsubscriptions-expiring-so-quickly
-  // - https://issues.chromium.org/issues/41275327
-  // - https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerGlobalScope/pushsubscriptionchange_event#browser_compatibility
-  if ("waitUntil" in ev) {
-    try {
-      handleEvent(ev as ExtendableEvent, async () => {
-        await updatePushSubscription({ toggle: true });
-      });
-      return;
-    } catch (err) {
-      console.error("pushsubscriptionchange error", err);
-      // defer to showing a notification as below.
-    }
-  }
+  const pushEv = ev as ExtendableEvent & {
+    newSubscription?: PushSubscription;
+  };
+  pushEv.waitUntil(
+    (async () => {
+      try {
+        const creds = await loadSWCredentials();
+        if (!creds) {
+          throw new Error("missing stored credentials for push resubscription");
+        }
 
-  self.registration.showNotification("Notifications broke!", {
-    body:
-      "A web quirk happened... " +
-      "Please re-open the app or switch to more reliable notifying methods.",
-    tag: "_system",
-    requireInteraction: true,
-  });
+        let subscription = pushEv.newSubscription;
+        if (!subscription) {
+          const infoResp = await fetch("/api/push-info");
+          if (!infoResp.ok) {
+            throw new Error(`failed to fetch push-info: ${infoResp.status}`);
+          }
+          const info = (await infoResp.json()) as api.PushInfo;
+          subscription = await self.registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: info.applicationServerKey,
+          });
+        }
+
+        const keys = subscription.toJSON().keys as Record<string, string> | undefined;
+        if (!keys?.p256dh || !keys?.auth) {
+          throw new Error("push subscription keys missing");
+        }
+
+        const expirationTime = subscription.expirationTime
+          ? new Date(subscription.expirationTime).toISOString()
+          : undefined;
+
+        const resp = await fetch(`/api/notifications/web-push/${encodeURIComponent(creds.deviceID)}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${creds.token}`,
+          },
+          body: JSON.stringify({
+            deviceID: creds.deviceID,
+            endpoint: subscription.endpoint,
+            expirationTime,
+            keys: { p256dh: keys.p256dh, auth: keys.auth },
+          }),
+        });
+        if (!resp.ok) {
+          throw new Error(`failed to update push subscription: ${resp.status}`);
+        }
+      } catch (err) {
+        console.error("pushsubscriptionchange error", err);
+        await self.registration.showNotification("Notifications broke!", {
+          body:
+            "A web quirk happened... " +
+            "Please re-open the app or switch to more reliable notifying methods.",
+          tag: "_system",
+          requireInteraction: true,
+        });
+      }
+    })(),
+  );
 });
-*/
 
 function handleEvent<Event extends ExtendableEvent>(ev: Event, fn: () => Promise<any>) {
   ev.waitUntil(
@@ -120,11 +156,17 @@ function handleEvent<Event extends ExtendableEvent>(ev: Event, fn: () => Promise
 }
 
 async function gotoWindow(url: string) {
-  const windows = await self.clients.matchAll({ type: "window" });
+  const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
 
-  const window = windows.find((w) => w.url === url);
-  if (window) {
-    await window.focus();
+  const existing = windows.find((w) => {
+    try {
+      return new URL(w.url).pathname === url;
+    } catch {
+      return false;
+    }
+  });
+  if (existing) {
+    await existing.focus();
     return;
   }
 

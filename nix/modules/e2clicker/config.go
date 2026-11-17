@@ -40,6 +40,10 @@ type Notification struct {
 	// VAPID keys that are used to encrypt the notifications. Use `just
 	// generate-vapid` to generate the keys.
 	WebPush *WebPushJSON `json:"webPush"`
+	// WebPushSubscriber: fallback VAPID subscriber contact URI (mailto:...
+	// or https://...) used when `webPush` points to a JSON file without a
+	// `subscriber` field.
+	WebPushSubscriber *string `json:"webPushSubscriber"`
 }
 
 // SMTP is the struct type for `config.notification.email.smtp`.
@@ -166,6 +170,8 @@ type WebPushSubmodule struct {
 	PrivateKey string `json:"privateKey"`
 	// PublicKey: VAPID public key.
 	PublicKey string `json:"publicKey"`
+	// Subscriber: VAPID subscriber contact URI (mailto:... or https://...).
+	Subscriber *string `json:"subscriber"`
 }
 
 func (w WebPushPath) isWebPush() {
@@ -184,6 +190,8 @@ func NewWebPushSubmodule(w struct {
 	PrivateKey string `json:"privateKey"`
 	// PublicKey: VAPID public key.
 	PublicKey string `json:"publicKey"`
+	// Subscriber: VAPID subscriber contact URI (mailto:... or https://...).
+	Subscriber *string `json:"subscriber"`
 }) WebPush {
 	return WebPushSubmodule(w)
 }
@@ -218,6 +226,8 @@ func unmarshalWebPush(data json.RawMessage) (WebPush, error) {
 		PrivateKey string `json:"privateKey"`
 		// PublicKey: VAPID public key.
 		PublicKey string `json:"publicKey"`
+		// Subscriber: VAPID subscriber contact URI (mailto:... or https://...).
+		Subscriber *string `json:"subscriber"`
 	}
 	if err := json.Unmarshal(data, &v1); err == nil {
 		return WebPushSubmodule(v1), nil

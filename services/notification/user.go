@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"slices"
 
 	"e2clicker.app/services/notification/openapi"
 	"e2clicker.app/services/user"
@@ -43,6 +44,10 @@ type UserNotificationService interface {
 	// Realistically, this doesn't happen unless the user is deliberately trying to
 	// cause the issue.
 	SetUserPreferencesSafe(ctx context.Context, secret user.Secret, newPreferences, oldPreferences *UserPreferences) error
+	// SubscribeWebPush registers or updates a Web Push subscription for a device.
+	SubscribeWebPush(ctx context.Context, secret user.Secret, subscription openapi.PushSubscription) error
+	// UnsubscribeWebPush removes a Web Push subscription for a device.
+	UnsubscribeWebPush(ctx context.Context, secret user.Secret, deviceID string) error
 }
 
 type userNotificationService struct {
@@ -80,7 +85,7 @@ func (s *userNotificationService) NotifyUser(ctx context.Context, secret user.Se
 	}
 
 	if prefs.NotificationConfigs.IsEmpty() {
-		return nil
+		return ErrNoNotificationChannels
 	}
 
 	u, err := s.users.User(ctx, secret)
@@ -121,18 +126,22 @@ func (s *userNotificationService) SetUserPreferencesSafe(ctx context.Context, se
 				return fmt.Errorf("preferences have changed since you last read them")
 			}
 		}
-		*p = *newPreferences
+		p.CustomNotifications = newPreferences.CustomNotifications
+		p.NotificationConfigs.Email = newPreferences.NotificationConfigs.Email
 		return nil
 	})
 }
 
-/*
 // SubscribeWebPush sets the web push subscription of a user.
 // The particular subscription is identified by the device ID.
-func (s *UserNotificationService) SubscribeWebPush(ctx context.Context, secret user.Secret, subscription openapi.PushSubscription) error {
+func (s *userNotificationService) SubscribeWebPush(ctx context.Context, secret user.Secret, subscription openapi.PushSubscription) error {
+	if err := ValidatePushSubscription(subscription); err != nil {
+		return ConfigError{Service: "webPush", err: err}
+	}
+
 	s.logger.Debug(
 		"Updating Web Push subscription",
-		"endpoint", subscription.Endpoint,
+		"deviceID", subscription.DeviceID,
 		"expirationTime", subscription.ExpirationTime)
 
 	return s.userNotifications.SetUserPreferencesTx(ctx, secret, func(p *UserPreferences) error {
@@ -143,15 +152,18 @@ func (s *UserNotificationService) SubscribeWebPush(ctx context.Context, secret u
 		)
 		if ix != -1 {
 			p.NotificationConfigs.WebPush[ix] = subscription
-		} else {
-			p.NotificationConfigs.WebPush = append(p.NotificationConfigs.WebPush, subscription)
+			return nil
 		}
+		if len(p.NotificationConfigs.WebPush) >= maxWebPushSubscriptionsPerUser {
+			return ErrTooManyWebPushSubscriptions
+		}
+		p.NotificationConfigs.WebPush = append(p.NotificationConfigs.WebPush, subscription)
 		return nil
 	})
 }
 
 // UnsubscribeWebPush removes the web push subscription of a user.
-func (s *UserNotificationService) UnsubscribeWebPush(ctx context.Context, secret user.Secret, deviceID string) error {
+func (s *userNotificationService) UnsubscribeWebPush(ctx context.Context, secret user.Secret, deviceID string) error {
 	return s.userNotifications.SetUserPreferencesTx(ctx, secret, func(p *UserPreferences) error {
 		p.NotificationConfigs.WebPush = slices.DeleteFunc(p.NotificationConfigs.WebPush,
 			func(c WebPushNotificationConfig) bool { return c.DeviceID == deviceID },
@@ -159,4 +171,3 @@ func (s *UserNotificationService) UnsubscribeWebPush(ctx context.Context, secret
 		return nil
 	})
 }
-*/

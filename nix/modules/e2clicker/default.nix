@@ -76,8 +76,23 @@ in
                   type = types.str;
                   description = "The VAPID public key.";
                 };
+                subscriber = mkOption {
+                  type = types.nullOr types.str;
+                  default = null;
+                  description = "The VAPID subscriber contact URI (mailto:... or https://...).";
+                };
               };
             });
+          };
+
+          webPushSubscriber = mkOption {
+            description = ''
+              Fallback VAPID subscriber contact URI (mailto:... or https://...)
+              used when `webPush` points to a JSON file without a `subscriber`
+              field.
+            '';
+            type = types.nullOr types.str;
+            default = null;
           };
 
           email = mkOption {
@@ -222,17 +237,16 @@ in
 
     systemd.services.e2clicker-frontend = mkIf e2clicker.frontend.enable {
       description = "e2clicker frontend";
-      environment =
-        {
-          NODE_ENV = "production";
-          IDLE_TIMEOUT = toString (1 * 60 * 60); # 1 hour
-          # the frontend doesn't even handle POST requests.
-          BODY_SIZE_LIMIT = "4K";
-        }
-        // (lib.optionalAttrs e2clicker.frontend.trustProxy {
-          HOST_HEADER = "x-forwarded-host";
-          PROTOCOL_HEADER = "x-forwarded-proto";
-        });
+      environment = {
+        NODE_ENV = "production";
+        IDLE_TIMEOUT = toString (1 * 60 * 60); # 1 hour
+        # the frontend doesn't even handle POST requests.
+        BODY_SIZE_LIMIT = "4K";
+      }
+      // (lib.optionalAttrs e2clicker.frontend.trustProxy {
+        HOST_HEADER = "x-forwarded-host";
+        PROTOCOL_HEADER = "x-forwarded-proto";
+      });
       # wantedBy = [ "multi-user.target" ];
       serviceConfig = {
         ExecStart = "${getExe e2clicker.frontend.package}";

@@ -24,7 +24,7 @@ export function logErrorToast(what: string, error: any) {
   addToast({
     urgency: "error",
     message: what,
-    description: error.message ?? error,
+    description: error?.data?.message ?? error?.message ?? `${error}`,
   });
 }
 

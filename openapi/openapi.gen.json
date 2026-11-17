@@ -485,6 +485,71 @@
           "204": {
             "description": "Successfully sent the test notification."
           },
+          "429": {
+            "$ref": "#/components/responses/RateLimitedResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        },
+        "tags": [
+          "notification"
+        ]
+      }
+    },
+    "/notifications/web-push/{deviceID}": {
+      "put": {
+        "summary": "Subscribe or update a Web Push device subscription",
+        "operationId": "userSubscribePush",
+        "parameters": [
+          {
+            "name": "deviceID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/PushDeviceID"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PushSubscription"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Successfully subscribed the device for Web Push notifications."
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        },
+        "tags": [
+          "notification"
+        ]
+      },
+      "delete": {
+        "summary": "Unsubscribe a Web Push device subscription",
+        "operationId": "userUnsubscribePush",
+        "parameters": [
+          {
+            "name": "deviceID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/PushDeviceID"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successfully unsubscribed the device from Web Push notifications."
+          },
           "default": {
             "$ref": "#/components/responses/ErrorResponse"
           }
@@ -1038,9 +1103,28 @@
       },
       "PushDeviceID": {
         "type": "string",
+        "minLength": 1,
+        "maxLength": 64,
         "example": "7996e974",
         "description": "A short ID associated with the device that the push subscription is for This is used to identify the device when updating its push subscription later on.\nRealistically, this will be handled as an opaque random string generated on the device side, so the server has no way to correlate  it with any fingerprinting.\nThe recommended way to generate this string in JavaScript is:\n```js crypto.randomUUID().slice(0, 8) ```",
         "x-order": -99
+      },
+      "PushDevice": {
+        "description": "Safe metadata for a registered Web Push device (omits endpoint and authentication secrets).",
+        "required": [
+          "deviceID"
+        ],
+        "properties": {
+          "deviceID": {
+            "$ref": "#/components/schemas/PushDeviceID"
+          },
+          "expirationTime": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The time at which the subscription expires.",
+            "x-go-type-skip-optional-pointer": true
+          }
+        }
       },
       "PushInfo": {
         "description": "This is returned by the server and contains information that the client would need to subscribe to push notifications.",
@@ -1067,6 +1151,9 @@
           },
           "endpoint": {
             "type": "string",
+            "format": "uri",
+            "minLength": 1,
+            "maxLength": 2048,
             "description": "The endpoint to send the notification to.",
             "x-order": 1
           },
@@ -1087,11 +1174,15 @@
             "properties": {
               "p256dh": {
                 "type": "string",
+                "minLength": 1,
+                "maxLength": 256,
                 "description": "An Elliptic curve Diffie–Hellman public key on the P-256 curve (that is, the NIST secp256r1 elliptic curve). The resulting key is an uncompressed point in ANSI X9.62 format.",
                 "x-order": 1
               },
               "auth": {
                 "type": "string",
+                "minLength": 1,
+                "maxLength": 256,
                 "description": "An authentication secret, as described in Message Encryption for Web Push.",
                 "x-order": 2
               }
@@ -1126,8 +1217,9 @@
             "properties": {
               "webPush": {
                 "type": "array",
+                "description": "Registered Web Push devices for this user. Managed via `PUT`/`DELETE /notifications/web-push/{deviceID}` and ignored on `PUT /notifications/preferences`.",
                 "items": {
-                  "$ref": "#/components/schemas/PushSubscription"
+                  "$ref": "#/components/schemas/PushDevice"
                 }
               },
               "email": {

@@ -16,7 +16,7 @@ var Module = fx.Module("notification",
 		NewUserNotificationService,
 		NewGotifyService,
 		NewPushoverService,
-		NewWebPushSevice,
+		NewWebPushService,
 		NewEmailService,
 	),
 )

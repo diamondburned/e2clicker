@@ -6,6 +6,7 @@ import { DateTime } from "luxon";
 import { persisted } from "svelte-persisted-store";
 
 import * as api from "./api";
+import { clearPushOptIn } from "./notification/webpush";
 export * from "./api";
 
 // token is the current session token.
@@ -15,12 +16,16 @@ const token = persisted<string | null>("e2clicker-token", null);
 // isLoggedIn is true if the user is logged in.
 export const isLoggedIn = derived(token, (token) => !!token);
 
+export function currentToken(): string | null {
+  return get(token);
+}
+
 const fetchAPI: Exclude<typeof api.defaults.fetch, undefined> = async (input, init = {}) => {
   const resp = await window.fetch("/api" + input, init);
   switch (resp.status) {
     case 401:
-      // Unauthorized. Clear token and redirect to /login.
-      token.set(null);
+      // Unauthorized. Clear token, push opt-in, and redirect to /login.
+      clearSession();
       goto("/login");
       break;
     case 500:
@@ -33,9 +38,15 @@ const fetchAPI: Exclude<typeof api.defaults.fetch, undefined> = async (input, in
 api.defaults.fetch = fetchAPI;
 api.defaults.baseUrl = "";
 
-token.subscribe((token) => {
-  api.defaults.headers = { Authorization: token ? `Bearer ${token}` : undefined };
+token.subscribe((tok) => {
+  api.defaults.headers = { Authorization: tok ? `Bearer ${tok}` : undefined };
 });
+
+function clearSession() {
+  token.set(null);
+  user.set(null);
+  clearPushOptIn();
+}
 
 // fetch performs an API request with the given path and parameters.
 // The path is relative to the API base URL.
@@ -87,13 +98,17 @@ export async function updateUser({ force = false }: { force?: boolean } = {}) {
   } catch (err) {
     // If unauthorized, then clear token and redirect to /login.
     if (api.isStatus(err, 401)) {
-      token.set(null);
+      clearSession();
       goto("/login");
     }
   }
 }
 
 export async function auth(secret: string, { redirect = true }: { redirect?: boolean } = {}) {
+  const previousSecret = get(user)?.secret;
+  if (previousSecret && previousSecret !== secret) {
+    clearPushOptIn();
+  }
   const resp = await api.auth({ secret });
   token.set(resp.token);
   await updateUser({ force: true });

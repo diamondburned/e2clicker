@@ -2,6 +2,7 @@ package dosage
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"time"
 
@@ -194,6 +195,13 @@ func (s *DosageReminderService) cycle(ctx context.Context, now time.Time) time.T
 		start := time.Now()
 		err := s.notifs.NotifyUser(ctx, r.UserSecret, notificationapi.ReminderMessage)
 		taken := time.Since(start)
+
+		if errors.Is(err, notification.ErrNoNotificationChannels) {
+			slog.DebugContext(ctx,
+				"DosageReminderService: skipping user with no notification channels",
+				"reminder.username", r.Username)
+			continue
+		}
 
 		attempt := RemindedDoseAttempt{
 			UserSecret:   r.UserSecret,

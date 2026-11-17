@@ -10,6 +10,7 @@ import (
 
 	"e2clicker.app/internal/meta"
 	"e2clicker.app/internal/ptr"
+	"e2clicker.app/services/notification"
 	"e2clicker.app/services/notification/openapi"
 	"e2clicker.app/services/user"
 	"github.com/alecthomas/assert/v2"
@@ -270,6 +271,23 @@ func TestDosageReminderService(t *testing.T) {
 
 		assert.Equal(t, 1, len(notified), "only one user should be notified")
 		assert.Equal(t, 1, notified["user1"], "user1 should be notified once")
+	})
+
+	t.Run("skip_empty_notification_channels", func(t *testing.T) {
+		ctx := context.Background()
+		s := newMockDosageReminderService(t)
+
+		calls := 0
+		s.UserNotificationService.NotifyUserFunc = func(ctx context.Context, secret user.Secret, t openapi.NotificationType) error {
+			calls++
+			return notification.ErrNoNotificationChannels
+		}
+
+		s.cycle(ctx, now)
+		s.cycle(ctx, now.Add(time.Minute))
+
+		assert.Equal(t, 2, calls, "user without channels must not be marked as reminded")
+		assert.Equal(t, (*time.Time)(nil), s.DosageReminderStorage.upcoming["user1"].LastRemindedAt)
 	})
 }
 

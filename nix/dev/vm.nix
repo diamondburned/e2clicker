@@ -67,6 +67,7 @@ in
       notification = {
         email = rootPathOrNull "secrets/email-config.json" "No SMTP support because SMTP credentials missing";
         webPush = rootPathOrNull "secrets/vapid-keys.json" "No push notification support because VAPID keys missing";
+        webPushSubscriber = "mailto:dev@e2clicker.local";
         clientTimeout = "15s";
       };
     };

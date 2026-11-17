@@ -135,3 +135,11 @@ CREATE DOMAIN positiveinterval AS interval CHECK (value > '0 minutes'::interval)
 -- to take their medication after the last dose.
 ALTER TABLE dosage_schedule
   ADD COLUMN reminder_recurrence positiveinterval[];
+
+-- NEW VERSION
+UPDATE
+  meta
+SET v = 5;
+
+CREATE INDEX notification_history_user_sent_at ON notification_history (user_secret, sent_at DESC)
+WHERE NOT errored;

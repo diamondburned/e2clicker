@@ -43,22 +43,30 @@ WHERE user_secret = $1
 ORDER BY taken_at ASC;
 
 -- name: UpcomingDosageReminders :many
-SELECT DISTINCT ON (users.secret)
-  users.secret AS user_secret, -- 
-  users.name AS user_name, -- 
-  sqlc.embed(dosage_schedule), -- 
-  sqlc.embed(dosage_history), -- 
-  notification_history.supposed_entity_time AS last_reminded_dose, -- 
-  notification_history.sent_at AS last_reminded_at
+SELECT
+  users.secret AS user_secret,
+  users.name AS user_name,
+  sqlc.embed(dosage_schedule),
+  sqlc.embed(dosage_history),
+  last_notification.supposed_entity_time AS last_reminded_dose,
+  last_notification.sent_at AS last_reminded_at
 FROM users
   INNER JOIN dosage_schedule ON users.secret = dosage_schedule.user_secret
-  INNER JOIN dosage_history ON users.secret = dosage_history.user_secret
-  LEFT JOIN notification_history ON users.secret = notification_history.user_secret
-ORDER BY -- 
-  users.secret, -- 
-  dosage_history.taken_at DESC, -- 
-  notification_history.supposed_entity_time DESC, -- 
-  notification_history.sent_at DESC;
+  INNER JOIN LATERAL (
+    SELECT *
+    FROM dosage_history dh
+    WHERE dh.user_secret = users.secret
+    ORDER BY dh.taken_at DESC
+    LIMIT 1
+  ) dosage_history ON TRUE
+  LEFT JOIN LATERAL (
+    SELECT nh.supposed_entity_time, nh.sent_at
+    FROM notification_history nh
+    WHERE nh.user_secret = users.secret
+      AND NOT nh.errored
+    ORDER BY nh.supposed_entity_time DESC NULLS LAST, nh.sent_at DESC
+    LIMIT 1
+  ) last_notification ON TRUE;
 
 -- name: RecordRemindedDoseAttempt :exec
 INSERT INTO notification_history (user_secret, sent_at, supposed_entity_time, error_reason)

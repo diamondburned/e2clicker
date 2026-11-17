@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -10,11 +11,13 @@ import (
 
 	"e2clicker.app/internal/ptr"
 	"e2clicker.app/internal/publicerrors"
+	"e2clicker.app/internal/userlimit"
 	"e2clicker.app/services/api/openapi"
 	"e2clicker.app/services/dosage"
 	"e2clicker.app/services/notification"
 	"e2clicker.app/services/user"
 	"go.uber.org/fx"
+	"golang.org/x/time/rate"
 
 	dosageapi "e2clicker.app/services/dosage/openapi"
 	notificationapi "e2clicker.app/services/notification/openapi"
@@ -23,12 +26,13 @@ import (
 // openAPIHandler is the handler for the OpenAPI service.
 // It implements the OpenAPI service interface.
 type openAPIHandler struct {
-	logger      *slog.Logger
-	users       *user.UserService
-	notifs      notification.UserNotificationService
-	notif       notification.NotificationService
-	dosage      dosage.DosageStorage
-	doseHistory dosage.DoseHistoryStorage
+	logger           *slog.Logger
+	users            *user.UserService
+	notifs           notification.UserNotificationService
+	notif            notification.NotificationService
+	dosage           dosage.DosageStorage
+	doseHistory      dosage.DoseHistoryStorage
+	testNotifLimiter *userlimit.UserRateLimiter[user.Secret]
 }
 
 // OpenAPIHandlerServices is the set of service dependencies required by the
@@ -44,14 +48,22 @@ type OpenAPIHandlerServices struct {
 }
 
 // newOpenAPIHandler creates a new OpenAPIHandler.
-func newOpenAPIHandler(deps OpenAPIHandlerServices, logger *slog.Logger) *openAPIHandler {
+func newOpenAPIHandler(deps OpenAPIHandlerServices, logger *slog.Logger, lc fx.Lifecycle) *openAPIHandler {
+	limiter := userlimit.NewUserRateLimiter[user.Secret](rate.Every(1*time.Minute), 3)
+	stopCleanup := limiter.BeginCleanup()
+	lc.Append(fx.StopHook(func(ctx context.Context) error {
+		stopCleanup()
+		return nil
+	}))
+
 	return &openAPIHandler{
-		logger:      logger,
-		users:       deps.Users,
-		notifs:      deps.UserNotifications,
-		notif:       deps.Notification,
-		dosage:      deps.Dosage,
-		doseHistory: deps.DoseHistory,
+		logger:           logger,
+		users:            deps.Users,
+		notifs:           deps.UserNotifications,
+		notif:            deps.Notification,
+		dosage:           deps.Dosage,
+		doseHistory:      deps.DoseHistory,
+		testNotifLimiter: limiter,
 	}
 }
 
@@ -346,13 +358,12 @@ func (h *openAPIHandler) UserNotificationPreferences(ctx context.Context, reques
 	}
 
 	if len(p.NotificationConfigs.WebPush) > 0 {
-		s := make([]openapi.PushSubscription, len(p.NotificationConfigs.WebPush))
+		s := make([]openapi.PushDevice, len(p.NotificationConfigs.WebPush))
 		for i, sub := range p.NotificationConfigs.WebPush {
-			s[i] = openapi.PushSubscription{
+			s[i] = openapi.PushDevice{
 				DeviceID:       sub.DeviceID,
 				ExpirationTime: sub.ExpirationTime,
 			}
-			s[i].Keys.P256Dh = sub.Keys.P256Dh
 		}
 		ret.NotificationConfigs.WebPush = &s
 	}
@@ -389,13 +400,6 @@ func (h *openAPIHandler) UserUpdateNotificationPreferences(ctx context.Context, 
 		}
 	}
 
-	if request.Body.NotificationConfigs.WebPush != nil {
-		newPreferences.NotificationConfigs.WebPush = make([]notificationapi.PushSubscription, len(*request.Body.NotificationConfigs.WebPush))
-		for i, v := range *request.Body.NotificationConfigs.WebPush {
-			newPreferences.NotificationConfigs.WebPush[i] = notificationapi.PushSubscription(v)
-		}
-	}
-
 	if err := h.notifs.SetUserPreferences(ctx, session.UserSecret, newPreferences); err != nil {
 		return nil, err
 	}
@@ -403,12 +407,49 @@ func (h *openAPIHandler) UserUpdateNotificationPreferences(ctx context.Context, 
 	return openapi.UserUpdateNotificationPreferences204Response{}, nil
 }
 
+// Subscribe or update a Web Push device subscription
+// (PUT /notifications/web-push/{deviceID})
+func (h *openAPIHandler) UserSubscribePush(ctx context.Context, request openapi.UserSubscribePushRequestObject) (openapi.UserSubscribePushResponseObject, error) {
+	if h.notif.Config().WebPush == nil {
+		return nil, notification.ErrWebPushNotAvailable
+	}
+	if request.Body.DeviceID != request.DeviceID {
+		return nil, publicerrors.New("deviceID in path does not match request body")
+	}
+
+	session := sessionFromCtx(ctx)
+	if err := h.notifs.SubscribeWebPush(ctx, session.UserSecret, notificationapi.PushSubscription(*request.Body)); err != nil {
+		return nil, err
+	}
+
+	return openapi.UserSubscribePush204Response{}, nil
+}
+
+// Unsubscribe a Web Push device subscription
+// (DELETE /notifications/web-push/{deviceID})
+func (h *openAPIHandler) UserUnsubscribePush(ctx context.Context, request openapi.UserUnsubscribePushRequestObject) (openapi.UserUnsubscribePushResponseObject, error) {
+	session := sessionFromCtx(ctx)
+	if err := h.notifs.UnsubscribeWebPush(ctx, session.UserSecret, request.DeviceID); err != nil {
+		return nil, err
+	}
+
+	return openapi.UserUnsubscribePush204Response{}, nil
+}
+
 // Send a test notification
 // (POST /notifications/test)
 func (h *openAPIHandler) SendTestNotification(ctx context.Context, request openapi.SendTestNotificationRequestObject) (openapi.SendTestNotificationResponseObject, error) {
 	session := sessionFromCtx(ctx)
 
+	limit := h.testNotifLimiter.Reserve(session.UserSecret)
+	if err := userlimit.AsError(limit); err != nil {
+		return nil, err
+	}
+
 	if err := h.notifs.NotifyUser(ctx, session.UserSecret, notificationapi.NotificationType(openapi.TestMessage)); err != nil {
+		if errors.Is(err, notification.ErrNoNotificationChannels) {
+			return nil, err
+		}
 		return nil, fmt.Errorf("cannot send test notification: %w", err)
 	}
 
