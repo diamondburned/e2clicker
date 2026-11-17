@@ -9,6 +9,7 @@ import {
   PKFunctions,
   PKParameters,
   PKRandomFunctions,
+  terminalEliminationTime3C,
 } from "estrannaise/src/models";
 import { deliveryMethod, estrannaiseDeliveryMethod } from "./methods.svelte";
 import { timeUntilNextDose } from "./timing";
@@ -143,15 +144,47 @@ export let lineSeriesOptions = (): charts.DeepPartial<
   },
 });
 
+export function defaultPlotPastDays(intervalDays: number): number {
+  const safeInterval = Math.max(0.5, intervalDays);
+  // Show 11 dosing intervals in the past window (plus predictAhead) so >10 peaks
+  // are visible by default regardless of injection or patch frequency.
+  return 11 * safeInterval;
+}
+
+export function defaultPlotPredictDays(intervalDays: number): number {
+  const safeInterval = Math.max(0.5, intervalDays);
+  // Predict ~1 cycle ahead, clamped to [2, 21] days so daily/patch curves stay
+  // balanced while long esters still show a full upcoming cycle.
+  return Math.max(2, Math.min(21, safeInterval));
+}
+
+// compoundingBurnInDays returns how many days of prior dosing history are needed
+// before the plotted curve reaches ~steady-state compounding (~5 half-lives, or
+// >=4 half-lives when constrained by the backend's 1-year history limit).
+export function compoundingBurnInDays(dosage: api.Dosage): number {
+  const method = estrannaiseDeliveryMethod(dosage.deliveryMethod);
+  const isPatch = deliveryMethod(dosage.deliveryMethod)?.patch;
+  const wearDays = isPatch ? dosage.interval * effectiveConcurrence(dosage) : 0;
+  const fullBurnIn = Math.ceil(terminalEliminationTime3C(method) + wearDays);
+  const visiblePast = Math.ceil(defaultPlotPastDays(dosage.interval));
+  if (fullBurnIn + visiblePast <= 360) {
+    return fullBurnIn;
+  }
+  const minBurnIn = Math.ceil(terminalEliminationTime3C(method, 4) + wearDays);
+  return Math.max(minBurnIn, 360 - visiblePast);
+}
+
 export function fillCurve(
   iv: Interval<true>,
   f: (t: DateTime, tprev?: DateTime) => number,
+  points = plotPoints(),
 ): charts.LineData<charts.UTCTimestamp>[] {
   const startMillis = iv.start.toMillis();
   const endMillis = iv.end.toMillis();
-  const stepMillis = (endMillis - startMillis) / (plotPoints() - 1);
+  const count = Math.max(2, points);
+  const stepMillis = (endMillis - startMillis) / (count - 1);
 
-  let pts = new Array<ReturnType<typeof fillCurve>[number]>(plotPoints());
+  let pts = new Array<ReturnType<typeof fillCurve>[number]>(count);
   let i = 0;
 
   let tprev: DateTime | undefined;
@@ -173,6 +206,12 @@ export function fillCurve(
   pts = pts.slice(0, i);
 
   return pts;
+}
+
+function curvePointsForDosage(iv: Interval<true>, dosage: api.Dosage): number {
+  const cycles = iv.length("days") / Math.max(0.5, dosage.interval);
+  const perCycle = plotPreferences.plotHighDensity ? 24 : 16;
+  return Math.min(1600, Math.max(plotPoints(), Math.ceil(cycles * perCycle)));
 }
 
 function effectiveConcurrence(dosage?: api.Dosage): number {
@@ -238,8 +277,10 @@ export function fillE2IdealData(
   const pkFunctions = makePKFunctions(dosage, conversionFactor);
   const pk = pkFunctions[delivery];
 
-  return fillCurve(iv, (t) =>
-    pk(dateToX(iv.start, t) - offset, dosage.dose, true, dosage.interval),
+  return fillCurve(
+    iv,
+    (t) => pk(dateToX(iv.start, t) - offset, dosage.dose, true, dosage.interval),
+    curvePointsForDosage(iv, dosage),
   );
 }
 
@@ -319,7 +360,7 @@ export function fillE2ActualData(
   } = {},
 ) {
   const evalAt = makeActualEvaluator(dosage, history, conversionFactor, random);
-  return fillCurve(iv, (t) => evalAt(t.toMillis()));
+  return fillCurve(iv, (t) => evalAt(t.toMillis()), curvePointsForDosage(iv, dosage));
 }
 
 function sampleIdealCycle(

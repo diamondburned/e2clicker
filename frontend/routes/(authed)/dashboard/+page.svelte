@@ -89,12 +89,12 @@
   });
 
   $effect(() => {
-    const method = dosageLoader.value?.dosage?.deliveryMethod;
-    if (!method) return;
-    const needed = Math.max(
-      90,
-      Math.ceil(e2.terminalEliminationTime3C(e2.estrannaiseDeliveryMethod(method))),
-    );
+    const dosage = dosageLoader.value?.dosage;
+    if (!dosage) return;
+    const burnInDays = e2.compoundingBurnInDays(dosage);
+    const visiblePastDays = Math.ceil(e2.defaultPlotPastDays(dosage.interval));
+    // Backend /api/dosage rejects ranges > 365 days; keep a 5-day buffer for clock/anchor drift.
+    const needed = Math.min(360, Math.max(90, burnInDays + visiblePastDays));
     if (needed !== historyDays) {
       historyDays = needed;
     }
@@ -114,10 +114,18 @@
 
   let dosageInterval = $derived.by(() => {
     const lastDoseAt = doses.history?.[doses.history.length - 1]?.takenAt;
-    if (lastDoseAt && lastDoseAt > historyInterval.end) {
-      return Interval.fromDateTimes(historyInterval.start, lastDoseAt) as Interval<true>;
-    }
-    return historyInterval;
+    const end = lastDoseAt && lastDoseAt > historyInterval.end ? lastDoseAt : historyInterval.end;
+    const burnInDays = doses.dosage ? e2.compoundingBurnInDays(doses.dosage) : 0;
+    // Trim the uncompounded burn-in from the left edge of the plot so scrolling
+    // back never shows an artificial ramp-up from unfetched prior doses.
+    const start =
+      burnInDays > 0 && burnInDays < historyDays
+        ? historyInterval.start.plus({ days: burnInDays })
+        : historyInterval.start;
+    return Interval.fromDateTimes(
+      start < end ? start : historyInterval.start,
+      end,
+    ) as Interval<true>;
   });
 
   let dosageData = $derived(

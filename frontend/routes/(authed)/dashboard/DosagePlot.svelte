@@ -18,9 +18,17 @@
 
     readonly predictedInterval = $derived(
       Interval.fromDateTimes(
-        // Predict ahead by the configured interval.
+        // Predict ahead proportional to the dosing interval (falling back to preference).
         this.interval.end,
-        this.interval.end.plus(e2.predictAhead()),
+        this.interval.end.plus(
+          this.dosage
+            ? {
+                milliseconds: Math.round(
+                  e2.defaultPlotPredictDays(this.dosage.interval) * 86_400_000,
+                ),
+              }
+            : e2.predictAhead(),
+        ),
       ) as Interval<true>,
     );
     readonly totalInterval = $derived(
@@ -213,16 +221,24 @@
     chart.currentLevelPrediction.setData(data.actualPredictionData);
 
     chart.currentLevel.setMarkers(
-      data.history.map((dose) => ({
-        time: dose.takenAt.toUnixInteger() as charts.UTCTimestamp,
-        position: "belowBar",
-        color: styles.primary,
-        shape: "arrowUp",
-      })),
+      data.history
+        .filter((dose) => dose.takenAt >= data.interval.start && dose.takenAt <= data.interval.end)
+        .map((dose) => ({
+          time: dose.takenAt.toUnixInteger() as charts.UTCTimestamp,
+          position: "belowBar",
+          color: styles.primary,
+          shape: "arrowUp",
+        })),
     );
 
+    const pastDays = data.dosage ? e2.defaultPlotPastDays(data.dosage.interval) : 14;
+    const desiredFrom = data.interval.end.minus({
+      milliseconds: Math.round(pastDays * 86_400_000),
+    });
+    const visibleFrom = desiredFrom < data.interval.start ? data.interval.start : desiredFrom;
+
     chart.timeScale().setVisibleRange({
-      from: data.interval.end.minus({ weeks: 2 }).toUnixInteger() as charts.UTCTimestamp,
+      from: visibleFrom.toUnixInteger() as charts.UTCTimestamp,
       to: data.predictedInterval!.end.toUnixInteger() as charts.UTCTimestamp,
     });
   });
