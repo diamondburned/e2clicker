@@ -3,13 +3,6 @@
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
 
-    nixos-shell = {
-      url = "github:Mic92/nixos-shell";
-      inputs = {
-        nixpkgs.follows = "nixpkgs";
-      };
-    };
-
     gomod2nix = {
       url = "github:nix-community/gomod2nix";
       inputs = {
@@ -76,7 +69,6 @@
         devShells.default = pkgs.mkShell {
           packages = with pkgs; [
             just
-            zellij
 
             go
             gopls
@@ -143,7 +135,6 @@
               inherit system;
               specialArgs = inputs;
               modules = [
-                inputs.nixos-shell.nixosModules.nixos-shell
                 ./nix/dev/vm.nix
               ];
             };

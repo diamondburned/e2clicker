@@ -29,21 +29,25 @@ build-clean:
     @rm -rf dist
 
 ###
-# TODO: figure out how to pass this into the dev VM
 
 export BACKEND_HTTP_ADDRESS := "http://localhost:8000"
 
-dev *$E2CLICKER_DEVFLAGS:
-    zellij delete-session e2clicker || true
-    zellij --session e2clicker --new-session-with-layout ./nix/dev/zellij-layout.kdl
+dev *$E2CLICKER_DEVFLAGS: generate
+    concurrently \
+        --kill-others \
+        --success first \
+        --handle-input \
+        --default-input-target vm \
+        --names vm,fe \
+        --prefix-colors blue,magenta \
+        "just --no-deps dev-vm" \
+        "just dev-frontend"
 
 [private]
 dev-vm: generate
     #!/bin/sh
     system=$(nix eval --impure --raw --expr 'builtins.currentSystem')
-    # Force a path to the flake instead of a git+path to include the
-    # vapid-keys.json file, which is gitignore'd.
-    nix run "path://${PWD}#nixosConfigurations.dev-vm-${system}.config.system.build.nixos-shell"
+    nix run --impure ".#nixosConfigurations.dev-vm-${system}.config.system.build.vm"
 
 [private]
 dev-backend:

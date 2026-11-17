@@ -2,6 +2,7 @@
   config,
   lib,
   pkgs,
+  modulesPath,
   ...
 }@inputs:
 
@@ -10,20 +11,33 @@ let
   hasFlag = flag: lib.elem flag devFlags;
   noFlag = flag: !(hasFlag flag);
 
-  root = ../..;
-  rootPath = path: "${root}/${path}";
+  pwd = builtins.getEnv "PWD";
   rootPathOrNull =
     path: warn:
-    if builtins.pathExists (rootPath path) then rootPath path else lib.warn "${warn}: at ${path}" null;
+    let
+      impurePath = "${pwd}/${path}";
+      flakePath = ../.. + "/${path}";
+    in
+    if pwd != "" && builtins.pathExists impurePath then
+      builtins.path {
+        path = /. + impurePath;
+        name = baseNameOf path;
+      }
+    else if builtins.pathExists flakePath then
+      flakePath
+    else
+      lib.warn "${warn}: at ${path}" null;
 in
 
 {
   imports = [
+    "${modulesPath}/virtualisation/qemu-vm.nix"
     inputs.self.nixosModules.e2clicker
     inputs.self.nixosModules.e2clicker-postgresql
   ];
 
   virtualisation = {
+    graphics = false;
     diskSize = 4 * 1024;
     memorySize = 1024;
 
@@ -35,6 +49,9 @@ in
       }
     ];
   };
+
+  users.users.root.initialHashedPassword = "";
+  services.getty.autologinUser = "root";
 
   systemd.settings.Manager = {
     DefaultStandardOutput = "journal+console";

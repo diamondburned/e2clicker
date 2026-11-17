@@ -37,6 +37,7 @@
     "@unocss/extractor-svelte": "^0.64.1",
     "@unocss/svelte-scoped": "^0.64.1",
     "@vite-pwa/sveltekit": "^0.6.6",
+    "concurrently": "^10.0.7",
     "debounce-promise": "^3.1.2",
     "estrannaise": "github:WHSAH/estrannaise.js#main",
     "lightweight-charts": "4.1.0",

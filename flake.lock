@@ -80,26 +80,6 @@
         "type": "github"
       }
     },
-    "nixos-shell": {
-      "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1777398163,
-        "narHash": "sha256-F88ISdkNIpLbI5EtkDqkZKnlnUMKJMZzwg4Lnwc+49I=",
-        "owner": "Mic92",
-        "repo": "nixos-shell",
-        "rev": "b065c49890f5acd90dba3ef306eb7e59d2589bc7",
-        "type": "github"
-      },
-      "original": {
-        "owner": "Mic92",
-        "repo": "nixos-shell",
-        "type": "github"
-      }
-    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1777578337,
@@ -138,7 +118,6 @@
         "flake-utils": "flake-utils",
         "gomod2nix": "gomod2nix",
         "nixmod2go": "nixmod2go",
-        "nixos-shell": "nixos-shell",
         "nixpkgs": "nixpkgs",
         "oapi-codegen": "oapi-codegen",
         "yaml-language-server": "yaml-language-server"

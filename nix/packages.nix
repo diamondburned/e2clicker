@@ -42,6 +42,10 @@ let
       hash = hashes.pnpmPackages;
     };
 
+    postPatch = ''
+      rm -rf node_modules .svelte-kit dist
+    '';
+
     buildPhase = ''
       runHook preBuild
 
