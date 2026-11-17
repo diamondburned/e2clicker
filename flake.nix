@@ -95,6 +95,8 @@
             redocly
             yaml-language-server
             yq-go
+            hurl
+            postgresql
 
             nixmod2go.packages.${system}.default
             self.formatter.${system}
@@ -115,6 +117,10 @@
         };
 
         packages = import ./nix/packages.nix { inherit pkgs self inputs; };
+
+        checks = pkgs.lib.optionalAttrs pkgs.stdenv.isLinux {
+          e2e = pkgs.callPackage ./tests/nixos { inherit self inputs; };
+        };
 
         formatter = pkgs.nixfmt;
       }

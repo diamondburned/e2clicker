@@ -115,11 +115,15 @@ openapi-docs: openapi-schema pnpm
 
 ###
 
-test: test-backend
+test: test-backend test-api
 
 [private]
 test-backend: generate-backend
     go test -v ./...
+
+[private]
+test-api: generate-backend
+    ./tests/api/run.sh
 
 [private]
 test-frontend: generate-frontend
