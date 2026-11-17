@@ -5,7 +5,7 @@
   import * as api from "$lib/api.svelte";
   import { type Snippet } from "svelte";
   import { DateTime, Duration } from "luxon";
-  import { slide } from "svelte/transition";
+  import { fade, fly } from "svelte/transition";
 
   let {
     now,
@@ -34,6 +34,7 @@
   let nextDoseAt = $derived(dosage && lastDoseAt && e2.timeUntilNextDose(dosage, lastDoseAt));
   let untilNextDose = $derived(nextDoseAt ? nextDoseAt.diff(now) : Duration.fromMillis(0));
   let isTimeForNextDose = $derived(untilNextDose.toMillis() <= 0);
+  let stateKey = $derived(!nextDoseAt ? "empty" : isTimeForNextDose ? "due" : "until");
 
   let submittingDose = $state(false);
   async function submitDose() {
@@ -48,9 +49,7 @@
 </script>
 
 {#snippet reminder()}
-  <p class="dose-reminder primary text-center text-2xl font-bold mb-4" transition:slide>
-    It's time!
-  </p>
+  <p class="dose-reminder primary text-center text-2xl font-bold mb-4">It's time!</p>
 {/snippet}
 
 {#snippet doseDue()}
@@ -87,16 +86,22 @@
 
 <div class="dose-countdown flex flex-col items-center">
   <div class="duration-container mb-4">
-    {#if nextDoseAt}
-      {#if isTimeForNextDose}
-        {@render reminder()}
-        {@render doseDue()}
-      {:else}
-        {@render doseUntil()}
-      {/if}
-    {:else}
-      <p class="duration-display">You haven't taken a dose yet.</p>
-    {/if}
+    {#key stateKey}
+      <div
+        class="duration-state"
+        in:fly={{ y: -6, duration: 180, delay: 120 }}
+        out:fade={{ duration: 120 }}
+      >
+        {#if stateKey === "due"}
+          {@render reminder()}
+          {@render doseDue()}
+        {:else if stateKey === "until"}
+          {@render doseUntil()}
+        {:else}
+          <p class="duration-display">You haven't taken a dose yet.</p>
+        {/if}
+      </div>
+    {/key}
   </div>
 
   <footer class="actions min-h-12 flex flex-row flex-wrap justify-center gap-2">
@@ -123,8 +128,14 @@
 
 <style lang="scss">
   .duration-container {
+    display: grid;
+    place-items: center;
     font-size: var(--font-size-2xl);
     line-height: 2rem;
+  }
+
+  .duration-state {
+    grid-area: 1 / 1;
   }
 
   .duration-display {
