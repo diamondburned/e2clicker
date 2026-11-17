@@ -79,7 +79,7 @@ func (s UserService) ValidateSession(ctx context.Context, token SessionToken) (S
 
 	session, err := s.userSessions.ValidateSession(ctx, tokenBytes)
 	if err != nil {
-		return Session{}, ErrInvalidSession
+		return Session{}, err
 	}
 
 	return session, nil

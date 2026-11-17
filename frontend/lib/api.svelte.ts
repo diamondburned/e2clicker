@@ -26,7 +26,9 @@ const fetchAPI: Exclude<typeof api.defaults.fetch, undefined> = async (input, in
     case 401:
       // Unauthorized. Clear token, push opt-in, and redirect to /login.
       clearSession();
-      goto("/login");
+      if (typeof window !== "undefined" && window.location.pathname !== "/login") {
+        goto("/login");
+      }
       break;
     case 500:
       console.error("500 Internal Server Error", resp);
@@ -44,7 +46,6 @@ token.subscribe((tok) => {
 
 function clearSession() {
   token.set(null);
-  user.set(null);
   clearPushOptIn();
 }
 
@@ -79,7 +80,17 @@ export async function fetch(
 }
 
 export const user = persisted<(api.User & { secret: api.UserSecret }) | null>("e2clicker-me", null);
+// savedSecret persists the account secret independently of session state so
+// the login field stays populated if a session token is invalidated.
+export const savedSecret = persisted<api.UserSecret | null>("e2clicker-secret", null);
 let meLastUpdated: DateTime | undefined;
+
+if (!get(savedSecret)) {
+  const existingSecret = get(user)?.secret;
+  if (existingSecret) {
+    savedSecret.set(existingSecret);
+  }
+}
 
 export async function updateUser({ force = false }: { force?: boolean } = {}) {
   if (!get(isLoggedIn)) {
@@ -94,6 +105,7 @@ export async function updateUser({ force = false }: { force?: boolean } = {}) {
   try {
     const v = await api.currentUser();
     user.set(v);
+    savedSecret.set(v.secret);
     meLastUpdated = DateTime.now();
   } catch (err) {
     // If unauthorized, then clear token and redirect to /login.
@@ -105,11 +117,12 @@ export async function updateUser({ force = false }: { force?: boolean } = {}) {
 }
 
 export async function auth(secret: string, { redirect = true }: { redirect?: boolean } = {}) {
-  const previousSecret = get(user)?.secret;
+  const previousSecret = get(savedSecret) ?? get(user)?.secret;
   if (previousSecret && previousSecret !== secret) {
     clearPushOptIn();
   }
   const resp = await api.auth({ secret });
+  savedSecret.set(secret);
   token.set(resp.token);
   await updateUser({ force: true });
   if (redirect) {

@@ -3,6 +3,7 @@ package user
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 
@@ -72,7 +73,7 @@ func TestUserService_CreateSession(t *testing.T) {
 
 	s.sessions.ValidateSessionFunc = func(ctx context.Context, wantToken []byte) (Session, error) {
 		if !bytes.Equal(wantToken, tokenBytes) {
-			return Session{}, fmt.Errorf("token not found")
+			return Session{}, ErrInvalidSession
 		}
 		return Session{
 			ID:         1,
@@ -102,5 +103,17 @@ func TestUserService_CreateSession(t *testing.T) {
 		s, err := s.ValidateSession(ctx, token2)
 		assert.Equal(t, err, ErrInvalidSession)
 		assert.Zero(t, s)
+	})
+
+	t.Run("storage error", func(t *testing.T) {
+		storageErr := fmt.Errorf("connection refused")
+		s.sessions.ValidateSessionFunc = func(ctx context.Context, wantToken []byte) (Session, error) {
+			return Session{}, storageErr
+		}
+
+		sess, err := s.ValidateSession(ctx, token)
+		assert.True(t, errors.Is(err, storageErr))
+		assert.False(t, errors.Is(err, ErrInvalidSession))
+		assert.Zero(t, sess)
 	})
 }

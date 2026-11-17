@@ -7,7 +7,7 @@
   import TextHorizontalRule from "$lib/components/TextHorizontalRule.svelte";
 
   import { fade } from "svelte/transition";
-  import { user, auth, secretQRRegex } from "$lib/api.svelte";
+  import { user, savedSecret, auth, secretQRRegex } from "$lib/api.svelte";
   import { get } from "svelte/store";
 
   let {
@@ -19,7 +19,7 @@
   } = $props();
 
   let error = $state<any>();
-  let loginSecret = $state(get(user)?.secret ?? ""); // do not bind or the user will lose this!
+  let loginSecret = $state(get(savedSecret) ?? get(user)?.secret ?? ""); // do not bind or the user will lose this!
   let showQRDialog = $state(false);
 
   async function submitLogin() {

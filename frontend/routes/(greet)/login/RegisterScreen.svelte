@@ -1,6 +1,6 @@
 <script lang="ts">
   import Icon from "$lib/components/Icon.svelte";
-  import { auth, register } from "$lib/api.svelte";
+  import { auth, register, savedSecret } from "$lib/api.svelte";
 
   import { fade } from "svelte/transition";
   import ErrorBox from "$lib/components/ErrorBox.svelte";
@@ -19,6 +19,7 @@
   async function submitRegister() {
     try {
       const { secret } = await register({ name: registerName });
+      savedSecret.set(secret);
       await auth(secret);
     } catch (err) {
       error = err;

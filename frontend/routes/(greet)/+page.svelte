@@ -2,10 +2,25 @@
   import Icon from "$lib/components/Icon.svelte";
   import Footer from "$lib/components/Footer.svelte";
 
+  import { browser } from "$app/environment";
+  import { goto } from "$app/navigation";
   import { isLoggedIn } from "$lib/api.svelte";
+
+  $effect(() => {
+    if (browser && $isLoggedIn) {
+      goto("/dashboard", { replaceState: true });
+    }
+  });
 </script>
 
 <svelte:head>
+  <script>
+    try {
+      if (JSON.parse(localStorage.getItem("e2clicker-token") || "null")) {
+        location.replace("/dashboard");
+      }
+    } catch {}
+  </script>
   <meta property="og:title" content="e2clicker" />
   <meta
     property="og:description"
@@ -17,46 +32,43 @@
   <meta property="og:image:alt" content="Screenshot of the e2clicker dashboard" />
 </svelte:head>
 
-<main class="container spaced">
-  <header class="big-brand">
-    <img class="logo" src="/logo.svg" alt="logo" />
-    <h1 class="brand">e2clicker</h1>
-  </header>
+{#if !$isLoggedIn}
+  <main class="container spaced">
+    <header class="big-brand">
+      <img class="logo" src="/logo.svg" alt="logo" />
+      <h1 class="brand">e2clicker</h1>
+    </header>
 
-  <section class="big-screenshot">
-    <img
-      class="light"
-      alt="Screenshot of the e2clicker dashboard"
-      src="/screenshots/dashboard-light.png"
-    />
-    <img
-      class="dark"
-      alt="Screenshot of the e2clicker dashboard"
-      src="/screenshots/dashboard-dark.png"
-    />
-  </section>
+    <section class="big-screenshot">
+      <img
+        class="light"
+        alt="Screenshot of the e2clicker dashboard"
+        src="/screenshots/dashboard-light.png"
+      />
+      <img
+        class="dark"
+        alt="Screenshot of the e2clicker dashboard"
+        src="/screenshots/dashboard-dark.png"
+      />
+    </section>
 
-  <p class="yap">
-    <span class="avoid-wrap">
-      Easily track your estrogen levels and dosages with <span class="brand">e2clicker</span>,</span
-    >
-    <span class="avoid-wrap">free and open-source forever for everyone!</span>
-  </p>
+    <p class="yap">
+      <span class="avoid-wrap">
+        Easily track your estrogen levels and dosages with <span class="brand">e2clicker</span
+        >,</span
+      >
+      <span class="avoid-wrap">free and open-source forever for everyone!</span>
+    </p>
 
-  <section>
-    {#if $isLoggedIn}
-      <a href="/dashboard" role="button">
-        Go to Dashboard <Icon name="arrow-forward" />
-      </a>
-    {:else}
+    <section>
       <a href="/login" role="button">
         Get Started <Icon name="arrow-forward" />
       </a>
-    {/if}
-  </section>
-</main>
+    </section>
+  </main>
 
-<Footer no-expand />
+  <Footer no-expand />
+{/if}
 
 <style lang="scss">
   main {

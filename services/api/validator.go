@@ -145,8 +145,12 @@ func validateRequest(r *http.Request, router routers.Router, options openapi3fil
 				Errors:               errorStrings,
 			}
 			status := http.StatusForbidden
-			if len(e.Errors) == 1 && errors.Is(e.Errors[0], user.ErrInvalidSession) {
-				status = http.StatusUnauthorized
+			if len(e.Errors) == 1 {
+				if errors.Is(e.Errors[0], user.ErrInvalidSession) {
+					status = http.StatusUnauthorized
+				} else if !errors.Is(e.Errors[0], ErrNotBearerAuth) {
+					return http.StatusInternalServerError, e.Errors[0]
+				}
 			}
 			return status, err
 		default:
