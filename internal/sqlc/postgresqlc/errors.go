@@ -7,8 +7,9 @@ import (
 )
 
 const (
-	CodeTableNotFound   = "42P01"
-	CodeUniqueViolation = "23505"
+	CodeTableNotFound       = "42P01"
+	CodeForeignKeyViolation = "23503"
+	CodeUniqueViolation     = "23505"
 )
 
 // IsConstraintFailed returns true if err is returned because of a unique

@@ -8,13 +8,14 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/getkin/kin-openapi/openapi3"
-	"github.com/getkin/kin-openapi/openapi3filter"
-	"github.com/go-chi/chi/v5/middleware"
 	"e2clicker.app/internal/publicerrors"
 	"e2clicker.app/internal/slogutil"
 	"e2clicker.app/internal/userlimit"
 	"e2clicker.app/services/api/openapi"
+	"e2clicker.app/services/user"
+	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/getkin/kin-openapi/openapi3filter"
+	"github.com/go-chi/chi/v5/middleware"
 )
 
 func init() {
@@ -85,6 +86,10 @@ func writeError(w http.ResponseWriter, r *http.Request, err error, statusCode in
 		if statusCode != 0 {
 			// Error is revealed, so use the suggested status code.
 			resp.StatusCode = statusCode
+		}
+
+		if errors.Is(err, user.ErrUnknownUser) {
+			resp.StatusCode = http.StatusUnauthorized
 		}
 
 		var rateLimitError *userlimit.LimitExceededError

@@ -36,6 +36,17 @@ user_name: jsonpath "$.name"
 jsonpath "$.secret" isString
 jsonpath "$.locale" isString
 
+# Unknown user secret must fail with 401 and public message (not 500)
+POST {{base_url}}/api/auth
+Content-Type: application/json
+{
+  "secret": "NONEXISTENTUSER1"
+}
+HTTP 401
+[Asserts]
+jsonpath "$.message" == "unknown user"
+jsonpath "$.internal" not exists
+
 # Authenticate with the secret
 POST {{base_url}}/api/auth
 Content-Type: application/json

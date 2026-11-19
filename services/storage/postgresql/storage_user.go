@@ -4,10 +4,10 @@ import (
 	"context"
 	"errors"
 
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
 	"e2clicker.app/internal/sqlc/postgresqlc"
 	"e2clicker.app/services/user"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 func (s *Storage) userStorage() user.UserStorage               { return s }
@@ -30,6 +30,9 @@ func (s *Storage) CreateUser(ctx context.Context, userSecret user.Secret, name s
 func (s *Storage) User(ctx context.Context, userSecret user.Secret) (user.User, error) {
 	u, err := s.q.User(ctx, userSecret)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return user.User{}, user.ErrUnknownUser
+		}
 		return user.User{}, err
 	}
 	return user.User{
@@ -53,11 +56,15 @@ func (s *Storage) UpdateUserLocale(ctx context.Context, userSecret user.Secret, 
 }
 
 func (s *Storage) RegisterSession(ctx context.Context, token []byte, userSecret user.Secret, userAgent string) error {
-	return s.q.RegisterSession(ctx, postgresqlc.RegisterSessionParams{
+	err := s.q.RegisterSession(ctx, postgresqlc.RegisterSessionParams{
 		UserSecret: userSecret,
 		Token:      token,
 		UserAgent:  pgtype.Text{String: userAgent, Valid: userAgent != ""},
 	})
+	if postgresqlc.IsErrorCode(err, postgresqlc.CodeForeignKeyViolation) {
+		return user.ErrUnknownUser
+	}
+	return err
 }
 
 func (s *Storage) ValidateSession(ctx context.Context, token []byte) (user.Session, error) {

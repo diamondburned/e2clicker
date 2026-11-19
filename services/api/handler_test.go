@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -129,4 +130,71 @@ func TestUserNotificationStatus(t *testing.T) {
 	assert.Equal(t, sentAt, statusResp.LastAttempt.SentAt)
 	assert.True(t, statusResp.LastAttempt.Errored)
 	assert.Equal(t, ptr.To("webPush: subscription expired"), statusResp.LastAttempt.ErrorReason)
+}
+
+type stubUserStorage struct{}
+
+func (stubUserStorage) CreateUser(context.Context, user.Secret, string) (user.User, error) {
+	return user.User{}, nil
+}
+
+func (stubUserStorage) User(context.Context, user.Secret) (user.User, error) {
+	return user.User{}, user.ErrUnknownUser
+}
+
+func (stubUserStorage) UpdateUserName(context.Context, user.Secret, string) error {
+	return nil
+}
+
+func (stubUserStorage) UpdateUserLocale(context.Context, user.Secret, user.Locale) error {
+	return nil
+}
+
+type stubUserSessionStorage struct {
+	registerErr error
+}
+
+func (s stubUserSessionStorage) RegisterSession(context.Context, []byte, user.Secret, string) error {
+	return s.registerErr
+}
+
+func (stubUserSessionStorage) ValidateSession(context.Context, []byte) (user.Session, error) {
+	return user.Session{}, user.ErrInvalidSession
+}
+
+func (stubUserSessionStorage) ListSessions(context.Context, user.Secret) ([]user.Session, error) {
+	return nil, nil
+}
+
+func (stubUserSessionStorage) DeleteSession(context.Context, user.Secret, int64) error {
+	return nil
+}
+
+func TestAuthUnknownUser(t *testing.T) {
+	users, err := user.NewUserService(user.UserServiceConfig{
+		UserStorage:        stubUserStorage{},
+		UserSessionStorage: stubUserSessionStorage{registerErr: user.ErrUnknownUser},
+	})
+	assert.NoError(t, err)
+
+	lc := fxtest.NewLifecycle(t)
+	h := newOpenAPIHandler(OpenAPIHandlerServices{
+		Users: users,
+	}, slogt.New(t), lc)
+
+	ctx := context.Background()
+	_, err = h.Auth(ctx, openapi.AuthRequestObject{
+		Body: &openapi.AuthJSONRequestBody{Secret: "NONEXISTENTUSER1"},
+	})
+	assert.Error(t, err)
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/api/auth", nil).WithContext(ctx)
+	writeError(rec, req, err, 0)
+	assert.Equal(t, http.StatusUnauthorized, rec.Code)
+
+	var body openapi.Error
+	assert.NoError(t, json.Unmarshal(rec.Body.Bytes(), &body))
+	assert.Equal(t, "unknown user", body.Message)
+	assert.Equal(t, (*bool)(nil), body.Internal)
 }
