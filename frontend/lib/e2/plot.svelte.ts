@@ -154,19 +154,16 @@ export let lineSeriesOptions = (): charts.DeepPartial<
 });
 
 export let uncertaintyLineSeriesOptions = (
-  color: string,
   visible = showUncertainty(),
 ): charts.DeepPartial<charts.LineStyleOptions & charts.SeriesOptionsCommon> => ({
   lineType: LineType.Simple,
   baseLineVisible: false,
+  lineVisible: false,
   priceScaleId: plotSide(),
   priceFormat: {
     type: "custom",
     formatter: (price: charts.BarPrice) => price.toFixed(precision()) + " " + units(),
   },
-  color,
-  lineWidth: 1,
-  lineStyle: LineStyle.Dotted,
   priceLineVisible: false,
   lastValueVisible: false,
   crosshairMarkerVisible: false,

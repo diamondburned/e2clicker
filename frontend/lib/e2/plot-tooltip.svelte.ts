@@ -6,7 +6,7 @@ export type PlotTooltipData = {
   left: number;
   top: number;
   time: DateTime;
-  data: { name: string; value: string }[];
+  data: { name: string; value: string; range?: string }[];
   visible?: boolean;
 };
 
@@ -60,14 +60,17 @@ export function renderPlotTooltip(
     .filter((d) => !isNaN(d.value))
     .map((d) => {
       const unit = d.unit ?? units();
-      const range =
-        d.range && !isNaN(d.range[0]) && !isNaN(d.range[1])
-          ? ` (${fixed(d.range[0])}–${fixed(d.range[1])})`
-          : "";
-      const suffix = d.suffix ? ` ${d.suffix}` : "";
+      const unitSuffix = `${unit ? " " + unit : ""}${d.suffix ? " " + d.suffix : ""}`;
+      if (d.range && !isNaN(d.range[0]) && !isNaN(d.range[1])) {
+        return {
+          name: d.name,
+          value: `~${fixed(d.value)}${unitSuffix}`,
+          range: `${fixed(d.range[0])} - ${fixed(d.range[1])}${unitSuffix}`,
+        };
+      }
       return {
         name: d.name,
-        value: `${fixed(d.value)}${range}${unit ? " " + unit : ""}${suffix}`,
+        value: `${fixed(d.value)}${unitSuffix}`,
       };
     });
 

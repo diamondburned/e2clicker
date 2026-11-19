@@ -118,6 +118,7 @@
 
 <script lang="ts">
   import Icon from "#lib/components/Icon.svelte";
+  import Tooltip from "#lib/components/popovers/Tooltip.svelte";
 
   import * as api from "#lib/api.ts";
   import { createChart, LineStyle, LastPriceAnimationMode } from "lightweight-charts";
@@ -195,24 +196,36 @@
         lastValueVisible: false,
       }) as charts.ISeriesApi<"Line", charts.UTCTimestamp>;
 
-      const uncertaintyColor = e2.withAlpha(styles.primary, 0.45);
-      const uncertaintyPredictedColor = e2.withAlpha(styles.primary, 0.3);
+      const uncertaintyFillColor = e2.withAlpha(styles.primary, 0.2);
+      const uncertaintyPredictedFillColor = e2.withAlpha(styles.primary, 0.12);
 
       const actualLower = chart.addLineSeries(
-        e2.uncertaintyLineSeriesOptions(uncertaintyColor),
+        e2.uncertaintyLineSeriesOptions(),
       ) as charts.ISeriesApi<"Line", charts.UTCTimestamp>;
 
       const actualUpper = chart.addLineSeries(
-        e2.uncertaintyLineSeriesOptions(uncertaintyColor),
+        e2.uncertaintyLineSeriesOptions(),
       ) as charts.ISeriesApi<"Line", charts.UTCTimestamp>;
 
+      const actualBand = new e2.UncertaintyBandPrimitive({
+        color: uncertaintyFillColor,
+        visible: e2.showUncertainty(),
+      });
+      actualUpper.attachPrimitive(actualBand);
+
       const predictedLower = chart.addLineSeries(
-        e2.uncertaintyLineSeriesOptions(uncertaintyPredictedColor),
+        e2.uncertaintyLineSeriesOptions(),
       ) as charts.ISeriesApi<"Line", charts.UTCTimestamp>;
 
       const predictedUpper = chart.addLineSeries(
-        e2.uncertaintyLineSeriesOptions(uncertaintyPredictedColor),
+        e2.uncertaintyLineSeriesOptions(),
       ) as charts.ISeriesApi<"Line", charts.UTCTimestamp>;
+
+      const predictedBand = new e2.UncertaintyBandPrimitive({
+        color: uncertaintyPredictedFillColor,
+        visible: e2.showUncertainty(),
+      });
+      predictedUpper.attachPrimitive(predictedBand);
 
       chart.subscribeCrosshairMove((ev) => {
         const idealData = e2.lineDataFromSeriesData(ev.seriesData, idealLevel);
@@ -256,8 +269,10 @@
         currentLevelPrediction,
         actualLower,
         actualUpper,
+        actualBand,
         predictedLower,
         predictedUpper,
+        predictedBand,
       });
     });
   });
@@ -289,12 +304,19 @@
     }
 
     const showUnc = e2.showUncertainty();
-    const uncColor = e2.withAlpha(styles.primary, 0.45);
-    const uncPredColor = e2.withAlpha(styles.primary, 0.3);
-    chart.actualLower.applyOptions(e2.uncertaintyLineSeriesOptions(uncColor, showUnc));
-    chart.actualUpper.applyOptions(e2.uncertaintyLineSeriesOptions(uncColor, showUnc));
-    chart.predictedLower.applyOptions(e2.uncertaintyLineSeriesOptions(uncPredColor, showUnc));
-    chart.predictedUpper.applyOptions(e2.uncertaintyLineSeriesOptions(uncPredColor, showUnc));
+    const uncOpts = e2.uncertaintyLineSeriesOptions(showUnc);
+    chart.actualLower.applyOptions(uncOpts);
+    chart.actualUpper.applyOptions(uncOpts);
+    chart.actualBand.setOptions({
+      color: e2.withAlpha(styles.primary, 0.2),
+      visible: showUnc,
+    });
+    chart.predictedLower.applyOptions(uncOpts);
+    chart.predictedUpper.applyOptions(uncOpts);
+    chart.predictedBand.setOptions({
+      color: e2.withAlpha(styles.primary, 0.12),
+      visible: showUnc,
+    });
   });
 
   // Watch changes to data.
@@ -321,8 +343,10 @@
     chart.currentLevelPrediction.setData(data.actualPredictionData);
     chart.actualLower.setData(data.actualP05Data);
     chart.actualUpper.setData(data.actualP95Data);
+    chart.actualBand.setData(data.actualP05Data, data.actualP95Data);
     chart.predictedLower.setData(data.predictedP05Data);
     chart.predictedUpper.setData(data.predictedP95Data);
+    chart.predictedBand.setData(data.predictedP05Data, data.predictedP95Data);
 
     chart.currentLevel.setMarkers(
       data.history
@@ -377,10 +401,15 @@
             </span>
           </time>
           <ul class="tooltip-data p-0">
-            {#each plotTooltip.data! as { name, value }}
+            {#each plotTooltip.data! as { name, value, range }}
               <li>
                 <span class="label font-bold">{name}</span>
-                <span class="value text-right">{value}</span>
+                <span class="value text-right">
+                  {value}
+                  {#if range}
+                    <small class="range">{range}</small>
+                  {/if}
+                </span>
               </li>
             {/each}
           </ul>
@@ -399,15 +428,23 @@
     <li class="uncertainty">
       <button
         type="button"
-        class="minimal legend-toggle"
+        class="legend-toggle"
         class:active={e2.showUncertainty()}
         aria-pressed={e2.showUncertainty()}
         onclick={() => {
           e2.plotPreferences.showUncertainty = !e2.plotPreferences.showUncertainty;
         }}
       >
-        <Icon name="stacked-line-chart" /> 5–95% Uncertainty
+        <Icon name="stacked-line-chart" /> Uncertainty
       </button>
+      <Tooltip>
+        <button type="button" class="legend-help" aria-label="About uncertainty">
+          <Icon name="help" />
+        </button>
+        {#snippet tooltip()}
+          5–95% confidence interval across individual pharmacokinetic variation.
+        {/snippet}
+      </Tooltip>
     </li>
   </ul>
 </div>
@@ -466,6 +503,18 @@
       li {
         display: contents; // grid time
       }
+
+      .value {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+      }
+
+      .range {
+        font-size: 0.8em;
+        opacity: 0.85;
+        white-space: nowrap;
+      }
     }
   }
 
@@ -481,16 +530,54 @@
 
     li {
       list-style: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35em;
+    }
+
+    .legend-toggle,
+    .legend-help {
+      background: none;
+      border: none;
+      box-shadow: none;
+      padding: 0;
+      margin: 0;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3em;
     }
 
     .legend-toggle {
       color: var(--pico-muted-color);
-      opacity: 0.7;
-      text-decoration-style: dotted;
+      opacity: 0.65;
+      cursor: pointer;
+
+      &:hover {
+        opacity: 0.9;
+      }
 
       &.active {
         color: color-mix(in srgb, var(--pico-primary) 75%, var(--pico-color));
         opacity: 1;
+      }
+    }
+
+    .legend-help {
+      color: var(--pico-muted-color);
+      opacity: 0.55;
+      cursor: help;
+      line-height: 1;
+      vertical-align: center;
+
+      &:hover,
+      &:focus-visible {
+        opacity: 0.95;
+        color: var(--pico-color);
+      }
+
+      :global(.material-symbols-rounded) {
+        font-size: 1.05em;
       }
     }
   }
