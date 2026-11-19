@@ -116,6 +116,19 @@ export type NotificationPreferences = {
     };
     customNotifications?: CustomNotifications;
 };
+export type NotificationAttempt = {
+    /** The time the notification attempt was made. */
+    sentAt: string;
+    /** The timestamp of the entity the notification was about, if any. */
+    supposedEntityTime?: string;
+    /** Whether the notification attempt failed. */
+    errored: boolean;
+    /** The reason the notification attempt failed, if any. */
+    errorReason?: string;
+};
+export type NotificationStatus = {
+    lastAttempt?: NotificationAttempt;
+};
 export type NotificationType = "welcome_message" | "reminder_message" | "account_notice_message" | "web_push_expiring_message" | "test_message";
 export type Notification = {
     "type": NotificationType;
@@ -426,6 +439,20 @@ export function userUpdateNotificationPreferences(body: NotificationPreferences 
         method: "PUT",
         body
     })));
+}
+/**
+ * Get the user's notification status
+ */
+export function userNotificationStatus(opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 200;
+        data: NotificationStatus;
+    } | {
+        status: number;
+        data: Error;
+    }>("/notifications/status", {
+        ...opts
+    }));
 }
 export function getIgnoreNotificationHahaAnythingCanGoHereLol(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{

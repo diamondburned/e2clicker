@@ -6,19 +6,28 @@
   import * as api from "#lib/api.svelte.ts";
   import { user } from "#lib/api.svelte.ts";
   import Icon from "#lib/components/Icon.svelte";
-  import { updatePushSubscription, type UpdatePushSubscriptionResult } from "#lib/notification/index.ts";
+  import {
+    updatePushSubscription,
+    type UpdatePushSubscriptionResult,
+  } from "#lib/notification/index.ts";
   import { addToast, logErrorToast } from "#lib/toasts.ts";
+  import { DateTime } from "luxon";
   import { onMount } from "svelte";
+  import { sineInOut } from "svelte/easing";
+  import { slide } from "svelte/transition";
 
   let preferences = $state<api.NotificationPreferences>();
   let supportedMethods = $state<api.NotificationMethodSupports>([]);
+  let notificationStatus = $state<api.NotificationStatus>();
 
   let preferencesPromise = Promise.all([
     api.userNotificationPreferences(),
     api.supportedNotificationMethods(),
-  ]).then(([prefs, methods]) => {
+    api.userNotificationStatus(),
+  ]).then(([prefs, methods, status]) => {
     preferences = prefs;
     supportedMethods = methods;
+    notificationStatus = status;
     return prefs;
   });
 
@@ -90,6 +99,27 @@
 >
   {#snippet description()}
     Configure how you want to be notified.
+  {/snippet}
+
+  {#snippet header()}
+    {#if notificationStatus?.lastAttempt?.errored}
+      <blockquote
+        class="popping error-box"
+        transition:slide={{ duration: 250, axis: "y", easing: sineInOut }}
+      >
+        <h4>Last notification attempt failed.</h4>
+        <span class="text-sm">
+          The last reminder attempt on
+          {DateTime.fromISO(notificationStatus.lastAttempt.sentAt).toLocaleString(
+            DateTime.DATETIME_MED,
+          )}
+          failed{#if notificationStatus.lastAttempt.errorReason}:
+            <code class="break-words">
+              {notificationStatus.lastAttempt.errorReason}
+            </code>{:else}.{/if}
+        </span>
+      </blockquote>
+    {/if}
   {/snippet}
 
   <PreferenceItem name="Email">

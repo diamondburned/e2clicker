@@ -38,6 +38,13 @@ UPDATE
 SET notification_preferences = $2::jsonb
 WHERE secret = $1;
 
+-- name: LastNotificationAttempt :one
+SELECT sent_at, supposed_entity_time, errored, error_reason
+FROM notification_history
+WHERE user_secret = $1
+ORDER BY sent_at DESC
+LIMIT 1;
+
 
 /*                                                                                 
  * User Session                                                                    

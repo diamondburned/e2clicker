@@ -387,6 +387,24 @@ func (h *openAPIHandler) UserNotificationPreferences(ctx context.Context, reques
 	return openapi.UserNotificationPreferences200JSONResponse(ret), nil
 }
 
+// Get the user's notification status
+// (GET /notifications/status)
+func (h *openAPIHandler) UserNotificationStatus(ctx context.Context, request openapi.UserNotificationStatusRequestObject) (openapi.UserNotificationStatusResponseObject, error) {
+	session := sessionFromCtx(ctx)
+
+	attempt, err := h.notifs.LastNotificationAttempt(ctx, session.UserSecret)
+	if err != nil {
+		return nil, err
+	}
+
+	var ret openapi.NotificationStatus
+	if attempt != nil {
+		ret.LastAttempt = (*openapi.NotificationAttempt)(attempt)
+	}
+
+	return openapi.UserNotificationStatus200JSONResponse(ret), nil
+}
+
 // Update the user's notification preferences
 // (PUT /notifications/preferences)
 func (h *openAPIHandler) UserUpdateNotificationPreferences(ctx context.Context, request openapi.UserUpdateNotificationPreferencesRequestObject) (openapi.UserUpdateNotificationPreferencesResponseObject, error) {

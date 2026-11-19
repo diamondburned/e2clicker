@@ -21,6 +21,9 @@ var _ notification.UserNotificationService = &UserNotificationServiceMock{}
 //
 //		// make and configure a mocked notification.UserNotificationService
 //		mockedUserNotificationService := &UserNotificationServiceMock{
+//			LastNotificationAttemptFunc: func(ctx context.Context, secret user.Secret) (*openapi.NotificationAttempt, error) {
+//				panic("mock out the LastNotificationAttempt method")
+//			},
 //			NotifyUserFunc: func(ctx context.Context, secret user.Secret, t openapi.NotificationType) error {
 //				panic("mock out the NotifyUser method")
 //			},
@@ -46,6 +49,9 @@ var _ notification.UserNotificationService = &UserNotificationServiceMock{}
 //
 //	}
 type UserNotificationServiceMock struct {
+	// LastNotificationAttemptFunc mocks the LastNotificationAttempt method.
+	LastNotificationAttemptFunc func(ctx context.Context, secret user.Secret) (*openapi.NotificationAttempt, error)
+
 	// NotifyUserFunc mocks the NotifyUser method.
 	NotifyUserFunc func(ctx context.Context, secret user.Secret, t openapi.NotificationType) error
 
@@ -66,6 +72,13 @@ type UserNotificationServiceMock struct {
 
 	// calls tracks calls to the methods.
 	calls struct {
+		// LastNotificationAttempt holds details about calls to the LastNotificationAttempt method.
+		LastNotificationAttempt []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// Secret is the secret argument value.
+			Secret user.Secret
+		}
 		// NotifyUser holds details about calls to the NotifyUser method.
 		NotifyUser []struct {
 			// Ctx is the ctx argument value.
@@ -121,12 +134,49 @@ type UserNotificationServiceMock struct {
 			Secret user.Secret
 		}
 	}
-	lockNotifyUser             sync.RWMutex
-	lockSetUserPreferences     sync.RWMutex
-	lockSetUserPreferencesSafe sync.RWMutex
-	lockSubscribeWebPush       sync.RWMutex
-	lockUnsubscribeWebPush     sync.RWMutex
-	lockUserPreferences        sync.RWMutex
+	lockLastNotificationAttempt sync.RWMutex
+	lockNotifyUser              sync.RWMutex
+	lockSetUserPreferences      sync.RWMutex
+	lockSetUserPreferencesSafe  sync.RWMutex
+	lockSubscribeWebPush        sync.RWMutex
+	lockUnsubscribeWebPush      sync.RWMutex
+	lockUserPreferences         sync.RWMutex
+}
+
+// LastNotificationAttempt calls LastNotificationAttemptFunc.
+func (mock *UserNotificationServiceMock) LastNotificationAttempt(ctx context.Context, secret user.Secret) (*openapi.NotificationAttempt, error) {
+	if mock.LastNotificationAttemptFunc == nil {
+		panic("UserNotificationServiceMock.LastNotificationAttemptFunc: method is nil but UserNotificationService.LastNotificationAttempt was just called")
+	}
+	callInfo := struct {
+		Ctx    context.Context
+		Secret user.Secret
+	}{
+		Ctx:    ctx,
+		Secret: secret,
+	}
+	mock.lockLastNotificationAttempt.Lock()
+	mock.calls.LastNotificationAttempt = append(mock.calls.LastNotificationAttempt, callInfo)
+	mock.lockLastNotificationAttempt.Unlock()
+	return mock.LastNotificationAttemptFunc(ctx, secret)
+}
+
+// LastNotificationAttemptCalls gets all the calls that were made to LastNotificationAttempt.
+// Check the length with:
+//
+//	len(mockedUserNotificationService.LastNotificationAttemptCalls())
+func (mock *UserNotificationServiceMock) LastNotificationAttemptCalls() []struct {
+	Ctx    context.Context
+	Secret user.Secret
+} {
+	var calls []struct {
+		Ctx    context.Context
+		Secret user.Secret
+	}
+	mock.lockLastNotificationAttempt.RLock()
+	calls = mock.calls.LastNotificationAttempt
+	mock.lockLastNotificationAttempt.RUnlock()
+	return calls
 }
 
 // NotifyUser calls NotifyUserFunc.

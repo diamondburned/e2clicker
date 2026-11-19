@@ -109,7 +109,7 @@ func TestDoseHistoryMigrationAndStorage(t *testing.T) {
 	defer lc.RequireStop()
 
 	assert.NoError(t, s.pool.QueryRow(ctx, "SELECT v FROM meta").Scan(&version))
-	assert.Equal(t, int16(6), version)
+	assert.Equal(t, int16(7), version)
 
 	// Verify migrated rows have valid RFC 9562 UUIDv7 IDs.
 	hist := s.doseHistoryStorage()

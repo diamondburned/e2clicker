@@ -289,6 +289,23 @@ func TestDosageReminderService(t *testing.T) {
 		assert.Equal(t, 2, calls, "user without channels must not be marked as reminded")
 		assert.Equal(t, (*time.Time)(nil), s.DosageReminderStorage.upcoming["user1"].LastRemindedAt)
 	})
+
+	t.Run("errored_attempt_is_counted", func(t *testing.T) {
+		ctx := context.Background()
+		s := newMockDosageReminderService(t)
+
+		calls := 0
+		s.UserNotificationService.NotifyUserFunc = func(ctx context.Context, secret user.Secret, t openapi.NotificationType) error {
+			calls++
+			return fmt.Errorf("webPush: unknown HTTP status code 410")
+		}
+
+		next := s.cycle(ctx, now)
+		s.cycle(ctx, next)
+
+		assert.Equal(t, 1, calls, "errored attempt must be counted so the user is not re-notified every cycle")
+		assert.Equal(t, ptr.To(now), s.DosageReminderStorage.upcoming["user1"].LastRemindedAt)
+	})
 }
 
 type mockDosageReminderService struct {

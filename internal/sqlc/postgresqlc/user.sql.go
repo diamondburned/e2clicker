@@ -56,6 +56,33 @@ func (q *Queries) DeleteSession(ctx context.Context, arg DeleteSessionParams) er
 	return err
 }
 
+const lastNotificationAttempt = `-- name: LastNotificationAttempt :one
+SELECT sent_at, supposed_entity_time, errored, error_reason
+FROM notification_history
+WHERE user_secret = $1
+ORDER BY sent_at DESC
+LIMIT 1
+`
+
+type LastNotificationAttemptRow struct {
+	SentAt             pgtype.Timestamptz
+	SupposedEntityTime pgtype.Timestamptz
+	Errored            pgtype.Bool
+	ErrorReason        pgtype.Text
+}
+
+func (q *Queries) LastNotificationAttempt(ctx context.Context, userSecret userservice.Secret) (LastNotificationAttemptRow, error) {
+	row := q.db.QueryRow(ctx, lastNotificationAttempt, userSecret)
+	var i LastNotificationAttemptRow
+	err := row.Scan(
+		&i.SentAt,
+		&i.SupposedEntityTime,
+		&i.Errored,
+		&i.ErrorReason,
+	)
+	return i, err
+}
+
 const listSessions = `-- name: ListSessions :many
 SELECT id, user_secret, token, created_at, last_used, user_agent
 FROM user_sessions

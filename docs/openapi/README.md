@@ -854,6 +854,39 @@ To perform this operation, you must be authenticated by means of one of the foll
 bearerAuth
 </aside>
 
+## Get the user's notification status
+
+<a id="opIduserNotificationStatus"></a>
+
+`GET /notifications/status`
+
+> Example responses
+
+> 200 Response
+
+```json
+{
+  "lastAttempt": {
+    "sentAt": "2019-08-24T14:15:22Z",
+    "supposedEntityTime": "2019-08-24T14:15:22Z",
+    "errored": true,
+    "errorReason": "string"
+  }
+}
+```
+
+<h3 id="get-the-user's-notification-status-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Successfully retrieved the user's notification status.|[NotificationStatus](#schemanotificationstatus)|
+|default|Default|The request is invalid.|[Error](#schemaerror)|
+
+<aside class="warning">
+To perform this operation, you must be authenticated by means of one of the following methods:
+bearerAuth
+</aside>
+
 <h1 id="e2clicker-service-ignore">ignore</h1>
 
 ## get___ignore_notification__haha_anything_can_go_here_lol
@@ -1651,6 +1684,59 @@ Custom notifications that the user can override with. The object keys are the no
 ### Properties
 
 *None*
+
+<h2 id="tocS_NotificationStatus">NotificationStatus</h2>
+<!-- backwards compatibility -->
+<a id="schemanotificationstatus"></a>
+<a id="schema_NotificationStatus"></a>
+<a id="tocSnotificationstatus"></a>
+<a id="tocsnotificationstatus"></a>
+
+```json
+{
+  "lastAttempt": {
+    "sentAt": "2019-08-24T14:15:22Z",
+    "supposedEntityTime": "2019-08-24T14:15:22Z",
+    "errored": true,
+    "errorReason": "string"
+  }
+}
+
+```
+
+The status of the user's notifications.
+
+### Properties
+
+*None*
+
+<h2 id="tocS_NotificationAttempt">NotificationAttempt</h2>
+<!-- backwards compatibility -->
+<a id="schemanotificationattempt"></a>
+<a id="schema_NotificationAttempt"></a>
+<a id="tocSnotificationattempt"></a>
+<a id="tocsnotificationattempt"></a>
+
+```json
+{
+  "sentAt": "2019-08-24T14:15:22Z",
+  "supposedEntityTime": "2019-08-24T14:15:22Z",
+  "errored": true,
+  "errorReason": "string"
+}
+
+```
+
+A recorded notification attempt.
+
+### Properties
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|sentAt|string(date-time)|true|none|The time the notification attempt was made.|
+|supposedEntityTime|string(date-time)|false|none|The timestamp of the entity the notification was about, if any.|
+|errored|boolean|true|none|Whether the notification attempt failed.|
+|errorReason|string|false|none|The reason the notification attempt failed, if any.|
 
 <h2 id="tocS_UserSecret">UserSecret</h2>
 <!-- backwards compatibility -->

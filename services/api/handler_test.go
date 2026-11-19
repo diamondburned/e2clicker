@@ -6,7 +6,9 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
+	"e2clicker.app/internal/ptr"
 	"e2clicker.app/services/api/openapi"
 	"e2clicker.app/services/notification"
 	notificationapi "e2clicker.app/services/notification/openapi"
@@ -18,7 +20,9 @@ import (
 )
 
 type stubUserNotificationService struct {
-	notifyErr error
+	notifyErr      error
+	lastAttempt    *notificationapi.NotificationAttempt
+	lastAttemptErr error
 }
 
 func (s *stubUserNotificationService) NotifyUser(ctx context.Context, secret user.Secret, t notificationapi.NotificationType) error {
@@ -27,6 +31,10 @@ func (s *stubUserNotificationService) NotifyUser(ctx context.Context, secret use
 
 func (s *stubUserNotificationService) UserPreferences(ctx context.Context, secret user.Secret) (notification.UserPreferences, error) {
 	return notification.UserPreferences{}, nil
+}
+
+func (s *stubUserNotificationService) LastNotificationAttempt(ctx context.Context, secret user.Secret) (*notificationapi.NotificationAttempt, error) {
+	return s.lastAttempt, s.lastAttemptErr
 }
 
 func (s *stubUserNotificationService) SetUserPreferences(ctx context.Context, secret user.Secret, preferences *notification.UserPreferences) error {
@@ -89,4 +97,36 @@ func TestSendTestNotificationRateLimitAndErrors(t *testing.T) {
 	writeError(rec, req, err, 0)
 	assert.Equal(t, http.StatusTooManyRequests, rec.Code)
 	assert.NotEqual(t, "", rec.Header().Get("Retry-After"))
+}
+
+func TestUserNotificationStatus(t *testing.T) {
+	notifs := &stubUserNotificationService{}
+	lc := fxtest.NewLifecycle(t)
+	h := newOpenAPIHandler(OpenAPIHandlerServices{
+		UserNotifications: notifs,
+	}, slogt.New(t), lc)
+
+	ctx := ctxt.With(context.Background(), user.Session{UserSecret: "user-secret-1"})
+
+	resp, err := h.UserNotificationStatus(ctx, openapi.UserNotificationStatusRequestObject{})
+	assert.NoError(t, err)
+	statusResp, ok := resp.(openapi.UserNotificationStatus200JSONResponse)
+	assert.True(t, ok)
+	assert.Equal(t, (*openapi.NotificationAttempt)(nil), statusResp.LastAttempt)
+
+	sentAt := time.Date(2025, 1, 2, 3, 4, 5, 0, time.UTC)
+	notifs.lastAttempt = &notificationapi.NotificationAttempt{
+		SentAt:      sentAt,
+		Errored:     true,
+		ErrorReason: ptr.To("webPush: subscription expired"),
+	}
+
+	resp, err = h.UserNotificationStatus(ctx, openapi.UserNotificationStatusRequestObject{})
+	assert.NoError(t, err)
+	statusResp, ok = resp.(openapi.UserNotificationStatus200JSONResponse)
+	assert.True(t, ok)
+	assert.True(t, statusResp.LastAttempt != nil)
+	assert.Equal(t, sentAt, statusResp.LastAttempt.SentAt)
+	assert.True(t, statusResp.LastAttempt.Errored)
+	assert.Equal(t, ptr.To("webPush: subscription expired"), statusResp.LastAttempt.ErrorReason)
 }

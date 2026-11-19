@@ -27,6 +27,8 @@ type UserNotificationStorage interface {
 	// The function set is called with the current preferences and should modify
 	// the given preferences, all within the same transaction.
 	SetUserPreferencesTx(ctx context.Context, userSecret user.Secret, set func(*UserPreferences) error) error
+	// LastNotificationAttempt returns the most recent notification attempt for a user, if any.
+	LastNotificationAttempt(ctx context.Context, userSecret user.Secret) (*openapi.NotificationAttempt, error)
 }
 
 // UserNotificationService is a service that sends notifications to users.
@@ -35,6 +37,8 @@ type UserNotificationService interface {
 	NotifyUser(ctx context.Context, secret user.Secret, t openapi.NotificationType) error
 	// UserPreferences returns the preferences of a user.
 	UserPreferences(ctx context.Context, secret user.Secret) (UserPreferences, error)
+	// LastNotificationAttempt returns the most recent notification attempt for a user, if any.
+	LastNotificationAttempt(ctx context.Context, secret user.Secret) (*openapi.NotificationAttempt, error)
 	// SetUserPreferences sets the preferences of a user.
 	SetUserPreferences(ctx context.Context, secret user.Secret, preferences *UserPreferences) error
 	// SetUserPreferencesSafe sets the preferences of a user in a safer manner than
@@ -111,6 +115,10 @@ func (s *userNotificationService) NotifyUser(ctx context.Context, secret user.Se
 
 func (s *userNotificationService) UserPreferences(ctx context.Context, secret user.Secret) (UserPreferences, error) {
 	return s.userNotifications.UserPreferences(ctx, secret)
+}
+
+func (s *userNotificationService) LastNotificationAttempt(ctx context.Context, secret user.Secret) (*openapi.NotificationAttempt, error) {
+	return s.userNotifications.LastNotificationAttempt(ctx, secret)
 }
 
 func (s *userNotificationService) SetUserPreferences(ctx context.Context, secret user.Secret, preferences *UserPreferences) error {

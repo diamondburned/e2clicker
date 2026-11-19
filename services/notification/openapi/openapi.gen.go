@@ -85,6 +85,21 @@ type Notification struct {
 	Username string `json:"username"`
 }
 
+// NotificationAttempt A recorded notification attempt.
+type NotificationAttempt struct {
+	// SentAt The time the notification attempt was made.
+	SentAt time.Time `json:"sentAt"`
+
+	// SupposedEntityTime The timestamp of the entity the notification was about, if any.
+	SupposedEntityTime *time.Time `json:"supposedEntityTime,omitempty"`
+
+	// Errored Whether the notification attempt failed.
+	Errored bool `json:"errored"`
+
+	// ErrorReason The reason the notification attempt failed, if any.
+	ErrorReason *string `json:"errorReason,omitempty"`
+}
+
 // NotificationMessage The message of the notification. This is derived from the notification type but can be overridden by the user.
 type NotificationMessage struct {
 	// Title The title of the notification.
@@ -107,6 +122,12 @@ type NotificationPreferences struct {
 		// WebPush Registered Web Push devices for this user. Managed via `PUT`/`DELETE /notifications/web-push/{deviceID}` and ignored on `PUT /notifications/preferences`.
 		WebPush *[]PushDevice `json:"webPush,omitempty"`
 	} `json:"notificationConfigs"`
+}
+
+// NotificationStatus The status of the user's notifications.
+type NotificationStatus struct {
+	// LastAttempt A recorded notification attempt.
+	LastAttempt *NotificationAttempt `json:"lastAttempt,omitempty"`
 }
 
 // PushDevice Safe metadata for a registered Web Push device (omits endpoint and authentication secrets).

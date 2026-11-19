@@ -24,11 +24,11 @@ with subtest("frontend SSR responds through caddy"):
 with subtest("hurl black-box API suite passes through caddy"):
     machine.succeed("hurl --test --variable base_url=http://127.0.0.1 /etc/e2clicker-tests/api/*.hurl")
 
-with subtest("postgresql schema version, index, and reminder retry semantics"):
+with subtest("postgresql schema version, index, and reminder attempt semantics"):
     meta_v = machine.succeed(
         'runuser -u postgres -- psql -d e2clicker-backend -t -A -c "SELECT v FROM meta;"'
     ).strip()
-    assert meta_v == "6", f"expected meta.v == 6, got {meta_v!r}"
+    assert meta_v == "7", f"expected meta.v == 7, got {meta_v!r}"
 
     user_count = int(
         machine.succeed(
@@ -49,7 +49,7 @@ with subtest("postgresql schema version, index, and reminder retry semantics"):
     ).strip()
     assert old_objs == "0", f"expected old dosage_history indexes/constraints dropped, got {old_objs!r}"
 
-    # Verify errored notification attempts do not suppress upcoming reminders.
+    # Verify errored notification attempts are counted as genuine attempts.
     machine.succeed(
         "runuser -u postgres -- psql -d e2clicker-backend -v ON_ERROR_STOP=1 <<'SQL'\n"
         "INSERT INTO users (secret, name) VALUES ('vm-retry-test', 'Retry Test');\n"
@@ -71,9 +71,9 @@ with subtest("postgresql schema version, index, and reminder retry semantics"):
         ") dh ON TRUE "
         "LEFT JOIN LATERAL ("
         "  SELECT nh.sent_at FROM notification_history nh "
-        "  WHERE nh.user_secret = users.secret AND NOT nh.errored "
+        "  WHERE nh.user_secret = users.secret "
         "  ORDER BY nh.supposed_entity_time DESC NULLS LAST, nh.sent_at DESC LIMIT 1"
         ") last_notification ON TRUE "
         "WHERE users.secret = 'vm-retry-test';\""
     ).strip()
-    assert reminded_at == "NULL", f"expected errored attempt to be ignored, got {reminded_at!r}"
+    assert reminded_at != "NULL", f"expected errored attempt to be counted, got {reminded_at!r}"

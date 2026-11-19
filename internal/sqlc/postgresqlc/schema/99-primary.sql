@@ -186,3 +186,13 @@ DROP INDEX IF EXISTS dosage_history_user_secret;
 
 CREATE INDEX dosage_history_user_taken_at_id
   ON dosage_history (user_secret, taken_at DESC, id DESC);
+
+-- NEW VERSION
+UPDATE
+  meta
+SET v = 7;
+
+DROP INDEX IF EXISTS notification_history_user_sent_at;
+
+CREATE INDEX notification_history_user_sent_at
+  ON notification_history (user_secret, sent_at DESC);

@@ -253,7 +253,6 @@ FROM users
     SELECT nh.supposed_entity_time, nh.sent_at
     FROM notification_history nh
     WHERE nh.user_secret = users.secret
-      AND NOT nh.errored
     ORDER BY nh.supposed_entity_time DESC NULLS LAST, nh.sent_at DESC
     LIMIT 1
   ) last_notification ON TRUE

@@ -636,6 +636,30 @@
         ]
       }
     },
+    "/notifications/status": {
+      "get": {
+        "summary": "Get the user's notification status",
+        "operationId": "userNotificationStatus",
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved the user's notification status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationStatus"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        },
+        "tags": [
+          "notification"
+        ]
+      }
+    },
     "/_ignore/notification/_haha_anything_can_go_here_lol": {
       "get": {
         "tags": [
@@ -1315,6 +1339,45 @@
         "type": "object",
         "additionalProperties": {
           "$ref": "#/components/schemas/NotificationMessage"
+        }
+      },
+      "NotificationStatus": {
+        "description": "The status of the user's notifications.",
+        "properties": {
+          "lastAttempt": {
+            "$ref": "#/components/schemas/NotificationAttempt"
+          }
+        }
+      },
+      "NotificationAttempt": {
+        "description": "A recorded notification attempt.",
+        "required": [
+          "sentAt",
+          "errored"
+        ],
+        "properties": {
+          "sentAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The time the notification attempt was made.",
+            "x-order": 1
+          },
+          "supposedEntityTime": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The timestamp of the entity the notification was about, if any.",
+            "x-order": 2
+          },
+          "errored": {
+            "type": "boolean",
+            "description": "Whether the notification attempt failed.",
+            "x-order": 3
+          },
+          "errorReason": {
+            "type": "string",
+            "description": "The reason the notification attempt failed, if any.",
+            "x-order": 4
+          }
         }
       },
       "UserSecret": {

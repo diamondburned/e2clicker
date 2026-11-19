@@ -212,6 +212,10 @@ func (m *memUserNotificationStorage) SetUserPreferencesTx(ctx context.Context, s
 	return nil
 }
 
+func (m *memUserNotificationStorage) LastNotificationAttempt(ctx context.Context, secret user.Secret) (*openapi.NotificationAttempt, error) {
+	return nil, nil
+}
+
 func TestUserNotificationServicePreservationAndCaps(t *testing.T) {
 	_, _, p256dh, auth := testKeys(t)
 	store := &memUserNotificationStorage{prefs: map[user.Secret]UserPreferences{}}

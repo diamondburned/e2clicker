@@ -24,6 +24,12 @@ HTTP 200
 [Asserts]
 jsonpath "$.notificationConfigs" exists
 
+GET {{base_url}}/api/notifications/status
+Authorization: Bearer {{token}}
+HTTP 200
+[Asserts]
+jsonpath "$.lastAttempt" not exists
+
 # Test notification with no configured channels must fail with 400
 POST {{base_url}}/api/notifications/test
 Authorization: Bearer {{token}}

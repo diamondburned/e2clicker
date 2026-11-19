@@ -3,11 +3,15 @@ package postgresql
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 
+	"e2clicker.app/internal/ptr"
 	"e2clicker.app/internal/sqlc/postgresqlc"
 	"e2clicker.app/services/notification"
+	"e2clicker.app/services/notification/openapi"
 	"e2clicker.app/services/user"
+	"github.com/jackc/pgx/v5"
 )
 
 func (s *Storage) notificationUserStorage() notification.UserNotificationStorage {
@@ -18,6 +22,23 @@ type notificationUserStorage Storage
 
 func (s *notificationUserStorage) UserPreferences(ctx context.Context, userSecret user.Secret) (notification.UserPreferences, error) {
 	return s.q.UserNotificationPreferences(ctx, userSecret)
+}
+
+func (s *notificationUserStorage) LastNotificationAttempt(ctx context.Context, userSecret user.Secret) (*openapi.NotificationAttempt, error) {
+	row, err := s.q.LastNotificationAttempt(ctx, userSecret)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &openapi.NotificationAttempt{
+		SentAt:             row.SentAt.Time,
+		SupposedEntityTime: ptr.ToIf(row.SupposedEntityTime.Time, row.SupposedEntityTime.Valid),
+		Errored:            row.Errored.Bool,
+		ErrorReason:        ptr.ToIf(row.ErrorReason.String, row.ErrorReason.Valid),
+	}, nil
 }
 
 func (s *notificationUserStorage) SetUserPreferencesTx(ctx context.Context, userSecret user.Secret, prefs func(*notification.UserPreferences) error) error {
