@@ -6,10 +6,10 @@
 </script>
 
 <script lang="ts">
-  import Icon from "$lib/components/Icon.svelte";
-  import ErrorBox from "$lib/components/ErrorBox.svelte";
+  import Icon from "#lib/components/Icon.svelte";
+  import ErrorBox from "#lib/components/ErrorBox.svelte";
 
-  import type * as api from "$lib/api.svelte";
+  import type * as api from "#lib/api.svelte.ts";
 
   let { loader, valid }: Props = $props();
 </script>

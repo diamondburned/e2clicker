@@ -1,5 +1,5 @@
 <script lang="ts" generics="ValueT, ZeroT">
-  import { Snippet } from "svelte";
+  import type { Snippet } from "svelte";
 
   let {
     value = $bindable(),

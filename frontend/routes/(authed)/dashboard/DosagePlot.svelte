@@ -2,7 +2,7 @@
 
 <script lang="ts" module>
   import type * as charts from "lightweight-charts";
-  import * as e2 from "$lib/e2.svelte";
+  import * as e2 from "#lib/e2.svelte.ts";
   import { Interval } from "luxon";
 
   export class Data {
@@ -84,9 +84,9 @@
 </script>
 
 <script lang="ts">
-  import Icon from "$lib/components/Icon.svelte";
+  import Icon from "#lib/components/Icon.svelte";
 
-  import * as api from "$lib/api";
+  import * as api from "#lib/api.ts";
   import { createChart, LineStyle, LastPriceAnimationMode } from "lightweight-charts";
   import { fade } from "svelte/transition";
 

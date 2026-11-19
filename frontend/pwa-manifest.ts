@@ -1,4 +1,4 @@
-import type { ManifestOptions } from "vite-plugin-pwa";
+import type { ManifestOptions } from "@unplugin-pwa/core";
 
 const manifest: Partial<ManifestOptions> = {
   name: "e2clicker",

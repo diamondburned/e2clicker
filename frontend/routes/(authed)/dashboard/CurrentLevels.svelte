@@ -1,6 +1,6 @@
 <script lang="ts">
-  import * as e2 from "$lib/e2.svelte";
-  import Icon from "$lib/components/Icon.svelte";
+  import * as e2 from "#lib/e2.svelte.ts";
+  import Icon from "#lib/components/Icon.svelte";
   import { DateTime } from "luxon";
 
   let {

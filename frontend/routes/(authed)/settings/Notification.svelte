@@ -1,13 +1,13 @@
 <script lang="ts">
-  import ErrorBox from "$lib/components/ErrorBox.svelte";
-  import PreferenceGroup from "$lib/components/preference/PreferenceGroup.svelte";
-  import PreferenceItem from "$lib/components/preference/PreferenceItem.svelte";
+  import ErrorBox from "#lib/components/ErrorBox.svelte";
+  import PreferenceGroup from "#lib/components/preference/PreferenceGroup.svelte";
+  import PreferenceItem from "#lib/components/preference/PreferenceItem.svelte";
 
-  import * as api from "$lib/api.svelte";
-  import { user } from "$lib/api.svelte";
-  import Icon from "$lib/components/Icon.svelte";
-  import { updatePushSubscription, type UpdatePushSubscriptionResult } from "$lib/notification";
-  import { addToast, logErrorToast } from "$lib/toasts";
+  import * as api from "#lib/api.svelte.ts";
+  import { user } from "#lib/api.svelte.ts";
+  import Icon from "#lib/components/Icon.svelte";
+  import { updatePushSubscription, type UpdatePushSubscriptionResult } from "#lib/notification/index.ts";
+  import { addToast, logErrorToast } from "#lib/toasts.ts";
   import { onMount } from "svelte";
 
   let preferences = $state<api.NotificationPreferences>();

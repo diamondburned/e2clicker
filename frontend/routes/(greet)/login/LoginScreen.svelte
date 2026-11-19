@@ -1,13 +1,13 @@
 <script lang="ts">
-  import Icon from "$lib/components/Icon.svelte";
-  import Dialog from "$lib/components/Dialog.svelte";
-  import Tooltip from "$lib/components/popovers/Tooltip.svelte";
-  import ErrorBox from "$lib/components/ErrorBox.svelte";
-  import QRScanner from "$lib/components/QRScanner.svelte";
-  import TextHorizontalRule from "$lib/components/TextHorizontalRule.svelte";
+  import Icon from "#lib/components/Icon.svelte";
+  import Dialog from "#lib/components/Dialog.svelte";
+  import Tooltip from "#lib/components/popovers/Tooltip.svelte";
+  import ErrorBox from "#lib/components/ErrorBox.svelte";
+  import QRScanner from "#lib/components/QRScanner.svelte";
+  import TextHorizontalRule from "#lib/components/TextHorizontalRule.svelte";
 
   import { fade } from "svelte/transition";
-  import { user, savedSecret, auth, secretQRRegex } from "$lib/api.svelte";
+  import { user, savedSecret, auth, secretQRRegex } from "#lib/api.svelte.ts";
   import { get } from "svelte/store";
 
   let {

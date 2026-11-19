@@ -1,15 +1,15 @@
 <script lang="ts">
-  import Header from "$lib/components/Header.svelte";
-  import Footer from "$lib/components/Footer.svelte";
+  import Header from "#lib/components/Header.svelte";
+  import Footer from "#lib/components/Footer.svelte";
 
   import { goto } from "$app/navigation";
   import { onMount } from "svelte";
   import { get } from "svelte/store";
-  import * as api from "$lib/api.svelte";
-  import { isLoggedIn } from "$lib/api.svelte";
-  import { updateDeliveryMethods } from "$lib/e2/methods.svelte";
-  import { updatePushSubscription } from "$lib/notification";
-  import LoadingPage from "$lib/components/LoadingPage.svelte";
+  import * as api from "#lib/api.svelte.ts";
+  import { isLoggedIn } from "#lib/api.svelte.ts";
+  import { updateDeliveryMethods } from "#lib/e2/methods.svelte.ts";
+  import { updatePushSubscription } from "#lib/notification/index.ts";
+  import LoadingPage from "#lib/components/LoadingPage.svelte";
 
   let { children } = $props();
 

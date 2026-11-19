@@ -1,9 +1,10 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import LoadingPage from "$lib/components/LoadingPage.svelte";
+  import LoadingPage from "#lib/components/LoadingPage.svelte";
 
   import { onNavigate } from "$app/navigation";
-  import ToastOverlay from "$lib/components/toast/ToastOverlay.svelte";
+  import { registerSW } from "virtual:pwa-register";
+  import ToastOverlay from "#lib/components/toast/ToastOverlay.svelte";
 
   let { children } = $props();
 
@@ -26,18 +27,21 @@
       }
     };
 
-    navigator.serviceWorker.getRegistration().then((reg) => {
-      if (!reg) return;
-      activateWaiting(reg.waiting);
-      reg.addEventListener("updatefound", () => {
-        const installing = reg.installing;
-        if (!installing) return;
-        installing.addEventListener("statechange", () => {
-          if (installing.state === "installed" && navigator.serviceWorker.controller) {
-            activateWaiting(installing);
-          }
+    registerSW({
+      immediate: true,
+      onRegisteredSW(_swUrl, reg) {
+        if (!reg) return;
+        activateWaiting(reg.waiting);
+        reg.addEventListener("updatefound", () => {
+          const installing = reg.installing;
+          if (!installing) return;
+          installing.addEventListener("statechange", () => {
+            if (installing.state === "installed" && navigator.serviceWorker.controller) {
+              activateWaiting(installing);
+            }
+          });
         });
-      });
+      },
     });
 
     return () => {
@@ -93,9 +97,9 @@
   component has been loaded by JavaScript code, which is way slower!
 -->
 
-<span class="material-symbols-rounded" style="position: fixed; top: -100px; left: -100px"
-  >sentiment_satisfied</span
->
+<span class="material-symbols-rounded" style="position: fixed; top: -100px; left: -100px">
+  sentiment_satisfied
+</span>
 
 <ToastOverlay />
 
@@ -105,6 +109,6 @@
   // Use @layer to avoid these styles from overriding unoCSS.
   @layer fonts, styles;
 
-  @import "$lib/styles/google-fonts.css" layer(fonts);
-  @import "$lib/styles/styles.scss" layer(styles);
+  @import "../lib/styles/google-fonts.css" layer(fonts);
+  @import "../lib/styles/styles.scss" layer(styles);
 </style>

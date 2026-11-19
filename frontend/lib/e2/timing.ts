@@ -1,4 +1,4 @@
-import * as api from "$lib/api";
+import * as api from "#lib/api.ts";
 import { DateTime, Duration, type DateTimeMaybeValid, type DurationObjectUnits } from "luxon";
 import type { Dose } from "./plot";
 

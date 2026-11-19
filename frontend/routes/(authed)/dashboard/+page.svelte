@@ -23,8 +23,8 @@
 </script>
 
 <script lang="ts">
-  import LoadingPage from "$lib/components/LoadingPage.svelte";
-  import Icon from "$lib/components/Icon.svelte";
+  import LoadingPage from "#lib/components/LoadingPage.svelte";
+  import Icon from "#lib/components/Icon.svelte";
 
   import NextDoseCountdown from "./NextDoseCountdown.svelte";
   import CurrentLevels from "./CurrentLevels.svelte";
@@ -33,8 +33,8 @@
   import DosagePlot from "./DosagePlot.svelte";
   import DoseInfo from "./DoseInfo.svelte";
 
-  import * as e2 from "$lib/e2.svelte";
-  import * as api from "$lib/api.svelte";
+  import * as e2 from "#lib/e2.svelte.ts";
+  import * as api from "#lib/api.svelte.ts";
   import { Data as DosageData } from "./DosagePlot.svelte";
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";

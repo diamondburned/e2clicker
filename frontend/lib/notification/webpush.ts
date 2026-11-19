@@ -1,5 +1,5 @@
-import * as api from "$lib/api";
-import { clearSWCredentials, saveSWCredentials } from "$lib/sw-creds";
+import * as api from "#lib/api.ts";
+import { clearSWCredentials, saveSWCredentials } from "#lib/sw-creds.ts";
 import { DateTime } from "luxon";
 
 const deviceIDStorageKey = "e2clicker-device-id";

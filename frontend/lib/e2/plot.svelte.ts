@@ -1,4 +1,4 @@
-import * as api from "$lib/api";
+import * as api from "#lib/api.ts";
 import type * as charts from "lightweight-charts";
 import { LineStyle, ColorType, LineType, CrosshairMode } from "lightweight-charts";
 import {

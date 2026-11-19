@@ -1,10 +1,10 @@
 <script lang="ts">
-  import Icon from "$lib/components/Icon.svelte";
-  import Footer from "$lib/components/Footer.svelte";
+  import Icon from "#lib/components/Icon.svelte";
+  import Footer from "#lib/components/Footer.svelte";
 
-  import { browser } from "$app/environment";
+  import { browser } from "$app/env";
   import { goto } from "$app/navigation";
-  import { isLoggedIn } from "$lib/api.svelte";
+  import { isLoggedIn } from "#lib/api.svelte.ts";
 
   $effect(() => {
     if (browser && $isLoggedIn) {
@@ -54,9 +54,8 @@
 
     <p class="yap">
       <span class="avoid-wrap">
-        Easily track your estrogen levels and dosages with <span class="brand">e2clicker</span
-        >,</span
-      >
+        Easily track your estrogen levels and dosages with <span class="brand">e2clicker</span>,
+      </span>
       <span class="avoid-wrap">free and open-source forever for everyone!</span>
     </p>
 

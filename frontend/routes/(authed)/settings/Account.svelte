@@ -1,12 +1,12 @@
 <script lang="ts">
-  import Icon from "$lib/components/Icon.svelte";
-  import Dialog from "$lib/components/Dialog.svelte";
-  import QRCode from "$lib/components/QRCode.svelte";
-  import PreferenceItem from "$lib/components/preference/PreferenceItem.svelte";
-  import PreferenceGroup from "$lib/components/preference/PreferenceGroup.svelte";
+  import Icon from "#lib/components/Icon.svelte";
+  import Dialog from "#lib/components/Dialog.svelte";
+  import QRCode from "#lib/components/QRCode.svelte";
+  import PreferenceItem from "#lib/components/preference/PreferenceItem.svelte";
+  import PreferenceGroup from "#lib/components/preference/PreferenceGroup.svelte";
 
-  import * as api from "$lib/api.svelte";
-  import { user } from "$lib/api.svelte";
+  import * as api from "#lib/api.svelte.ts";
+  import { user } from "#lib/api.svelte.ts";
   import { onMount } from "svelte";
   import { fade } from "svelte/transition";
 

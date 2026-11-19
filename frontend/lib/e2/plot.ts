@@ -1,4 +1,4 @@
-import type * as api from "$lib/api";
+import type * as api from "#lib/api.ts";
 import type { LineData, UTCTimestamp } from "lightweight-charts";
 import { DateTime, Interval } from "luxon";
 import { fillTargetRange } from "estrannaise/src/models";

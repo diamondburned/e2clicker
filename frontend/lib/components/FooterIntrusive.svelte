@@ -1,6 +1,6 @@
 <script lang="ts">
   import { fly } from "svelte/transition";
-  import type { FlyProps } from "$lib/components/popovers/Popover.svelte";
+  import type { FlyProps } from "#lib/components/popovers/Popover.svelte";
   import { onMount } from "svelte";
 
   let footerIndex = $state(0);

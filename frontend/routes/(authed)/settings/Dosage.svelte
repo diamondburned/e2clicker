@@ -1,11 +1,11 @@
 <script lang="ts">
-  import PreferenceItem from "$lib/components/preference/PreferenceItem.svelte";
-  import PreferenceGroup from "$lib/components/preference/PreferenceGroup.svelte";
-  import InputDays from "$lib/components/inputs/InputDays.svelte";
-  import InputQuantity from "$lib/components/inputs/InputQuantity.svelte";
+  import PreferenceItem from "#lib/components/preference/PreferenceItem.svelte";
+  import PreferenceGroup from "#lib/components/preference/PreferenceGroup.svelte";
+  import InputDays from "#lib/components/inputs/InputDays.svelte";
+  import InputQuantity from "#lib/components/inputs/InputQuantity.svelte";
 
-  import * as api from "$lib/api.svelte";
-  import * as e2 from "$lib/e2.svelte";
+  import * as api from "#lib/api.svelte.ts";
+  import * as e2 from "#lib/e2.svelte.ts";
   import { slide } from "svelte/transition";
   import { sineInOut } from "svelte/easing";
   import { onMount } from "svelte";

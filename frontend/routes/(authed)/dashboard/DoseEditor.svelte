@@ -1,12 +1,12 @@
 <script lang="ts">
-  import * as e2 from "$lib/e2.svelte";
-  import * as api from "$lib/api.svelte";
+  import * as e2 from "#lib/e2.svelte.ts";
+  import * as api from "#lib/api.svelte.ts";
 
-  import Dialog from "$lib/components/Dialog.svelte";
-  import Icon from "$lib/components/Icon.svelte";
-  import InputQuantity from "$lib/components/inputs/InputQuantity.svelte";
+  import Dialog from "#lib/components/Dialog.svelte";
+  import Icon from "#lib/components/Icon.svelte";
+  import InputQuantity from "#lib/components/inputs/InputQuantity.svelte";
   import { DateTime, type DurationLike } from "luxon";
-  import { logErrorToast } from "$lib/toasts";
+  import { logErrorToast } from "#lib/toasts.ts";
 
   let {
     open = $bindable(false),

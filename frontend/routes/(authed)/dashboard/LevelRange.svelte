@@ -1,6 +1,6 @@
 <script lang="ts">
-  import * as e2 from "$lib/e2.svelte";
-  import * as api from "$lib/api";
+  import * as e2 from "#lib/e2.svelte.ts";
+  import * as api from "#lib/api.ts";
   import { Duration } from "luxon";
 
   let {

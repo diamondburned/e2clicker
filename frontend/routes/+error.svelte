@@ -1,9 +1,9 @@
 <script lang="ts">
-  import LoadingPage from "$lib/components/LoadingPage.svelte";
+  import LoadingPage from "#lib/components/LoadingPage.svelte";
 
-  import { page } from "$app/stores";
+  import { page } from "$app/state";
 
-  let error = $derived(`Status ${$page.status}` + ($page.error ? `: ${$page.error.message}` : ""));
+  let error = $derived(`Status ${page.status}` + (page.error ? `: ${page.error.message}` : ""));
   let promise = $derived(new Promise((_, reject) => reject(error)));
 </script>
 

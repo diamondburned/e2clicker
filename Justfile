@@ -13,16 +13,9 @@ build-backend: build-clean generate-backend
     @mkdir -p dist/backend
     go build -o ./dist/backend/e2clicker-backend ./cmd/e2clicker-backend
 
-build-frontend: build-clean build-frontend-fix generate-frontend
+build-frontend: build-clean generate-frontend
     @mkdir -p dist/frontend
     vite build --logLevel error
-
-# Fix a race condition with Vite running before Sveltekit can create its
-
-# tsconfig.json.
-[private]
-build-frontend-fix:
-    @mkdir .svelte-kit 2> /dev/null && echo "{}" > .svelte-kit/tsconfig.json || true
 
 [private]
 build-clean:

@@ -1,7 +1,9 @@
 import { defineConfig } from "vite";
-import { sveltekit } from "@sveltejs/kit/vite";
-import { SvelteKitPWA as sveltekitPWA } from "@vite-pwa/sveltekit";
-import pwaManifest from "./frontend/pwa-manifest";
+import adapter from "@sveltejs/adapter-node";
+import unoCSS from "@unocss/svelte-scoped/preprocess";
+import { sveltePreprocess } from "svelte-preprocess";
+import { withPwa } from "@vite-pwa/sveltekit";
+import pwaManifest from "./frontend/pwa-manifest.ts";
 
 const devVMAddress = process.env.BACKEND_HTTP_ADDRESS;
 
@@ -9,17 +11,45 @@ export default defineConfig({
   // Why the FUCK is clearScreen true by default? That is fucking stupid.
   clearScreen: false,
   plugins: [
-    sveltekit(),
-    sveltekitPWA({
-      strategies: "injectManifest",
-      srcDir: "frontend",
-      filename: "service-worker.ts",
-      manifest: pwaManifest,
-      devOptions: {
-        enabled: true,
-        type: "module",
+    withPwa(
+      {
+        adapter: adapter({
+          out: "dist/frontend",
+          precompress: true,
+        }),
+        files: {
+          assets: "assets",
+          routes: "frontend/routes",
+          appTemplate: "frontend/app.html",
+          errorTemplate: "frontend/error.html",
+        },
+        serviceWorker: {
+          register: false,
+        },
+        preprocess: [
+          sveltePreprocess(),
+          unoCSS({
+            combine: false,
+            classPrefix: "uno-",
+          }),
+        ],
+        compilerOptions: {
+          runes: true,
+        },
       },
-    }),
+      {
+        strategies: "buildSW",
+        buildSW: {
+          swSrc: "frontend/service-worker.ts",
+        },
+        manifest: pwaManifest,
+        devOptions: {
+          enabled: true,
+          type: "module",
+          navigateFallback: "/",
+        },
+      },
+    ),
   ],
   server: {
     host: "0.0.0.0",
@@ -39,13 +69,6 @@ export default defineConfig({
   },
   build: {
     assetsDir: "static",
-    emptyOutDir: true,
-    rollupOptions: {
-      treeshake: true,
-      output: {
-        format: "esm",
-      },
-    },
     target: ["esnext"],
     minify: true,
     cssMinify: true,
@@ -53,9 +76,5 @@ export default defineConfig({
     cssCodeSplit: true,
     sourcemap: true,
     reportCompressedSize: true,
-  },
-  esbuild: {
-    sourcemap: true,
-    treeShaking: true,
   },
 });

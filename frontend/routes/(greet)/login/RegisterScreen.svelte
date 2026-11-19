@@ -1,9 +1,9 @@
 <script lang="ts">
-  import Icon from "$lib/components/Icon.svelte";
-  import { auth, register, savedSecret } from "$lib/api.svelte";
+  import Icon from "#lib/components/Icon.svelte";
+  import { auth, register, savedSecret } from "#lib/api.svelte.ts";
 
   import { fade } from "svelte/transition";
-  import ErrorBox from "$lib/components/ErrorBox.svelte";
+  import ErrorBox from "#lib/components/ErrorBox.svelte";
 
   let {
     screen = $bindable(),

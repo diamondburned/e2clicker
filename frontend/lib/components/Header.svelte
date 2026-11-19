@@ -1,7 +1,7 @@
 <script lang="ts">
   import Icon from "./Icon.svelte";
 
-  import { user, isLoggedIn } from "$lib/api.svelte";
+  import { user, isLoggedIn } from "#lib/api.svelte.ts";
 
   let header: HTMLElement;
   let scrolled = false;

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { type AssignedToast, closeToast } from "$lib/toasts";
+  import { type AssignedToast, closeToast } from "#lib/toasts.ts";
   import { type Snippet } from "svelte";
   import Icon from "../Icon.svelte";
   import { slide } from "svelte/transition";

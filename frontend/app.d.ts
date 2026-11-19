@@ -8,6 +8,6 @@ declare global {
   }
 }
 
-import "vite-plugin-pwa/pwa-assets";
+import "@unplugin-pwa/core/pwa-assets";
 
 export {};

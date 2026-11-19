@@ -1,17 +1,17 @@
 <script lang="ts">
-  import LoadingPage from "$lib/components/LoadingPage.svelte";
-  import ResizeContainer from "$lib/components/ResizeContainer.svelte";
+  import LoadingPage from "#lib/components/LoadingPage.svelte";
+  import ResizeContainer from "#lib/components/ResizeContainer.svelte";
 
   import LoginScreen from "./LoginScreen.svelte";
   import RegisterScreen from "./RegisterScreen.svelte";
 
   import { slide } from "svelte/transition";
-  import { page } from "$app/stores";
-  import { isLoggedIn } from "$lib/api.svelte";
+  import { page } from "$app/state";
+  import { isLoggedIn } from "#lib/api.svelte.ts";
   import { goto } from "$app/navigation";
 
   let screen = $state<"login" | "register">(
-    $page.url.hash == "#register" // set by homepage
+    page.url.hash == "#register" // set by homepage
       ? "register"
       : "login",
   );

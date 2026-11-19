@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { toasts } from "$lib/toasts";
+  import { toasts } from "#lib/toasts.ts";
   import Toast from "./Toast.svelte";
 </script>
 

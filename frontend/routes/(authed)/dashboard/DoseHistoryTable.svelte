@@ -1,11 +1,11 @@
 <script lang="ts">
-  import ResizeContainer from "$lib/components/ResizeContainer.svelte";
-  import Tooltip from "$lib/components/popovers/Tooltip.svelte";
-  import Icon from "$lib/components/Icon.svelte";
+  import ResizeContainer from "#lib/components/ResizeContainer.svelte";
+  import Tooltip from "#lib/components/popovers/Tooltip.svelte";
+  import Icon from "#lib/components/Icon.svelte";
   import DoseEditor from "./DoseEditor.svelte";
 
-  import * as e2 from "$lib/e2.svelte";
-  import * as api from "$lib/api";
+  import * as e2 from "#lib/e2.svelte.ts";
+  import * as api from "#lib/api.ts";
   import { slide } from "svelte/transition";
   import { DateTime, Interval } from "luxon";
 
