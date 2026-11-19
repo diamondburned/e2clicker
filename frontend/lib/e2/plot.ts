@@ -48,6 +48,29 @@ export function wpathRange(conversionFactor: number): {
   };
 }
 
+export function withAlpha(cssColor: string, alpha: number): string {
+  const c = cssColor.trim();
+  const hex = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(c);
+  if (hex) {
+    let digits = hex[1];
+    if (digits.length === 3) {
+      digits = digits
+        .split("")
+        .map((ch) => ch + ch)
+        .join("");
+    }
+    const r = parseInt(digits.slice(0, 2), 16);
+    const g = parseInt(digits.slice(2, 4), 16);
+    const b = parseInt(digits.slice(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+  const rgb = /^rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)(?:\s*,\s*[\d.]+)?\s*\)$/i.exec(c);
+  if (rgb) {
+    return `rgba(${rgb[1]}, ${rgb[2]}, ${rgb[3]}, ${alpha})`;
+  }
+  return c;
+}
+
 export function dataWithinInterval(
   data: LineData<UTCTimestamp>[],
   iv: Interval,

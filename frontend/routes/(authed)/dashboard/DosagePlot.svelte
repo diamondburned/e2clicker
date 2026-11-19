@@ -37,10 +37,23 @@
 
     readonly wpathRange = $derived(e2.wpathRange(e2.conversionFactor()));
 
+    private readonly actualWhole = $derived(
+      this.dosage
+        ? e2.fillE2ActualWithUncertainty(
+            this.interval,
+            this.predictedInterval,
+            this.dosage,
+            this.history,
+            e2.conversionFactor(),
+          )
+        : undefined,
+    );
+
     readonly idealData = $derived(
       this.dosage
         ? e2.fillE2IdealData(this.totalInterval, this.dosage, e2.conversionFactor(), {
             takenAt: this.history[this.history.length - 1]?.takenAt ?? this.interval.end,
+            timestamps: this.actualWhole?.timestamps,
           })
         : [],
     );
@@ -55,19 +68,39 @@
       this.dosage && e2.idealE2Average(this.dosage, e2.conversionFactor()),
     );
 
-    private readonly actualDataWhole = $derived(
-      this.dosage
-        ? e2.fillE2ActualData(this.totalInterval, this.dosage, this.history, e2.conversionFactor())
+    readonly actualData = $derived(
+      this.actualWhole
+        ? this.actualWhole.actual.filter((d) => d.time <= this.actualWhole!.splitTime)
         : [],
     );
 
-    readonly actualData = $derived(
-      this.actualDataWhole ? e2.dataWithinInterval(this.actualDataWhole, this.interval) : [],
+    readonly actualPredictionData = $derived(
+      this.actualWhole
+        ? this.actualWhole.actual.filter((d) => d.time >= this.actualWhole!.splitTime)
+        : [],
     );
 
-    readonly actualPredictionData = $derived(
-      this.actualDataWhole
-        ? e2.dataWithinInterval(this.actualDataWhole, this.predictedInterval)
+    readonly actualP05Data = $derived(
+      this.actualWhole
+        ? this.actualWhole.p05.filter((d) => d.time <= this.actualWhole!.splitTime)
+        : [],
+    );
+
+    readonly actualP95Data = $derived(
+      this.actualWhole
+        ? this.actualWhole.p95.filter((d) => d.time <= this.actualWhole!.splitTime)
+        : [],
+    );
+
+    readonly predictedP05Data = $derived(
+      this.actualWhole
+        ? this.actualWhole.p05.filter((d) => d.time >= this.actualWhole!.splitTime)
+        : [],
+    );
+
+    readonly predictedP95Data = $derived(
+      this.actualWhole
+        ? this.actualWhole.p95.filter((d) => d.time >= this.actualWhole!.splitTime)
         : [],
     );
 
@@ -88,6 +121,7 @@
 
   import * as api from "#lib/api.ts";
   import { createChart, LineStyle, LastPriceAnimationMode } from "lightweight-charts";
+  import { untrack } from "svelte";
   import { fade } from "svelte/transition";
 
   let {
@@ -96,7 +130,7 @@
     data: Data;
   } = $props();
 
-  let plotDiv: HTMLDivElement | null = null;
+  let plotDiv = $state<HTMLDivElement | null>(null);
   let plotWidth = $state(0);
 
   let styles = $derived(e2.gatherStyles(plotDiv));
@@ -109,76 +143,128 @@
       return;
     }
 
-    const chart = createChart(plotDiv);
+    const div = plotDiv;
+    return untrack(() => {
+      const chart = createChart(div);
 
-    const wpathFake = chart.addLineSeries({
-      visible: true,
-    }) as charts.ISeriesApi<"Line", charts.UTCTimestamp>;
+      const wpathFake = chart.addLineSeries({
+        visible: true,
+      }) as charts.ISeriesApi<"Line", charts.UTCTimestamp>;
 
-    const wpathLower = wpathFake.createPriceLine({
-      price: 0,
-      color: styles.muted,
-      lineWidth: 2,
-      lineStyle: LineStyle.Dashed,
-      axisLabelVisible: true,
-      title: "Lower Target",
+      const wpathLower = wpathFake.createPriceLine({
+        price: 0,
+        color: styles.muted,
+        lineWidth: 2,
+        lineStyle: LineStyle.Dashed,
+        axisLabelVisible: true,
+        title: "Lower Target",
+      });
+
+      const wpathUpper = wpathFake.createPriceLine({
+        price: 0,
+        color: styles.muted,
+        lineWidth: 2,
+        lineStyle: LineStyle.Dashed,
+        axisLabelVisible: true,
+        title: "Upper Target",
+      });
+
+      const idealLevel = chart.addLineSeries({
+        color: styles.secondary,
+        lineWidth: 2,
+        lineStyle: LineStyle.Dashed,
+        priceLineVisible: false,
+        lastValueVisible: false,
+      }) as charts.ISeriesApi<"Line", charts.UTCTimestamp>;
+
+      const currentLevel = chart.addLineSeries({
+        title: "Current Level",
+        color: styles.primary,
+        lineWidth: 2,
+        lineStyle: LineStyle.Solid,
+        priceLineVisible: e2.plotSide() == "left",
+        lastValueVisible: true,
+        lastPriceAnimation: LastPriceAnimationMode.OnDataUpdate,
+      }) as charts.ISeriesApi<"Line", charts.UTCTimestamp>;
+
+      const currentLevelPrediction = chart.addLineSeries({
+        color: styles.primary,
+        lineWidth: 1,
+        lineStyle: LineStyle.LargeDashed,
+        priceLineVisible: false,
+        lastValueVisible: false,
+      }) as charts.ISeriesApi<"Line", charts.UTCTimestamp>;
+
+      const uncertaintyColor = e2.withAlpha(styles.primary, 0.45);
+      const uncertaintyPredictedColor = e2.withAlpha(styles.primary, 0.3);
+
+      const actualLower = chart.addLineSeries(
+        e2.uncertaintyLineSeriesOptions(uncertaintyColor),
+      ) as charts.ISeriesApi<"Line", charts.UTCTimestamp>;
+
+      const actualUpper = chart.addLineSeries(
+        e2.uncertaintyLineSeriesOptions(uncertaintyColor),
+      ) as charts.ISeriesApi<"Line", charts.UTCTimestamp>;
+
+      const predictedLower = chart.addLineSeries(
+        e2.uncertaintyLineSeriesOptions(uncertaintyPredictedColor),
+      ) as charts.ISeriesApi<"Line", charts.UTCTimestamp>;
+
+      const predictedUpper = chart.addLineSeries(
+        e2.uncertaintyLineSeriesOptions(uncertaintyPredictedColor),
+      ) as charts.ISeriesApi<"Line", charts.UTCTimestamp>;
+
+      chart.subscribeCrosshairMove((ev) => {
+        const idealData = e2.lineDataFromSeriesData(ev.seriesData, idealLevel);
+        const actualData = e2.lineDataFromSeriesData(ev.seriesData, currentLevel);
+        const predictedData = e2.lineDataFromSeriesData(ev.seriesData, currentLevelPrediction);
+        const showUnc = e2.showUncertainty();
+        const actualP05 = showUnc
+          ? e2.lineDataFromSeriesData(ev.seriesData, actualLower)
+          : undefined;
+        const actualP95 = showUnc
+          ? e2.lineDataFromSeriesData(ev.seriesData, actualUpper)
+          : undefined;
+        const predP05 = showUnc
+          ? e2.lineDataFromSeriesData(ev.seriesData, predictedLower)
+          : undefined;
+        const predP95 = showUnc
+          ? e2.lineDataFromSeriesData(ev.seriesData, predictedUpper)
+          : undefined;
+
+        plotTooltip = e2.renderPlotTooltip(plotTooltip, ev, plotDiv, plotTooltipDiv, [
+          { name: "Ideal", value: idealData?.value ?? NaN },
+          {
+            name: "Current",
+            value: actualData?.value ?? NaN,
+            range: actualP05 && actualP95 ? [actualP05.value, actualP95.value] : undefined,
+          },
+          {
+            name: "Predicted",
+            value: predictedData?.value ?? NaN,
+            range: !actualData && predP05 && predP95 ? [predP05.value, predP95.value] : undefined,
+          },
+        ]);
+      });
+
+      return Object.assign(chart, {
+        wpathFake,
+        wpathLower,
+        wpathUpper,
+        idealLevel,
+        currentLevel,
+        currentLevelPrediction,
+        actualLower,
+        actualUpper,
+        predictedLower,
+        predictedUpper,
+      });
     });
+  });
 
-    const wpathUpper = wpathFake.createPriceLine({
-      price: 0,
-      color: styles.muted,
-      lineWidth: 2,
-      lineStyle: LineStyle.Dashed,
-      axisLabelVisible: true,
-      title: "Upper Target",
-    });
-
-    const idealLevel = chart.addLineSeries({
-      color: styles.secondary,
-      lineWidth: 2,
-      lineStyle: LineStyle.Dashed,
-      priceLineVisible: false,
-      lastValueVisible: false,
-    }) as charts.ISeriesApi<"Line", charts.UTCTimestamp>;
-
-    const currentLevel = chart.addLineSeries({
-      title: "Current Level",
-      color: styles.primary,
-      lineWidth: 2,
-      lineStyle: LineStyle.Solid,
-      priceLineVisible: e2.plotSide() == "left",
-      lastValueVisible: true,
-      lastPriceAnimation: LastPriceAnimationMode.OnDataUpdate,
-    }) as charts.ISeriesApi<"Line", charts.UTCTimestamp>;
-
-    const currentLevelPrediction = chart.addLineSeries({
-      color: styles.primary,
-      lineWidth: 1,
-      lineStyle: LineStyle.LargeDashed,
-      priceLineVisible: false,
-      lastValueVisible: false,
-    }) as charts.ISeriesApi<"Line", charts.UTCTimestamp>;
-
-    chart.subscribeCrosshairMove((ev) => {
-      const idealData = e2.lineDataFromSeriesData(ev.seriesData, idealLevel);
-      const actualData = e2.lineDataFromSeriesData(ev.seriesData, currentLevel);
-      const predictedData = e2.lineDataFromSeriesData(ev.seriesData, currentLevelPrediction);
-
-      plotTooltip = e2.renderPlotTooltip(plotTooltip, ev, plotDiv, plotTooltipDiv, [
-        { name: "Ideal", value: idealData?.value ?? NaN },
-        { name: "Current", value: actualData?.value ?? NaN },
-        { name: "Predicted", value: predictedData?.value ?? NaN },
-      ]);
-    });
-
-    return Object.assign(chart, {
-      wpathFake,
-      wpathLower,
-      wpathUpper,
-      idealLevel,
-      currentLevel,
-      currentLevelPrediction,
-    });
+  $effect(() => {
+    const c = chart;
+    return () => c?.remove();
   });
 
   // Watch changes to styling.
@@ -192,9 +278,23 @@
       visible: e2.showIdealLevels(),
     });
 
-    Object.values(chart)
-      .filter((series): series is charts.ISeriesApi<"Line"> => series?.seriesType?.() == "Line")
-      .forEach((series) => series.applyOptions(e2.lineSeriesOptions()));
+    const baseLineOpts = e2.lineSeriesOptions();
+    for (const series of [
+      chart.wpathFake,
+      chart.idealLevel,
+      chart.currentLevel,
+      chart.currentLevelPrediction,
+    ]) {
+      series.applyOptions(baseLineOpts);
+    }
+
+    const showUnc = e2.showUncertainty();
+    const uncColor = e2.withAlpha(styles.primary, 0.45);
+    const uncPredColor = e2.withAlpha(styles.primary, 0.3);
+    chart.actualLower.applyOptions(e2.uncertaintyLineSeriesOptions(uncColor, showUnc));
+    chart.actualUpper.applyOptions(e2.uncertaintyLineSeriesOptions(uncColor, showUnc));
+    chart.predictedLower.applyOptions(e2.uncertaintyLineSeriesOptions(uncPredColor, showUnc));
+    chart.predictedUpper.applyOptions(e2.uncertaintyLineSeriesOptions(uncPredColor, showUnc));
   });
 
   // Watch changes to data.
@@ -219,6 +319,10 @@
     chart.idealLevel.setData(data.idealData);
     chart.currentLevel.setData(data.actualData);
     chart.currentLevelPrediction.setData(data.actualPredictionData);
+    chart.actualLower.setData(data.actualP05Data);
+    chart.actualUpper.setData(data.actualP95Data);
+    chart.predictedLower.setData(data.predictedP05Data);
+    chart.predictedUpper.setData(data.predictedP95Data);
 
     chart.currentLevel.setMarkers(
       data.history
@@ -292,6 +396,19 @@
     <li class="steady secondary">
       <Icon name="auto-graph" /> Ideal Levels
     </li>
+    <li class="uncertainty">
+      <button
+        type="button"
+        class="minimal legend-toggle"
+        class:active={e2.showUncertainty()}
+        aria-pressed={e2.showUncertainty()}
+        onclick={() => {
+          e2.plotPreferences.showUncertainty = !e2.plotPreferences.showUncertainty;
+        }}
+      >
+        <Icon name="stacked-line-chart" /> 5–95% Uncertainty
+      </button>
+    </li>
   </ul>
 </div>
 
@@ -358,11 +475,23 @@
 
     display: flex;
     flex-direction: row;
+    flex-wrap: wrap;
     justify-content: center;
-    gap: calc(2 * var(--pico-spacing));
+    gap: var(--pico-spacing) calc(2 * var(--pico-spacing));
 
     li {
       list-style: none;
+    }
+
+    .legend-toggle {
+      color: var(--pico-muted-color);
+      opacity: 0.7;
+      text-decoration-style: dotted;
+
+      &.active {
+        color: color-mix(in srgb, var(--pico-primary) 75%, var(--pico-color));
+        opacity: 1;
+      }
     }
   }
 </style>

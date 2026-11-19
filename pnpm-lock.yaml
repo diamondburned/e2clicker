@@ -57,8 +57,8 @@ importers:
         specifier: ^3.1.2
         version: 3.1.2
       estrannaise:
-        specifier: github:WHSAH/estrannaise.js#main
-        version: https://codeload.github.com/WHSAH/estrannaise.js/tar.gz/b7dc4a6b403c8cf10339d5890fe6bdcd85ac8797(@observablehq/plot@0.6.16)(cubic-spline@3.0.3)
+        specifier: github:WHSAH/estrannaise.js#47198c4e0738849e9ac5b51605a477a5a6a1e814
+        version: https://codeload.github.com/WHSAH/estrannaise.js/tar.gz/47198c4e0738849e9ac5b51605a477a5a6a1e814(@observablehq/plot@0.6.16)(cubic-spline@3.0.3)
       lightweight-charts:
         specifier: 4.1.0
         version: 4.1.0
@@ -1599,8 +1599,8 @@ packages:
       '@typescript-eslint/types':
         optional: true
 
-  estrannaise@https://codeload.github.com/WHSAH/estrannaise.js/tar.gz/b7dc4a6b403c8cf10339d5890fe6bdcd85ac8797:
-    resolution: {gitHosted: true, tarball: https://codeload.github.com/WHSAH/estrannaise.js/tar.gz/b7dc4a6b403c8cf10339d5890fe6bdcd85ac8797}
+  estrannaise@https://codeload.github.com/WHSAH/estrannaise.js/tar.gz/47198c4e0738849e9ac5b51605a477a5a6a1e814:
+    resolution: {gitHosted: true, integrity: sha512-qdM0gwDXlX6ek8akQjVfSxCJBZjvkgKw/EhlS1fhoiA+0r0PJmtIE9UN+UmIfOa6wXZTcd4GwIl7GPGXZKkKAQ==, tarball: https://codeload.github.com/WHSAH/estrannaise.js/tar.gz/47198c4e0738849e9ac5b51605a477a5a6a1e814}
     version: 1.0.0
     peerDependencies:
       '@observablehq/plot': ^0.6.14
@@ -2966,7 +2966,7 @@ snapshots:
       '@babel/parser': 7.26.10
       '@babel/types': 7.26.10
       '@jridgewell/gen-mapping': 0.3.8
-      '@jridgewell/trace-mapping': 0.3.25
+      '@jridgewell/trace-mapping': 0.3.31
       jsesc: 3.1.0
     optional: true
 
@@ -3175,7 +3175,7 @@ snapshots:
   '@jridgewell/source-map@0.3.6':
     dependencies:
       '@jridgewell/gen-mapping': 0.3.8
-      '@jridgewell/trace-mapping': 0.3.25
+      '@jridgewell/trace-mapping': 0.3.31
     optional: true
 
   '@jridgewell/sourcemap-codec@1.5.0': {}
@@ -4289,7 +4289,7 @@ snapshots:
     dependencies:
       '@jridgewell/sourcemap-codec': 1.6.0
 
-  estrannaise@https://codeload.github.com/WHSAH/estrannaise.js/tar.gz/b7dc4a6b403c8cf10339d5890fe6bdcd85ac8797(@observablehq/plot@0.6.16)(cubic-spline@3.0.3):
+  estrannaise@https://codeload.github.com/WHSAH/estrannaise.js/tar.gz/47198c4e0738849e9ac5b51605a477a5a6a1e814(@observablehq/plot@0.6.16)(cubic-spline@3.0.3):
     dependencies:
       '@observablehq/plot': 0.6.16
       cubic-spline: 3.0.3
@@ -5289,7 +5289,7 @@ snapshots:
   terser@5.39.0:
     dependencies:
       '@jridgewell/source-map': 0.3.6
-      acorn: 8.14.1
+      acorn: 8.19.0
       commander: 2.20.3
       source-map-support: 0.5.21
     optional: true

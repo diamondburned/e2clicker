@@ -1,4 +1,4 @@
 {
   "goModules": "[!-- see ./gomod2nix.toml --]",
-  "pnpmPackages": "sha256-lrgUXcSJoDunx1+XBhncDTE9Xf3LocQociqGBy0gj5M="
+  "pnpmPackages": "sha256-Ywny0H2nlHa9ZPd4BFmhKPUsd0qQ+cDDoEfQYWbRDiw="
 }

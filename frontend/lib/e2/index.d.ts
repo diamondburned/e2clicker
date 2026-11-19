@@ -115,15 +115,21 @@ declare module "estrannaise/src/models" {
   ): number;
 
   // This is an approximation, but it's good enough for our purposes
-  export function terminalEliminationTime3C(model: string, nbHalfLives?: number): number;
-
-  // The underlying function for getPKQuantities.
-  export function getPKQuantities3C(
-    d: number,
+  export function terminalEliminationTime3C(
+    _d: number,
     k1: number,
     k2: number,
     k3: number,
-  ): { Tmax: number; Cmax: number; halfLife: number };
+    nbHalfLives?: number,
+  ): number;
+
+  // The underlying function for getPKQuantities.
+  export function getPKQuantities3C(
+    _d: number,
+    k1: number,
+    k2: number,
+    k3: number,
+  ): { Tmax: number; Cmax: number; halfLife: number; halfLifeAbsorption: number };
 
   // Get the PK quantities for a given model.
   export function getPKQuantities(model: string): ReturnType<typeof getPKQuantities3C>;
@@ -171,7 +177,7 @@ declare module "estrannaise/src/modeldata" {
   };
 
   export let mcmcSamplesPK: {
-    [key in DeliveryMethod]: number[][];
+    [key in DeliveryMethod]: PKParameter[];
   };
 }
 

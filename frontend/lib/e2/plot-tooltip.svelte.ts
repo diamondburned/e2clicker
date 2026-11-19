@@ -13,7 +13,9 @@ export type PlotTooltipData = {
 export type AcceptablePlotTooltipData = {
   name: string;
   value: number; // NaN acceptable
+  range?: [number, number];
   unit?: string;
+  suffix?: string;
 }[];
 
 function ptInElement(pt: { x: number; y: number }, elem: HTMLElement) {
@@ -56,10 +58,18 @@ export function renderPlotTooltip(
   const data = acceptedData
     .filter((d) => !!d)
     .filter((d) => !isNaN(d.value))
-    .map((d) => ({
-      name: d.name,
-      value: fixed(d.value, d.unit ?? units()),
-    }));
+    .map((d) => {
+      const unit = d.unit ?? units();
+      const range =
+        d.range && !isNaN(d.range[0]) && !isNaN(d.range[1])
+          ? ` (${fixed(d.range[0])}–${fixed(d.range[1])})`
+          : "";
+      const suffix = d.suffix ? ` ${d.suffix}` : "";
+      return {
+        name: d.name,
+        value: `${fixed(d.value)}${range}${unit ? " " + unit : ""}${suffix}`,
+      };
+    });
 
   return {
     left,

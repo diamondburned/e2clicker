@@ -41,7 +41,7 @@
     "@vite-pwa/sveltekit": "^2.0.3",
     "concurrently": "^10.0.7",
     "debounce-promise": "^3.1.2",
-    "estrannaise": "github:WHSAH/estrannaise.js#main",
+    "estrannaise": "github:WHSAH/estrannaise.js#47198c4e0738849e9ac5b51605a477a5a6a1e814",
     "lightweight-charts": "4.1.0",
     "luxon": "^3.5.0",
     "oazapfts": "^6.1.0",

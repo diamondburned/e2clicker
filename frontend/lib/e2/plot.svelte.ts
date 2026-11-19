@@ -14,15 +14,23 @@ import {
 import { deliveryMethod, estrannaiseDeliveryMethod } from "./methods.svelte";
 import { timeUntilNextDose } from "./timing";
 import type { Dose, PlotStyles } from "./plot";
+import {
+  computeActualWithUncertainty,
+  sampleSplitTimestamps,
+  type ActualUncertaintySeries,
+  type PreparedDose,
+} from "./uncertainty";
 import type { LevelUnits } from "estrannaise/src/modeldata";
 import { DateTime, Duration, Interval } from "luxon";
 
 export * from "./plot";
+export * from "./uncertainty";
 
 class PlotPreferences {
   units = $state<LevelUnits>("pg/mL");
   plotSide = $state<"left" | "right">("left");
   showIdealLevels = $state<boolean>(false);
+  showUncertainty = $state<boolean>(true);
   plotHighDensity = $state<boolean>(false);
   // how far to predict ahead for the actual E2 curve.
   predictAhead = $state(Duration.fromObject({ week: 1 }));
@@ -35,6 +43,7 @@ export let plotPreferences = new PlotPreferences();
 export let units = () => plotPreferences.units;
 export let plotSide = () => plotPreferences.plotSide;
 export let showIdealLevels = () => plotPreferences.showIdealLevels;
+export let showUncertainty = () => plotPreferences.showUncertainty;
 export let predictAhead = () => plotPreferences.predictAhead;
 export let precision = () => availableUnits[units()].precision;
 export let conversionFactor = () => availableUnits[units()].conversionFactor;
@@ -144,6 +153,27 @@ export let lineSeriesOptions = (): charts.DeepPartial<
   },
 });
 
+export let uncertaintyLineSeriesOptions = (
+  color: string,
+  visible = showUncertainty(),
+): charts.DeepPartial<charts.LineStyleOptions & charts.SeriesOptionsCommon> => ({
+  lineType: LineType.Simple,
+  baseLineVisible: false,
+  priceScaleId: plotSide(),
+  priceFormat: {
+    type: "custom",
+    formatter: (price: charts.BarPrice) => price.toFixed(precision()) + " " + units(),
+  },
+  color,
+  lineWidth: 1,
+  lineStyle: LineStyle.Dotted,
+  priceLineVisible: false,
+  lastValueVisible: false,
+  crosshairMarkerVisible: false,
+  visible,
+  autoscaleInfoProvider: () => null,
+});
+
 export function defaultPlotPastDays(intervalDays: number): number {
   const safeInterval = Math.max(0.5, intervalDays);
   // Show 11 dosing intervals in the past window (plus predictAhead) so >10 peaks
@@ -163,52 +193,45 @@ export function defaultPlotPredictDays(intervalDays: number): number {
 // >=4 half-lives when constrained by the backend's 1-year history limit).
 export function compoundingBurnInDays(dosage: api.Dosage): number {
   const method = estrannaiseDeliveryMethod(dosage.deliveryMethod);
+  const params = PKParameters[method];
   const isPatch = deliveryMethod(dosage.deliveryMethod)?.patch;
   const wearDays = isPatch ? dosage.interval * effectiveConcurrence(dosage) : 0;
-  const fullBurnIn = Math.ceil(terminalEliminationTime3C(method) + wearDays);
+  const fullBurnIn = Math.ceil(terminalEliminationTime3C(...params) + wearDays);
   const visiblePast = Math.ceil(defaultPlotPastDays(dosage.interval));
   if (fullBurnIn + visiblePast <= 360) {
     return fullBurnIn;
   }
-  const minBurnIn = Math.ceil(terminalEliminationTime3C(method, 4) + wearDays);
+  const minBurnIn = Math.ceil(terminalEliminationTime3C(...params, 4) + wearDays);
   return Math.max(minBurnIn, 360 - visiblePast);
 }
 
 export function fillCurve(
   iv: Interval<true>,
-  f: (t: DateTime, tprev?: DateTime) => number,
+  f: (t: DateTime) => number,
   points = plotPoints(),
 ): charts.LineData<charts.UTCTimestamp>[] {
   const startMillis = iv.start.toMillis();
-  const endMillis = iv.end.toMillis();
+  const spanMillis = iv.end.toMillis() - startMillis;
   const count = Math.max(2, points);
-  const stepMillis = (endMillis - startMillis) / (count - 1);
+  const pts: charts.LineData<charts.UTCTimestamp>[] = [];
+  let lastTime = -Infinity;
 
-  let pts = new Array<ReturnType<typeof fillCurve>[number]>(count);
-  let i = 0;
+  for (let i = 0; i < count; i++) {
+    const t = DateTime.fromMillis(startMillis + (spanMillis * i) / (count - 1));
+    const time = t.toUnixInteger() as charts.UTCTimestamp;
+    if (time <= lastTime) continue;
 
-  let tprev: DateTime | undefined;
-  for (let tms = startMillis; tms <= endMillis; tms += stepMillis) {
-    const t = DateTime.fromMillis(tms);
-    const v = f(t, tprev);
-    tprev = t;
-
+    const v = f(t);
     if (!isNaN(v)) {
-      pts[i] = {
-        time: t.toUnixInteger() as charts.UTCTimestamp,
-        value: v,
-      };
+      pts.push({ time, value: v });
+      lastTime = time;
     }
-
-    i++;
   }
-
-  pts = pts.slice(0, i);
 
   return pts;
 }
 
-function curvePointsForDosage(iv: Interval<true>, dosage: api.Dosage): number {
+export function curvePointsForDosage(iv: Interval<true>, dosage: api.Dosage): number {
   const cycles = iv.length("days") / Math.max(0.5, dosage.interval);
   const perCycle = plotPreferences.plotHighDensity ? 24 : 16;
   return Math.min(1600, Math.max(plotPoints(), Math.ceil(cycles * perCycle)));
@@ -267,8 +290,10 @@ export function fillE2IdealData(
   conversionFactor: number,
   {
     takenAt,
+    timestamps,
   }: {
     takenAt?: DateTime;
+    timestamps?: DateTime[];
   } = {},
 ) {
   const offset = takenAt ? dateToX(iv.start, takenAt) : 0;
@@ -277,6 +302,13 @@ export function fillE2IdealData(
   const pkFunctions = makePKFunctions(dosage, conversionFactor);
   const pk = pkFunctions[delivery];
 
+  if (timestamps) {
+    return timestamps.map((t) => ({
+      time: t.toUnixInteger() as charts.UTCTimestamp,
+      value: pk(dateToX(iv.start, t) - offset, dosage.dose, true, dosage.interval),
+    }));
+  }
+
   return fillCurve(
     iv,
     (t) => pk(dateToX(iv.start, t) - offset, dosage.dose, true, dosage.interval),
@@ -284,13 +316,8 @@ export function fillE2IdealData(
   );
 }
 
-function makeActualEvaluator(
-  dosage: api.Dosage | undefined,
-  history: Dose[],
-  conversionFactor_: number,
-  random: boolean | number = false,
-): (tMillis: number) => number {
-  const prepared = history.map((dose) => {
+function prepareHistoryDoses(dosage: api.Dosage | undefined, history: Dose[]): PreparedDose[] {
+  return history.map((dose) => {
     const delivery = estrannaiseDeliveryMethod(dose.deliveryMethod.id);
     return {
       takenAtMillis: dose.takenAt.toMillis(),
@@ -302,10 +329,19 @@ function makeActualEvaluator(
           : undefined,
     };
   });
+}
+
+function makeActualEvaluator(
+  dosage: api.Dosage | undefined,
+  history: Dose[],
+  conversionFactor_: number,
+  random: boolean | number = false,
+): (tMillis: number) => number {
+  const prepared = prepareHistoryDoses(dosage, history);
   const pkFunctions = random
     ? PKRandomFunctions(conversionFactor_)
     : PKFunctions(conversionFactor_);
-  const randomIdx = typeof random === "number" && random > 0 ? random : undefined;
+  const randomIdx = typeof random === "number" && random >= 0 ? random : undefined;
 
   return (tMillis: number): number => {
     let sum = 0;
@@ -361,6 +397,33 @@ export function fillE2ActualData(
 ) {
   const evalAt = makeActualEvaluator(dosage, history, conversionFactor, random);
   return fillCurve(iv, (t) => evalAt(t.toMillis()), curvePointsForDosage(iv, dosage));
+}
+
+export function fillE2ActualWithUncertainty(
+  iv: Interval<true>,
+  predictedIv: Interval<true>,
+  dosage: api.Dosage,
+  history: Dose[],
+  conversionFactor: number,
+  {
+    includeUncertainty = showUncertainty(),
+  }: {
+    includeUncertainty?: boolean;
+  } = {},
+): ActualUncertaintySeries & { timestamps: DateTime[]; splitTime: charts.UTCTimestamp } {
+  const totalIv = iv.union(predictedIv) as Interval<true>;
+  const { times, splitTime } = sampleSplitTimestamps(
+    iv,
+    predictedIv,
+    curvePointsForDosage(totalIv, dosage),
+  );
+  const series = computeActualWithUncertainty({
+    timestamps: times,
+    doses: prepareHistoryDoses(dosage, history),
+    conversionFactor,
+    includeUncertainty,
+  });
+  return { ...series, timestamps: times, splitTime };
 }
 
 function sampleIdealCycle(
