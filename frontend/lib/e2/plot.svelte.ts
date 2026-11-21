@@ -109,7 +109,7 @@ export let chartOptions = (styles: PlotStyles): charts.DeepPartial<charts.ChartO
     ticksVisible: true,
     entireTextOnly: true,
     scaleMargins: {
-      top: 0.5,
+      top: 0,
       bottom: 0,
     },
   },
@@ -148,6 +148,10 @@ export let lineSeriesOptions = (): charts.DeepPartial<
       // Ensure min Y is always 0.
       scale.priceRange.minValue *= 0;
       scale.priceRange.maxValue *= 1.5;
+      // Markers add ~28px autoScaleMargins above and below, pushing 0 pg/mL
+      // up off the bottom axis. Keep just enough margin (7px >= fontSize/2)
+      // so entireTextOnly still renders "0 pg/mL" flush with the bottom.
+      scale.margins = { above: 7, below: 7 };
     }
     return scale;
   },
