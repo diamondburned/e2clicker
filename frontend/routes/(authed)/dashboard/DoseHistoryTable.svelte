@@ -246,6 +246,13 @@
   @use "sass:map";
   @use "@picocss/pico/scss/settings" as *;
 
+  .history-toolbar {
+    input,
+    button {
+      margin-bottom: 0;
+    }
+  }
+
   .search-input {
     flex: 1 1 14rem;
     max-width: 24rem;

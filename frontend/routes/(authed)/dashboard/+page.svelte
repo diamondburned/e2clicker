@@ -181,16 +181,7 @@
       </div>
 
       <article id="estrannaise-plot">
-        <div class="plot-header flex flex-wrap items-center justify-between gap-2 mb-2">
-          <h3 class="m-0">Estrogen Levels</h3>
-          <button
-            type="button"
-            class="outline secondary log-dose-btn"
-            onclick={() => openCreateDose()}
-          >
-            <Icon name="add" /> Log dose
-          </button>
-        </div>
+        <h3>Estrogen Levels</h3>
         <DosagePlot
           data={dosageData}
           oneditdose={openEditDose}
@@ -297,11 +288,6 @@
     article {
       margin-bottom: 0;
     }
-  }
-
-  .log-dose-btn {
-    padding: 0.3rem 0.7rem;
-    font-size: 0.85em;
   }
 
   #next-dose,
