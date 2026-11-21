@@ -31,13 +31,13 @@
   import LevelRange from "./LevelRange.svelte";
   import DoseHistoryTable from "./DoseHistoryTable.svelte";
   import DosagePlot from "./DosagePlot.svelte";
+  import DoseEditor from "./DoseEditor.svelte";
   import DoseInfo from "./DoseInfo.svelte";
 
   import * as e2 from "#lib/e2.svelte.ts";
   import * as api from "#lib/api.svelte.ts";
   import { Data as DosageData } from "./DosagePlot.svelte";
-  import { onMount } from "svelte";
-  import { goto } from "$app/navigation";
+  import { onMount, untrack } from "svelte";
 
   // Update this every second.
   // We'll use this just to render relative times.
@@ -68,8 +68,12 @@
 
   // Update all the information on this page
   // by updating all the time inputs.
-  const update = () => {
+  const update = (savedTakenAt?: DateTime) => {
     const t = DateTime.now();
+    if (savedTakenAt && savedTakenAt < historyInterval.start) {
+      const neededDays = Math.ceil(t.diff(savedTakenAt).as("days")) + 7;
+      historyDays = Math.min(360, Math.max(historyDays, neededDays));
+    }
     now = t;
     metricsNow = t;
     historyAnchor = t;
@@ -95,7 +99,7 @@
     const visiblePastDays = Math.ceil(e2.defaultPlotPastDays(dosage.interval));
     // Backend /api/dosage rejects ranges > 365 days; keep a 5-day buffer for clock/anchor drift.
     const needed = Math.min(360, Math.max(90, burnInDays + visiblePastDays));
-    if (needed !== historyDays) {
+    if (needed > untrack(() => historyDays)) {
       historyDays = needed;
     }
   });
@@ -145,7 +149,24 @@
       : undefined,
   );
 
-  let editingDoses = $state(false);
+  let editorOpen = $state(false);
+  let editorMode = $state<"create" | "edit">("edit");
+  let editorDose = $state<e2.Dose | undefined>(undefined);
+  let editorInitialTakenAt = $state<DateTime | undefined>(undefined);
+
+  function openEditDose(dose: e2.Dose) {
+    editorMode = "edit";
+    editorDose = dose;
+    editorInitialTakenAt = undefined;
+    editorOpen = true;
+  }
+
+  function openCreateDose(takenAt?: DateTime) {
+    editorMode = "create";
+    editorDose = undefined;
+    editorInitialTakenAt = takenAt;
+    editorOpen = true;
+  }
 </script>
 
 <svelte:head>
@@ -158,24 +179,30 @@
       <div id="next-dose">
         <NextDoseCountdown {now} {doses} onsubmit={() => update()}>
           {#snippet footer()}
-            <button
-              class="secondary outline"
-              onclick={() => {
-                editingDoses = true;
-                goto("#dose-history-anchor");
-              }}
-              disabled={editingDoses}
-            >
-              <Icon name="edit" />
-              Edit doses
+            <button type="button" class="secondary outline" onclick={() => openCreateDose()}>
+              <Icon name="add" />
+              Log past dose
             </button>
           {/snippet}
         </NextDoseCountdown>
       </div>
 
       <article id="estrannaise-plot">
-        <h3>Estrogen Levels</h3>
-        <DosagePlot data={dosageData} />
+        <div class="plot-header flex flex-wrap items-center justify-between gap-2 mb-2">
+          <h3 class="m-0">Estrogen Levels</h3>
+          <button
+            type="button"
+            class="outline secondary log-dose-btn"
+            onclick={() => openCreateDose()}
+          >
+            <Icon name="add" /> Log dose
+          </button>
+        </div>
+        <DosagePlot
+          data={dosageData}
+          oneditdose={openEditDose}
+          onlogdose={(takenAt) => openCreateDose(takenAt)}
+        />
       </article>
 
       {#if levelMetrics}
@@ -195,8 +222,24 @@
 
     <section id="dose-history" class="as-card">
       <h2>Dose History</h2>
-      <DoseHistoryTable {now} {doses} {update} bind:editingDoses />
+      <DoseHistoryTable
+        {now}
+        {doses}
+        {update}
+        oneditdose={openEditDose}
+        onlogdose={() => openCreateDose()}
+      />
     </section>
+
+    <DoseEditor
+      bind:open={editorOpen}
+      mode={editorMode}
+      dose={editorDose}
+      initialTakenAt={editorInitialTakenAt}
+      {doses}
+      {update}
+      onselectdose={openEditDose}
+    />
   {:else}
     <section id="setup-required" class="w-fit mx-auto">
       <h2>Further setup required</h2>
@@ -261,6 +304,11 @@
     article {
       margin-bottom: 0;
     }
+  }
+
+  .log-dose-btn {
+    padding: 0.3rem 0.7rem;
+    font-size: 0.85em;
   }
 
   #next-dose,

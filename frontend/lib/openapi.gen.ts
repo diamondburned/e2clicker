@@ -223,14 +223,23 @@ export function clearDosage(opts?: Oazapfts.RequestOpts) {
  * Record a new dosage to the user's history
  */
 export function recordDose(body: {
+    /** Optional delivery method override. Required if the user has no dosage schedule configured. */
+    deliveryMethod?: string;
+    /** Optional dosage amount override. Required if the user has no dosage schedule configured. */
+    dose?: number;
     /** The time the dosage was taken. If not provided, the current time is used. */
     takenAt?: string;
+    /** The time the dosage was taken off. This is only relevant for patch delivery methods. */
+    takenOffAt?: string;
     /** An optional comment about the dosage. */
     comment?: string;
 }, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
         data: Dose;
+    } | {
+        status: number;
+        data: Error;
     }>("/dosage/dose", oazapfts.json({
         ...opts,
         method: "POST",

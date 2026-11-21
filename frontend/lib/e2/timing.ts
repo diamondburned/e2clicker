@@ -77,13 +77,23 @@ export function roundDuration(
   return duration.shiftTo(allowDecimals ? keys[0] : keys[keys.length - 1]);
 }
 
-// Format the given dose time for display. The returned string will be quite
-// long.
+// Format the given dose time for display relative to `now` (e.g. "2 hours ago",
+// "just now", or "in 15 minutes").
 export function formatDoseTime(dose: Pick<Dose, "takenAt">, now = DateTime.now()): string {
-  const diffSeconds = Math.max(0, Math.floor(now.diff(dose.takenAt).as("seconds")));
-  return formatDuration(
+  const diffSeconds = Math.floor(now.diff(dose.takenAt).as("seconds"));
+  if (Math.abs(diffSeconds) < 60) {
+    return "just now";
+  }
+  if (diffSeconds < 0) {
+    const formatted = formatDuration(
+      durationTrimLower(Duration.fromObject({ seconds: -diffSeconds }).rescale(), 2),
+    );
+    return `in ${formatted}`;
+  }
+  const formatted = formatDuration(
     durationTrimLower(Duration.fromObject({ seconds: diffSeconds }).rescale(), 2),
   );
+  return `${formatted} ago`;
 }
 
 // Format a future target timestamp relative to `from` as a short ETA string

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"math"
 	"net/http"
 	"slices"
 	"time"
@@ -170,19 +171,45 @@ func (h *openAPIHandler) DeliveryMethods(ctx context.Context, request openapi.De
 	), nil
 }
 
+func (h *openAPIHandler) validateDeliveryMethod(ctx context.Context, id string) error {
+	methods, err := h.dosage.DeliveryMethods(ctx)
+	if err != nil {
+		return err
+	}
+	if !slices.ContainsFunc(methods, func(m dosage.DeliveryMethod) bool {
+		return m.ID == id
+	}) {
+		return publicerrors.Errorf("invalid delivery method %q", id)
+	}
+	return nil
+}
+
+func (h *openAPIHandler) validateDose(ctx context.Context, dose dosage.Dose) error {
+	if err := h.validateDeliveryMethod(ctx, dose.DeliveryMethod); err != nil {
+		return err
+	}
+	d64 := float64(dose.Dose)
+	if math.IsNaN(d64) || math.IsInf(d64, 0) || dose.Dose <= 0 {
+		return publicerrors.New("dose must be greater than 0")
+	}
+	if dose.TakenOffAt != nil && dose.TakenOffAt.Before(dose.TakenAt) {
+		return publicerrors.New("takenOffAt cannot be before takenAt")
+	}
+	return nil
+}
+
 func (h *openAPIHandler) SetDosage(ctx context.Context, request openapi.SetDosageRequestObject) (openapi.SetDosageResponseObject, error) {
 	session := sessionFromCtx(ctx)
 
-	methods, err := h.dosage.DeliveryMethods(ctx)
-	if err != nil {
+	s := *(*dosageapi.Dosage)(request.Body)
+	if err := h.validateDeliveryMethod(ctx, s.DeliveryMethod); err != nil {
 		return nil, err
 	}
-
-	s := *(*dosageapi.Dosage)(request.Body)
-	if !slices.ContainsFunc(methods, func(m dosage.DeliveryMethod) bool {
-		return m.ID == s.DeliveryMethod
-	}) {
-		return nil, publicerrors.Errorf("invalid delivery method %q", s.DeliveryMethod)
+	if d64 := float64(s.Dose); math.IsNaN(d64) || math.IsInf(d64, 0) || s.Dose <= 0 {
+		return nil, publicerrors.New("dose must be greater than 0")
+	}
+	if i64 := float64(s.Interval); math.IsNaN(i64) || math.IsInf(i64, 0) || s.Interval <= 0 {
+		return nil, publicerrors.New("interval must be greater than 0")
 	}
 
 	if err := h.dosage.SetDosage(ctx, session.UserSecret, s); err != nil {
@@ -205,19 +232,42 @@ func (h *openAPIHandler) RecordDose(ctx context.Context, request openapi.RecordD
 
 	now := time.Now().Truncate(time.Second)
 
-	d, err := h.dosage.Dosage(ctx, session.UserSecret)
-	if err != nil {
-		return nil, err
+	var (
+		deliveryMethod string
+		doseAmount     float32
+	)
+	if request.Body.DeliveryMethod != nil {
+		deliveryMethod = *request.Body.DeliveryMethod
 	}
-	if d == nil {
-		return nil, publicerrors.New("no dosage set")
+	if request.Body.Dose != nil {
+		doseAmount = *request.Body.Dose
+	}
+
+	if request.Body.DeliveryMethod == nil || request.Body.Dose == nil {
+		d, err := h.dosage.Dosage(ctx, session.UserSecret)
+		if err != nil {
+			return nil, err
+		}
+		if d == nil {
+			return nil, publicerrors.New("no dosage set")
+		}
+		if request.Body.DeliveryMethod == nil {
+			deliveryMethod = d.DeliveryMethod
+		}
+		if request.Body.Dose == nil {
+			doseAmount = d.Dose
+		}
 	}
 
 	dose := dosage.Dose{
-		DeliveryMethod: d.DeliveryMethod,
-		Dose:           d.Dose,
+		DeliveryMethod: deliveryMethod,
+		Dose:           doseAmount,
 		TakenAt:        ptr.DerefOr(request.Body.TakenAt, now),
+		TakenOffAt:     request.Body.TakenOffAt,
 		Comment:        ptr.Deref(request.Body.Comment),
+	}
+	if err := h.validateDose(ctx, dose); err != nil {
+		return nil, err
 	}
 
 	recorded, err := h.doseHistory.RecordDose(ctx, session.UserSecret, dose)
@@ -237,6 +287,9 @@ func (h *openAPIHandler) EditDose(ctx context.Context, request openapi.EditDoseR
 		TakenAt:        request.Body.TakenAt,
 		TakenOffAt:     request.Body.TakenOffAt,
 		Comment:        ptr.Deref(request.Body.Comment),
+	}
+	if err := h.validateDose(ctx, o); err != nil {
+		return nil, err
 	}
 
 	if err := h.doseHistory.EditDose(ctx, session.UserSecret, uuid.UUID(request.DoseID), o); err != nil {

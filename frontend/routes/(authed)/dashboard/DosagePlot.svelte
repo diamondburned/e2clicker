@@ -122,13 +122,18 @@
 
   import * as api from "#lib/api.ts";
   import { createChart, LineStyle, LastPriceAnimationMode } from "lightweight-charts";
+  import { DateTime } from "luxon";
   import { untrack } from "svelte";
   import { fade } from "svelte/transition";
 
   let {
     data,
+    oneditdose,
+    onlogdose,
   }: {
     data: Data;
+    oneditdose?: (dose: e2.Dose) => void;
+    onlogdose?: (takenAt: DateTime) => void;
   } = $props();
 
   let plotDiv = $state<HTMLDivElement | null>(null);
@@ -138,6 +143,109 @@
 
   let plotTooltipDiv: HTMLDivElement | null = null;
   let plotTooltip = $state<e2.PlotTooltipData | null>(null);
+  let hoveredDoseId: string | undefined = undefined;
+  let isMarkerHovered = $state(false);
+
+  let updatingChart = false;
+  let pendingMarkerFrame: number | undefined = undefined;
+  let initializedRange = false;
+  let lastIntervalDays: number | undefined = undefined;
+
+  function applyMarkers(
+    currentLevelSeries: charts.ISeriesApi<"Line", charts.UTCTimestamp>,
+    targetData: Data,
+    targetStyles: e2.PlotStyles,
+    activeDoseId: string | undefined,
+  ) {
+    const prevUpdating = updatingChart;
+    updatingChart = true;
+    try {
+      currentLevelSeries.setMarkers(
+        targetData.history
+          .filter(
+            (dose) =>
+              dose.takenAt >= targetData.interval.start && dose.takenAt <= targetData.interval.end,
+          )
+          .map((dose) => {
+            const isHovered = activeDoseId === dose.id;
+            return {
+              id: dose.id,
+              time: dose.takenAt.toUnixInteger() as charts.UTCTimestamp,
+              position: "belowBar" as const,
+              color: isHovered ? targetStyles.secondary : targetStyles.primary,
+              shape: "arrowUp" as const,
+              size: isHovered ? 1.5 : 1,
+            };
+          }),
+      );
+    } finally {
+      updatingChart = prevUpdating;
+    }
+  }
+
+  function snapToActualData(
+    actualData: charts.LineData<charts.UTCTimestamp>[],
+    targetUnix: number,
+  ): charts.LineData<charts.UTCTimestamp> | undefined {
+    if (actualData.length === 0) return undefined;
+    let lo = 0;
+    let hi = actualData.length - 1;
+    if (targetUnix <= actualData[0].time) return actualData[0];
+    while (lo < hi) {
+      const mid = (lo + hi + 1) >> 1;
+      if (actualData[mid].time <= targetUnix) {
+        lo = mid;
+      } else {
+        hi = mid - 1;
+      }
+    }
+    return actualData[lo];
+  }
+
+  function findNearestMarkerDose(
+    activeChart: charts.IChartApi,
+    currentLevelSeries: charts.ISeriesApi<"Line", charts.UTCTimestamp>,
+    point: { x: number; y: number },
+    hoveredObjectId: unknown,
+  ): e2.Dose | undefined {
+    const visibleDoses = data.history.filter(
+      (dose) => dose.takenAt >= data.interval.start && dose.takenAt <= data.interval.end,
+    );
+    if (visibleDoses.length === 0) return undefined;
+
+    if (typeof hoveredObjectId === "string") {
+      const direct = visibleDoses.find((dose) => dose.id === hoveredObjectId);
+      if (direct) return direct;
+    }
+
+    const actualData = data.actualData;
+    if (actualData.length === 0) return undefined;
+
+    const maxDistPx = 22;
+    let bestDose: e2.Dose | undefined;
+    let bestDist = Infinity;
+
+    for (const dose of visibleDoses) {
+      const snapped = snapToActualData(actualData, dose.takenAt.toUnixInteger());
+      if (!snapped) continue;
+
+      const x = activeChart.timeScale().timeToCoordinate(snapped.time);
+      const lineY = currentLevelSeries.priceToCoordinate(snapped.value);
+      if (x === null || lineY === null) continue;
+
+      // belowBar arrowUp markers sit slightly below the curve coordinate.
+      const dist = Math.min(
+        Math.hypot(point.x - x, point.y - lineY),
+        Math.hypot(point.x - x, point.y - (lineY + 14)),
+      );
+      if (dist <= maxDistPx && dist < bestDist) {
+        bestDist = dist;
+        bestDose = dose;
+      }
+    }
+
+    return bestDose;
+  }
 
   let chart = $derived.by(() => {
     if (!plotDiv) {
@@ -228,6 +336,8 @@
       predictedUpper.attachPrimitive(predictedBand);
 
       chart.subscribeCrosshairMove((ev) => {
+        if (updatingChart) return;
+
         const idealData = e2.lineDataFromSeriesData(ev.seriesData, idealLevel);
         const actualData = e2.lineDataFromSeriesData(ev.seriesData, currentLevel);
         const predictedData = e2.lineDataFromSeriesData(ev.seriesData, currentLevelPrediction);
@@ -245,19 +355,68 @@
           ? e2.lineDataFromSeriesData(ev.seriesData, predictedUpper)
           : undefined;
 
-        plotTooltip = e2.renderPlotTooltip(plotTooltip, ev, plotDiv, plotTooltipDiv, [
-          { name: "Ideal", value: idealData?.value ?? NaN },
-          {
-            name: "Current",
-            value: actualData?.value ?? NaN,
-            range: actualP05 && actualP95 ? [actualP05.value, actualP95.value] : undefined,
-          },
-          {
-            name: "Predicted",
-            value: predictedData?.value ?? NaN,
-            range: !actualData && predP05 && predP95 ? [predP05.value, predP95.value] : undefined,
-          },
-        ]);
+        const matchedDose = ev.point
+          ? findNearestMarkerDose(chart, currentLevel, ev.point, ev.hoveredObjectId)
+          : undefined;
+        const nextDoseId = matchedDose?.id;
+        if (nextDoseId !== hoveredDoseId) {
+          hoveredDoseId = nextDoseId;
+          isMarkerHovered = nextDoseId !== undefined;
+          if (pendingMarkerFrame !== undefined) {
+            cancelAnimationFrame(pendingMarkerFrame);
+          }
+          pendingMarkerFrame = requestAnimationFrame(() => {
+            pendingMarkerFrame = undefined;
+            applyMarkers(currentLevel, data, styles, hoveredDoseId);
+          });
+        }
+
+        const hint = matchedDose
+          ? `Click to edit (${matchedDose.dose} ${matchedDose.deliveryMethod.units})`
+          : undefined;
+
+        plotTooltip = e2.renderPlotTooltip(
+          plotTooltip,
+          ev,
+          plotDiv,
+          plotTooltipDiv,
+          [
+            { name: "Ideal", value: idealData?.value ?? NaN },
+            {
+              name: "Current",
+              value: actualData?.value ?? NaN,
+              range: actualP05 && actualP95 ? [actualP05.value, actualP95.value] : undefined,
+            },
+            {
+              name: "Predicted",
+              value: predictedData?.value ?? NaN,
+              range: !actualData && predP05 && predP95 ? [predP05.value, predP95.value] : undefined,
+            },
+          ],
+          hint,
+        );
+      });
+
+      chart.subscribeClick((ev) => {
+        if (!ev.point) return;
+
+        const matchedDose = findNearestMarkerDose(
+          chart,
+          currentLevel,
+          ev.point,
+          ev.hoveredObjectId,
+        );
+        if (matchedDose) {
+          oneditdose?.(matchedDose);
+          return;
+        }
+
+        if (ev.sourceEvent?.shiftKey) {
+          const clickedTime = chart.timeScale().coordinateToTime(ev.point.x);
+          if (typeof clickedTime === "number") {
+            onlogdose?.(DateTime.fromSeconds(clickedTime));
+          }
+        }
       });
 
       return Object.assign(chart, {
@@ -279,7 +438,21 @@
 
   $effect(() => {
     const c = chart;
-    return () => c?.remove();
+    return () => {
+      if (pendingMarkerFrame !== undefined) {
+        cancelAnimationFrame(pendingMarkerFrame);
+        pendingMarkerFrame = undefined;
+      }
+      c?.remove();
+    };
+  });
+
+  // Enable high-density mode for larger plots without creating a data-effect feedback loop.
+  $effect(() => {
+    const high = plotWidth > 512;
+    if (untrack(() => e2.plotPreferences.plotHighDensity) !== high) {
+      e2.plotPreferences.plotHighDensity = high;
+    }
   });
 
   // Watch changes to styling.
@@ -328,52 +501,55 @@
       return;
     }
 
-    // Enable high-density mode for larger plots.
-    e2.plotPreferences.plotHighDensity = plotWidth > 512;
+    updatingChart = true;
+    try {
+      chart.wpathFake.setData([
+        { time: data.interval.start.toUnixInteger() as charts.UTCTimestamp },
+        { time: data.interval.end.toUnixInteger() as charts.UTCTimestamp },
+      ]);
+      chart.wpathLower.applyOptions({ price: data.wpathRange.lower });
+      chart.wpathUpper.applyOptions({ price: data.wpathRange.upper });
 
-    chart.wpathFake.setData([
-      { time: data.interval.start.toUnixInteger() as charts.UTCTimestamp },
-      { time: data.interval.end.toUnixInteger() as charts.UTCTimestamp },
-    ]);
-    chart.wpathLower.applyOptions({ price: data.wpathRange.lower });
-    chart.wpathUpper.applyOptions({ price: data.wpathRange.upper });
+      chart.idealLevel.setData(data.idealData);
+      chart.currentLevel.setData(data.actualData);
+      chart.currentLevelPrediction.setData(data.actualPredictionData);
+      chart.actualLower.setData(data.actualP05Data);
+      chart.actualUpper.setData(data.actualP95Data);
+      chart.actualBand.setData(data.actualP05Data, data.actualP95Data);
+      chart.predictedLower.setData(data.predictedP05Data);
+      chart.predictedUpper.setData(data.predictedP95Data);
+      chart.predictedBand.setData(data.predictedP05Data, data.predictedP95Data);
 
-    chart.idealLevel.setData(data.idealData);
-    chart.currentLevel.setData(data.actualData);
-    chart.currentLevelPrediction.setData(data.actualPredictionData);
-    chart.actualLower.setData(data.actualP05Data);
-    chart.actualUpper.setData(data.actualP95Data);
-    chart.actualBand.setData(data.actualP05Data, data.actualP95Data);
-    chart.predictedLower.setData(data.predictedP05Data);
-    chart.predictedUpper.setData(data.predictedP95Data);
-    chart.predictedBand.setData(data.predictedP05Data, data.predictedP95Data);
+      applyMarkers(chart.currentLevel, data, styles, hoveredDoseId);
 
-    chart.currentLevel.setMarkers(
-      data.history
-        .filter((dose) => dose.takenAt >= data.interval.start && dose.takenAt <= data.interval.end)
-        .map((dose) => ({
-          time: dose.takenAt.toUnixInteger() as charts.UTCTimestamp,
-          position: "belowBar",
-          color: styles.primary,
-          shape: "arrowUp",
-        })),
-    );
+      const intervalDays = data.dosage?.interval;
+      if (!initializedRange || intervalDays !== lastIntervalDays) {
+        const pastDays = data.dosage ? e2.defaultPlotPastDays(data.dosage.interval) : 14;
+        const desiredFrom = data.interval.end.minus({
+          milliseconds: Math.round(pastDays * 86_400_000),
+        });
+        const visibleFrom = desiredFrom < data.interval.start ? data.interval.start : desiredFrom;
 
-    const pastDays = data.dosage ? e2.defaultPlotPastDays(data.dosage.interval) : 14;
-    const desiredFrom = data.interval.end.minus({
-      milliseconds: Math.round(pastDays * 86_400_000),
-    });
-    const visibleFrom = desiredFrom < data.interval.start ? data.interval.start : desiredFrom;
-
-    chart.timeScale().setVisibleRange({
-      from: visibleFrom.toUnixInteger() as charts.UTCTimestamp,
-      to: data.predictedInterval!.end.toUnixInteger() as charts.UTCTimestamp,
-    });
+        chart.timeScale().setVisibleRange({
+          from: visibleFrom.toUnixInteger() as charts.UTCTimestamp,
+          to: data.predictedInterval!.end.toUnixInteger() as charts.UTCTimestamp,
+        });
+        initializedRange = true;
+        lastIntervalDays = intervalDays;
+      }
+    } finally {
+      updatingChart = false;
+    }
   });
 </script>
 
 <div class="estrannaise spaced">
-  <div class="estrannaise-plot" bind:this={plotDiv} bind:clientWidth={plotWidth}>
+  <div
+    class="estrannaise-plot"
+    class:clickable={isMarkerHovered}
+    bind:this={plotDiv}
+    bind:clientWidth={plotWidth}
+  >
     <div
       class="estrannaise-plot-tooltip-container"
       style="top: {plotTooltip?.top ?? 0}px; left: {plotTooltip?.left ?? 0}px"
@@ -413,6 +589,9 @@
               </li>
             {/each}
           </ul>
+          {#if plotTooltip.hint}
+            <p class="tooltip-hint">{plotTooltip.hint}</p>
+          {/if}
         </div>
       {/if}
     </div>
@@ -455,6 +634,10 @@
 
     height: clamp(250px, 20vh, 500px);
     position: relative;
+
+    &.clickable {
+      cursor: pointer;
+    }
 
     // Reset pico.css' table styling.
     :global {
@@ -515,6 +698,15 @@
         opacity: 0.85;
         white-space: nowrap;
       }
+    }
+
+    .tooltip-hint {
+      margin: calc(var(--pico-spacing) / 3) 0 0;
+      padding-top: calc(var(--pico-spacing) / 4);
+      border-top: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+      font-size: 0.8em;
+      opacity: 0.9;
+      text-align: center;
     }
   }
 

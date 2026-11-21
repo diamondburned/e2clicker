@@ -7,6 +7,7 @@ export type PlotTooltipData = {
   top: number;
   time: DateTime;
   data: { name: string; value: string; range?: string }[];
+  hint?: string;
   visible?: boolean;
 };
 
@@ -30,6 +31,7 @@ export function renderPlotTooltip(
   plotDiv: HTMLDivElement | null,
   plotTooltipDiv: HTMLDivElement | null,
   acceptedData: (AcceptablePlotTooltipData[number] | undefined)[],
+  hint?: string,
 ): PlotTooltipData | null {
   if (!plotDiv || !plotTooltipDiv || !ev.point || !ev.time || !ptInElement(ev.point, plotDiv)) {
     if (!oldData) {
@@ -79,6 +81,7 @@ export function renderPlotTooltip(
     top,
     time,
     data,
+    hint,
     visible: data.length > 0,
   };
 }

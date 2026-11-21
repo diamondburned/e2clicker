@@ -2,7 +2,7 @@ import type * as api from "#lib/api.ts";
 import type { LineData, UTCTimestamp } from "lightweight-charts";
 import { DateTime, Interval } from "luxon";
 import { fillTargetRange } from "estrannaise/src/models";
-import { deliveryMethod } from "./methods.svelte";
+import { deliveryMethod, type DeliveryMethod } from "./methods.svelte";
 
 // style variables used in the plot.
 export const picoVariables = {
@@ -18,10 +18,70 @@ export type PlotStyles = {
   [key in keyof typeof picoVariables]: string;
 };
 
+let colorNormalizeCtx: CanvasRenderingContext2D | null | undefined;
+
+export function normalizeCssColor(cssColor: string): string {
+  const c = cssColor.trim();
+  if (!c) return "";
+
+  const hex = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(c);
+  if (hex) {
+    return c;
+  }
+
+  // Standard 0..255 comma-separated rgb/rgba is already supported by lightweight-charts.
+  if (
+    /^rgba?\(\s*\d+(?:\.\d+)?\s*,\s*\d+(?:\.\d+)?\s*,\s*\d+(?:\.\d+)?(?:\s*,\s*[\d.]+)?\s*\)$/i.test(
+      c,
+    )
+  ) {
+    return c;
+  }
+
+  // Convert percentage rgb(r%, g%, b%) / rgba(r%, g%, b%, a) (with commas or spaces).
+  const pctMatch =
+    /^rgba?\(\s*([\d.]+)%\s*[,\s]\s*([\d.]+)%\s*[,\s]\s*([\d.]+)%(?:\s*[,/]\s*([\d.]+%?))?\s*\)$/i.exec(
+      c,
+    );
+  if (pctMatch) {
+    const r = Math.round((parseFloat(pctMatch[1]) / 100) * 255);
+    const g = Math.round((parseFloat(pctMatch[2]) / 100) * 255);
+    const b = Math.round((parseFloat(pctMatch[3]) / 100) * 255);
+    if (pctMatch[4] !== undefined) {
+      const a = pctMatch[4].endsWith("%") ? parseFloat(pctMatch[4]) / 100 : parseFloat(pctMatch[4]);
+      return `rgba(${r}, ${g}, ${b}, ${a})`;
+    }
+    return `rgb(${r}, ${g}, ${b})`;
+  }
+
+  // Fallback to Canvas 2D color normalization for CSS Color 4 formats (space rgb, oklch, hsl, etc.).
+  if (typeof document !== "undefined") {
+    if (colorNormalizeCtx === undefined) {
+      const canvas = document.createElement("canvas");
+      canvas.width = 1;
+      canvas.height = 1;
+      colorNormalizeCtx = canvas.getContext("2d");
+    }
+    if (colorNormalizeCtx) {
+      colorNormalizeCtx.fillStyle = "#000000";
+      colorNormalizeCtx.fillStyle = c;
+      const normalized = colorNormalizeCtx.fillStyle;
+      if (typeof normalized === "string" && normalized) {
+        return normalized;
+      }
+    }
+  }
+
+  return c;
+}
+
 export function gatherStyles(element: HTMLElement | null): PlotStyles {
   if (element) {
     const styles = getComputedStyle(element);
-    return mapValues(picoVariables, (_, variable) => styles.getPropertyValue(variable));
+    return mapValues(picoVariables, (key, variable) => {
+      const raw = styles.getPropertyValue(variable);
+      return key === "fontFamily" ? raw : normalizeCssColor(raw);
+    });
   } else {
     return mapValues(picoVariables, () => "");
   }
@@ -49,7 +109,8 @@ export function wpathRange(conversionFactor: number): {
 }
 
 export function withAlpha(cssColor: string, alpha: number): string {
-  const c = cssColor.trim();
+  const c = normalizeCssColor(cssColor);
+  if (!c) return "";
   const hex = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(c);
   if (hex) {
     let digits = hex[1];
@@ -79,7 +140,7 @@ export function dataWithinInterval(
 }
 
 export type Dose = Omit<api.Dose, "deliveryMethod" | "takenAt" | "takenOffAt"> & {
-  deliveryMethod: api.DeliveryMethod;
+  deliveryMethod: DeliveryMethod;
   takenAt: DateTime<true>;
   takenOffAt?: DateTime<true>;
 };

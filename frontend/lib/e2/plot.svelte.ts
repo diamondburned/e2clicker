@@ -288,9 +288,11 @@ export function fillE2IdealData(
   {
     takenAt,
     timestamps,
+    points,
   }: {
     takenAt?: DateTime;
     timestamps?: DateTime[];
+    points?: number;
   } = {},
 ) {
   const offset = takenAt ? dateToX(iv.start, takenAt) : 0;
@@ -309,7 +311,7 @@ export function fillE2IdealData(
   return fillCurve(
     iv,
     (t) => pk(dateToX(iv.start, t) - offset, dosage.dose, true, dosage.interval),
-    curvePointsForDosage(iv, dosage),
+    points ?? curvePointsForDosage(iv, dosage),
   );
 }
 
@@ -383,17 +385,20 @@ export function evalActualE2(
 // fillE2ActualData fills a curve with E2 data from the given dosage observations.
 export function fillE2ActualData(
   iv: Interval<true>,
-  dosage: api.Dosage,
+  dosage: api.Dosage | undefined,
   history: Dose[],
   conversionFactor: number,
   {
     random = false,
+    points,
   }: {
     random?: boolean | number;
+    points?: number;
   } = {},
 ) {
   const evalAt = makeActualEvaluator(dosage, history, conversionFactor, random);
-  return fillCurve(iv, (t) => evalAt(t.toMillis()), curvePointsForDosage(iv, dosage));
+  const count = points ?? (dosage ? curvePointsForDosage(iv, dosage) : plotPoints());
+  return fillCurve(iv, (t) => evalAt(t.toMillis()), count);
 }
 
 export function fillE2ActualWithUncertainty(
@@ -423,7 +428,7 @@ export function fillE2ActualWithUncertainty(
   return { ...series, timestamps: times, splitTime };
 }
 
-function sampleIdealCycle(
+export function sampleIdealCycle(
   dosage: api.Dosage,
   conversionFactor_ = 1.0,
   samples = 120,

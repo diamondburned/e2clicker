@@ -220,13 +220,16 @@ bearerAuth
 
 `POST /dosage/dose`
 
-This endpoint is used to record a new dosage observation to the user's history. The current time is automatically used.
+This endpoint is used to record a new dosage observation to the user's history. Omitted fields default to the user's current dosage schedule and the current time.
 
 > Body parameter
 
 ```json
 {
+  "deliveryMethod": "string",
+  "dose": 0.1,
   "takenAt": "2019-08-24T14:15:22Z",
+  "takenOffAt": "2019-08-24T14:15:22Z",
   "comment": "string"
 }
 ```
@@ -257,6 +260,7 @@ This endpoint is used to record a new dosage observation to the user's history. 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
 |200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Successfully recorded dosage.|[Dose](#schemadose)|
+|default|Default|The request is invalid.|[Error](#schemaerror)|
 
 <aside class="warning">
 To perform this operation, you must be authenticated by means of one of the following methods:

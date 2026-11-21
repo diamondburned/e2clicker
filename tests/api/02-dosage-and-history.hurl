@@ -216,6 +216,66 @@ DELETE {{base_url}}/api/dosage
 Authorization: Bearer {{token}}
 HTTP 204
 
+# Record a custom dose without any dosage schedule configured
+POST {{base_url}}/api/dosage/dose
+Authorization: Bearer {{token}}
+Content-Type: application/json
+{
+  "deliveryMethod": "patch tw",
+  "dose": 100,
+  "takenAt": "2025-01-21T08:00:00Z",
+  "takenOffAt": "2025-01-24T20:00:00Z",
+  "comment": "custom no-schedule patch"
+}
+HTTP 200
+[Captures]
+custom_dose_id: jsonpath "$.id"
+[Asserts]
+jsonpath "$.deliveryMethod" == "patch tw"
+jsonpath "$.dose" == 100
+jsonpath "$.takenAt" == "2025-01-21T08:00:00Z"
+jsonpath "$.takenOffAt" == "2025-01-24T20:00:00Z"
+jsonpath "$.comment" == "custom no-schedule patch"
+
+# Recording without overrides while no schedule exists returns 400
+POST {{base_url}}/api/dosage/dose
+Authorization: Bearer {{token}}
+Content-Type: application/json
+{}
+HTTP 400
+
+# Invalid EditDose inputs (unknown method, non-positive dose, takenOffAt < takenAt) return 400
+PUT {{base_url}}/api/dosage/dose/{{custom_dose_id}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+{
+  "deliveryMethod": "not-a-real-method",
+  "dose": 100,
+  "takenAt": "2025-01-21T08:00:00Z"
+}
+HTTP 400
+
+PUT {{base_url}}/api/dosage/dose/{{custom_dose_id}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+{
+  "deliveryMethod": "patch tw",
+  "dose": 0,
+  "takenAt": "2025-01-21T08:00:00Z"
+}
+HTTP 400
+
+PUT {{base_url}}/api/dosage/dose/{{custom_dose_id}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+{
+  "deliveryMethod": "patch tw",
+  "dose": 100,
+  "takenAt": "2025-01-21T08:00:00Z",
+  "takenOffAt": "2025-01-21T07:00:00Z"
+}
+HTTP 400
+
 # Second user to verify estrannaise CSV import rejection without hitting import rate limit
 POST {{base_url}}/api/register
 Content-Type: application/json

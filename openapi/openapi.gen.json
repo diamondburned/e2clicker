@@ -148,7 +148,7 @@
       "post": {
         "summary": "Record a new dosage to the user's history",
         "operationId": "recordDose",
-        "description": "This endpoint is used to record a new dosage observation to the user's history. The current time is automatically used.",
+        "description": "This endpoint is used to record a new dosage observation to the user's history. Omitted fields default to the user's current dosage schedule and the current time.",
         "requestBody": {
           "required": true,
           "content": {
@@ -156,10 +156,24 @@
               "schema": {
                 "description": "The dosage observation to record.",
                 "properties": {
+                  "deliveryMethod": {
+                    "type": "string",
+                    "description": "Optional delivery method override. Required if the user has no dosage schedule configured."
+                  },
+                  "dose": {
+                    "type": "number",
+                    "format": "float",
+                    "description": "Optional dosage amount override. Required if the user has no dosage schedule configured."
+                  },
                   "takenAt": {
                     "type": "string",
                     "format": "date-time",
                     "description": "The time the dosage was taken. If not provided, the current time is used."
+                  },
+                  "takenOffAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "The time the dosage was taken off. This is only relevant for patch delivery methods."
                   },
                   "comment": {
                     "type": "string",
@@ -180,6 +194,9 @@
                 }
               }
             }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
           }
         },
         "tags": [

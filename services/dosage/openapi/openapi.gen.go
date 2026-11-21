@@ -186,8 +186,17 @@ type RecordDoseJSONBody struct {
 	// Comment An optional comment about the dosage.
 	Comment *string `json:"comment,omitempty"`
 
+	// DeliveryMethod Optional delivery method override. Required if the user has no dosage schedule configured.
+	DeliveryMethod *string `json:"deliveryMethod,omitempty"`
+
+	// Dose Optional dosage amount override. Required if the user has no dosage schedule configured.
+	Dose *float32 `json:"dose,omitempty"`
+
 	// TakenAt The time the dosage was taken. If not provided, the current time is used.
 	TakenAt *time.Time `json:"takenAt,omitempty"`
+
+	// TakenOffAt The time the dosage was taken off. This is only relevant for patch delivery methods.
+	TakenOffAt *time.Time `json:"takenOffAt,omitempty"`
 }
 
 // ExportDosesParams defines parameters for ExportDoses.

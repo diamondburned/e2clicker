@@ -3,6 +3,7 @@
   import PreferenceGroup from "#lib/components/preference/PreferenceGroup.svelte";
   import InputDays from "#lib/components/inputs/InputDays.svelte";
   import InputQuantity from "#lib/components/inputs/InputQuantity.svelte";
+  import LevelsPreview from "#lib/components/LevelsPreview.svelte";
 
   import * as api from "#lib/api.svelte.ts";
   import * as e2 from "#lib/e2.svelte.ts";
@@ -40,7 +41,12 @@
   );
 
   let dosageIsValid = $derived(
-    !!dosage && !!dosage.deliveryMethod && !!dosage.dose && !!dosage.interval,
+    !!dosage &&
+      !!dosage.deliveryMethod &&
+      !!dosage.dose &&
+      dosage.dose > 0 &&
+      !!dosage.interval &&
+      dosage.interval > 0,
   );
 
   let setDosage = new api.AsyncToOK(api.discard(api.setDosage), {
@@ -186,4 +192,13 @@
       placeholder="8 hours"
     />
   </PreferenceItem>
+
+  {#if dosage && dosageIsValid && deliveryMethod}
+    <article
+      class="dosage-levels-preview m-0"
+      transition:slide={{ duration: 250, axis: "y", easing: sineInOut }}
+    >
+      <LevelsPreview mode="steady" dosage={dosage as api.Dosage} />
+    </article>
+  {/if}
 </PreferenceGroup>

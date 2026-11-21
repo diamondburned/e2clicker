@@ -55,6 +55,11 @@
   .dialog {
     position: relative;
 
+    &.wide {
+      max-width: 44rem;
+      width: 100%;
+    }
+
     & > :global(header) {
       --pico-block-spacing-vertical: var(--pico-spacing);
 
