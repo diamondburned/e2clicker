@@ -104,7 +104,7 @@
     {/key}
   </div>
 
-  <footer class="actions min-h-12 flex flex-row flex-wrap justify-center gap-2">
+  <footer class="actions min-h-12 flex flex-row flex-wrap items-center justify-center gap-2">
     <button
       class:outline={!isTimeForNextDose}
       onclick={() => submitDose()}

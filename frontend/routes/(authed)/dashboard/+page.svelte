@@ -177,14 +177,7 @@
   {#if doses?.dosage}
     <section class="dashboard-grid">
       <div id="next-dose">
-        <NextDoseCountdown {now} {doses} onsubmit={() => update()}>
-          {#snippet footer()}
-            <button type="button" class="secondary outline" onclick={() => openCreateDose()}>
-              <Icon name="add" />
-              Log past dose
-            </button>
-          {/snippet}
-        </NextDoseCountdown>
+        <NextDoseCountdown {now} {doses} onsubmit={() => update()} />
       </div>
 
       <article id="estrannaise-plot">
