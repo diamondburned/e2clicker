@@ -202,3 +202,10 @@
     </article>
   {/if}
 </PreferenceGroup>
+
+<style lang="scss">
+  .dosage-levels-preview {
+    background-color: var(--pico-background-color);
+    border: var(--pico-border-width) solid var(--pico-muted-border-color);
+  }
+</style>

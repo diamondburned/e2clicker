@@ -174,6 +174,7 @@
         if (scale != null) {
           scale.priceRange.minValue = 0;
           scale.priceRange.maxValue *= 1.15;
+          scale.margins = { above: 7, below: 7 };
         }
         return scale;
       },
